@@ -60,14 +60,17 @@ public class MyConfig {
 	
 	public static class Server {
 
-
 		public final IntValue     debugLevel;
 		public final ConfigValue<String> defaultRegrowthMobsActual;
-		// mod:mob,type(eat,grow,both,tall),%;
+		// mod:mob,type(eat,cut,grow,both,tall),%;
 		public final String defaultRegrowthMobs6464 = 
-				  "minecraft:cow,both,1.9;"
-				+ "minecraft:creeper,tall,1.1;"
+				  "minecraft:cow,both,2.0;"
+  			    + "minecraft:horse,eat,1.2;"
+				+ "minecraft:donkey,eat,1.2;"
 				+ "minecraft:sheep,eat,2.1;"
+				+ "minecraft:pig,grow,0.5;"
+				+ "minecraft:villager,cut,15.0;"
+				+ "minecraft:creeper,tall,1.1"
 				;
 		
 		public Server(ForgeConfigSpec.Builder builder) {

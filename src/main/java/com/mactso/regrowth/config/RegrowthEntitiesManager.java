@@ -97,7 +97,7 @@ public class RegrowthEntitiesManager {
 		}
 
 		public String getRegrowthType() {
-			return regrowthType;
+			return regrowthType.toLowerCase();
 		}
 		public double getRegrowthEventPercentage() {
 			return eventPercentage;

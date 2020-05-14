@@ -33,6 +33,7 @@ public class MyConfig {
 	}
 	
 	public static int       aDebugLevel;
+	public static int       aEatingHeals;	
 	public static String[]  defaultRegrowthMobs;
 	public static String    defaultRegrowthMobs6464;
 
@@ -52,6 +53,7 @@ public class MyConfig {
 	public static void bakeConfig()
 	{
 		aDebugLevel = SERVER.debugLevel.get();
+		aEatingHeals = SERVER.eatingHeals.get();		
 		defaultRegrowthMobs6464 = SERVER.defaultRegrowthMobsActual.get() ;
 		if (aDebugLevel > 0) {
 			System.out.println("Regrowth Debug Level: " + aDebugLevel );
@@ -61,6 +63,7 @@ public class MyConfig {
 	public static class Server {
 
 		public final IntValue     debugLevel;
+		public final IntValue     eatingHeals;
 		public final ConfigValue<String> defaultRegrowthMobsActual;
 		// mod:mob,type(eat,cut,grow,both,tall),%;
 		public final String defaultRegrowthMobs6464 = 
@@ -69,7 +72,7 @@ public class MyConfig {
 				+ "minecraft:donkey,eat,1.2;"
 				+ "minecraft:sheep,eat,2.1;"
 				+ "minecraft:pig,grow,0.5;"
-				+ "minecraft:villager,cut,15.0;"
+				+ "minecraft:villager,crwlpt,15.0;"
 				+ "minecraft:creeper,tall,1.1"
 				;
 		
@@ -81,6 +84,11 @@ public class MyConfig {
 					.translation(Main.MODID + ".config." + "debugLevel")
 					.defineInRange("debugLevel", () -> 0, 0, 2);
 		
+			eatingHeals = builder
+					.comment("Eating Heals: 0-No, 1-yes")
+					.translation(Main.MODID + ".config." + "eatingHeals")
+					.defineInRange("eatingHeals", () -> 1, 0, 1);
+			
 			builder.pop();
 
 			builder.push ("Regrowth Mobs 6464");

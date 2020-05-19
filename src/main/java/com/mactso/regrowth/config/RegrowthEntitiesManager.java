@@ -34,7 +34,7 @@ public class RegrowthEntitiesManager {
 		double percentage;
 		for (String key:regrowthMobHashtable.keySet()) {
 			regrowthType = regrowthMobHashtable.get(key).regrowthType;
-			percentage = regrowthMobHashtable.get(key).eventPercentage;
+			percentage = regrowthMobHashtable.get(key).regrowthEventOdds;
 			String tempString = key+","+regrowthType+","+percentage+";";
 			returnString += tempString;
 		}
@@ -88,19 +88,19 @@ public class RegrowthEntitiesManager {
 	}
 
 	public static class RegrowthMobItem {
-		double eventPercentage;
+		double regrowthEventOdds;
 		String regrowthType;
 		
 		public RegrowthMobItem(String regrowthType, double trailBlockSpeed) {
 			this.regrowthType =  regrowthType;
-			this.eventPercentage = trailBlockSpeed;
+			this.regrowthEventOdds = trailBlockSpeed;
 		}
 
 		public String getRegrowthType() {
 			return regrowthType.toLowerCase();
 		}
-		public double getRegrowthEventPercentage() {
-			return eventPercentage;
+		public double getRegrowthEventOdds() {
+			return regrowthEventOdds;
 		}
 
 	}

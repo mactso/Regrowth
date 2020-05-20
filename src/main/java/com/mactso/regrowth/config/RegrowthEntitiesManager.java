@@ -34,7 +34,7 @@ public class RegrowthEntitiesManager {
 		double percentage;
 		for (String key:regrowthMobHashtable.keySet()) {
 			regrowthType = regrowthMobHashtable.get(key).regrowthType;
-			percentage = regrowthMobHashtable.get(key).regrowthEventOdds;
+			percentage = regrowthMobHashtable.get(key).regrowthEventSeconds;
 			String tempString = key+","+regrowthType+","+percentage+";";
 			returnString += tempString;
 		}
@@ -67,13 +67,13 @@ public class RegrowthEntitiesManager {
 				String modAndEntity = st.nextToken();
 				String key = modAndEntity;
 				String regrowthType = st.nextToken();
-				String percentage = st.nextToken();
-				double tPercentage = Double.parseDouble(percentage.trim());
-				if ((tPercentage < 0.0) || (tPercentage > 100.0)) {
-					tPercentage = 0.01;
+				String secondsString = st.nextToken();
+				double seconds = Double.parseDouble(secondsString.trim());
+				if (seconds <= 1.0) {
+					seconds = 1.0;
 				}
 
-				regrowthMobHashtable.put(key, new RegrowthMobItem(regrowthType, tPercentage));
+				regrowthMobHashtable.put(key, new RegrowthMobItem(regrowthType, seconds));
 				if (!modAndEntity.contentEquals("hbm:default") &&
 				    !ForgeRegistries.ENTITIES.containsKey(new ResourceLocation(modAndEntity))
 				   )  {
@@ -88,19 +88,19 @@ public class RegrowthEntitiesManager {
 	}
 
 	public static class RegrowthMobItem {
-		double regrowthEventOdds;
+		double regrowthEventSeconds;
 		String regrowthType;
 		
 		public RegrowthMobItem(String regrowthType, double trailBlockSpeed) {
 			this.regrowthType =  regrowthType;
-			this.regrowthEventOdds = trailBlockSpeed;
+			this.regrowthEventSeconds = trailBlockSpeed;
 		}
 
 		public String getRegrowthType() {
 			return regrowthType.toLowerCase();
 		}
-		public double getRegrowthEventOdds() {
-			return regrowthEventOdds;
+		public double getRegrowthEventSeconds() {
+			return regrowthEventSeconds;
 		}
 
 	}

@@ -69,13 +69,13 @@ public class MyConfig {
 		public final ConfigValue<String> defaultRegrowthMobsActual;
 		// mod:mob,type(eat,cut,grow,both,tall,villagerflags),%;
 		public final String defaultRegrowthMobs6464 = 
-				  "minecraft:cow,both,2.0;"
-  			    + "minecraft:horse,eat,1.2;"
-				+ "minecraft:donkey,eat,1.2;"
-				+ "minecraft:sheep,eat,2.1;"
-				+ "minecraft:pig,grow,0.5;"
-				+ "minecraft:villager,crwlpt,150.0;"
-				+ "minecraft:creeper,tall,1.1"
+				  "minecraft:cow,both,240.0;"
+  			    + "minecraft:horse,eat,360.0;"
+				+ "minecraft:donkey,eat,360.0;"
+				+ "minecraft:sheep,eat,240.0;"
+				+ "minecraft:pig,grow,800.0;"
+				+ "minecraft:villager,crwlpt,5.0;"
+				+ "minecraft:creeper,tall,60.0"
 				;
 		
 		public Server(ForgeConfigSpec.Builder builder) {
@@ -84,7 +84,7 @@ public class MyConfig {
 			debugLevel = builder
 					.comment("Debug Level: 0 = Off, 1 = Log, 2 = Chat+Log")
 					.translation(Main.MODID + ".config." + "debugLevel")
-					.defineInRange("debugLevel", () -> 0, 0, 2);
+					.defineInRange("debugLevel", () -> 1, 0, 2);
 		
 			eatingHeals = builder
 					.comment("Eating Heals: 0-No, 1-yes")

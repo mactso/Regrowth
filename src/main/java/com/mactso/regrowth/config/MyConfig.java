@@ -84,7 +84,7 @@ public class MyConfig {
 			debugLevel = builder
 					.comment("Debug Level: 0 = Off, 1 = Log, 2 = Chat+Log")
 					.translation(Main.MODID + ".config." + "debugLevel")
-					.defineInRange("debugLevel", () -> 1, 0, 2);
+					.defineInRange("debugLevel", () -> 0, 0, 2);
 		
 			eatingHeals = builder
 					.comment("Eating Heals: 0-No, 1-yes")

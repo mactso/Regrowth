@@ -186,7 +186,7 @@ public class MoveEntityEvent {
 		// remove leaves if facing head height leaves
 
 		if (regrowthType.contains("v")) {
-			improveLeaves(ve, key, veX, veY, veZ);
+			improveLeaves(ve, groundBlock, key, veX, veY, veZ);
 		}
 		
 		// c = cut down grass (but not flowers for now)
@@ -223,12 +223,16 @@ public class MoveEntityEvent {
 		}
 	}
 
-	private void improveLeaves(VillagerEntity ve, String key, int veX, int veY, int veZ) {
+	private void improveLeaves(VillagerEntity ve, Block groundBlock, String key, int veX, int veY, int veZ) {
 		float veYaw=ve.getYaw(1.0f)/45;
 		int facingNdx = Math.round(veYaw);
 		facingNdx %= 8;
-		while (facingNdx<0) {
+		if (facingNdx<0) {
 			facingNdx += 8;
+		}
+		// when standing on a grass path- game reports you 1 block lower.  Adjust.
+		if (groundBlock == Blocks.GRASS_PATH) {
+			veY +=1;
 		}
 		int dx = facingArray[facingNdx][0];
 		int dz = facingArray[facingNdx][1];

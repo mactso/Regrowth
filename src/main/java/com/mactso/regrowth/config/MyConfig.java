@@ -74,7 +74,7 @@ public class MyConfig {
 				+ "minecraft:donkey,eat,360.0;"
 				+ "minecraft:sheep,eat,240.0;"
 				+ "minecraft:pig,grow,800.0;"
-				+ "minecraft:villager,crwlpt,5.0;"
+				+ "minecraft:villager,crwlvpt,5.0;"
 				+ "minecraft:creeper,tall,60.0"
 				;
 		

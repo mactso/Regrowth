@@ -6,6 +6,7 @@ import com.mactso.regrowth.config.MyConfig;
 import com.mactso.regrowth.config.RegrowthEntitiesManager;
 
 import net.minecraft.block.AirBlock;
+import net.minecraft.block.BedBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -14,6 +15,7 @@ import net.minecraft.block.FlowerBlock;
 import net.minecraft.block.GrassBlock;
 import net.minecraft.block.GrassPathBlock;
 import net.minecraft.block.IGrowable;
+import net.minecraft.block.LeavesBlock;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.TallGrassBlock;
 import net.minecraft.block.WallBlock;
@@ -32,6 +34,7 @@ import net.minecraft.potion.Effects;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.GlobalPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.world.LightType;
@@ -49,6 +52,7 @@ public class MoveEntityEvent {
 	static int[]dx= {1,0,-1,0};
 	static int[]dz= {0,1,0,-1};
 	static int TICKS_PER_SECOND = 20;	
+    static int[][]facingArray = {{0,-1},{1,-1},{1,0},{1,1},{0,1},{-1,1},{-1,0},{-1,-1}};
 	
 	@SubscribeEvent
     public void doEntityMove(LivingUpdateEvent event) { 
@@ -92,8 +96,10 @@ public class MoveEntityEvent {
 		if (randomD100Roll <= regrowthEventOdds) {
 			if (eventEntity instanceof VillagerEntity) {
 				VillagerEntity ve = (VillagerEntity) eventEntity;
-				doVillagerRegrowthEvents(ve, footBlock, groundBlock, registryNameAsString, regrowthType,
-						eventEntityX, eventEntityY, eventEntityZ);
+				if (!(ve.isAirBorne)) {
+					doVillagerRegrowthEvents(ve, footBlock, groundBlock, registryNameAsString, regrowthType,
+							eventEntityX, eventEntityY, eventEntityZ);
+				}
 			}
 		}
 	
@@ -150,6 +156,20 @@ public class MoveEntityEvent {
 											int veX, int veY, int veZ)
 	{
 
+		if (!(ve.onGround)) {
+			return;
+		}
+		if (MyConfig.aDebugLevel > 0) {
+			ITextComponent tName = new StringTextComponent ("");
+			float veYaw=ve.getYaw(1.0f);
+			tName = new StringTextComponent ("Reg-"+ veX+","+veZ+": " + veYaw);
+			ve.setCustomName(tName);
+		}
+		else { // remove custom debugging names added by Regrowth
+			if (ve.getCustomName().toString().contains("Reg-")){
+				ve.setCustomName(null);
+			}
+		}
 		// note all villagers may not have a home.  poor homeless villagers.
 		//default = repair farms
 		if (improveFarm(ve,groundBlock,regrowthType,veX,veY,veZ)) {
@@ -157,6 +177,12 @@ public class MoveEntityEvent {
 				System.out.println(key + " farm improved at " +  +  veX +", "+veY +", "+veZ+", ");
 			}	
 		};
+		// cut lea'v'es.
+		// remove leaves if facing head height leaves
+
+		if (regrowthType.contains("v")) {
+			improveLeaves(ve, key, veX, veY, veZ);
+		}
 		
 		// c = cut down grass (but not flowers for now)
 		// to do - maybe remove flowers unless by a road or elevated (air next to them as in the flower beds)
@@ -179,9 +205,7 @@ public class MoveEntityEvent {
 
 		// note villages may not have a meeting place.  Sometimes they change.  Sometimes they take a few minutes to form.
 		if (regrowthType.contains("w")) {
-			if (!(ve.isAirBorne)) {
 				improveWalls(ve, footBlock, groundBlock, key, regrowthType,veX,veY,veZ);
-			}
 		}
 		
 
@@ -190,6 +214,27 @@ public class MoveEntityEvent {
 				if (MyConfig.aDebugLevel > 0) {
 					System.out.println(key +"- "+ footBlock +", " + groundBlock +" pitch: "+ve.rotationPitch + " improve lighting at " +  ve.getPosX() +", "+ve.getPosY()+", "+ve.getPosZ());
 				}				
+			}
+		}
+	}
+
+	private void improveLeaves(VillagerEntity ve, String key, int veX, int veY, int veZ) {
+		float veYaw=ve.getYaw(1.0f)/45;
+		int facingNdx = Math.round(veYaw)+4;
+		facingNdx %= 8;
+		while (facingNdx<0) {
+			facingNdx += 8;
+		}
+		int dx = facingArray[facingNdx][0];
+		int dz = facingArray[facingNdx][1];
+		for (int iY=0;iY<2;iY++) {
+			BlockPos tmpBP = new BlockPos (veX+dx,veY+iY,veZ+dz);
+			Block tempBlock = ve.world.getBlockState(tmpBP).getBlock();
+			if (tempBlock instanceof LeavesBlock) {
+				ve.world.destroyBlock(tmpBP, false);
+				if (MyConfig.aDebugLevel > 0) {
+					System.out.println(key + " clear leaves at" +  +  veX +", "+veY+iY +", "+veZ+", ");
+				}
 			}
 		}
 	}
@@ -258,12 +303,13 @@ public class MoveEntityEvent {
 							int veX, int veY, int veZ ) {
 		int skylightValue = ve.world.getLightFor(LightType.SKY, ve.getPosition());
 		Biome.Category villageBiomeCategory = ve.world.getBiome(ve.getPosition()).getCategory();
-		ITextComponent tName = new StringTextComponent (veX+","+veZ+": ");
-		ve.setCustomName(tName);
-		
 		if (ve.isSleeping()) { 
 			return false;
 		}
+		if (footBlock instanceof BedBlock) {
+			return false;
+		}
+		
 		if ((groundBlock == Blocks.OAK_PLANKS) ||
 			(groundBlock == Blocks.SPRUCE_PLANKS) ||
 			(groundBlock == Blocks.BIRCH_PLANKS) ||
@@ -286,24 +332,24 @@ public class MoveEntityEvent {
 	private void improveRoads(VillagerEntity ve, Block footBlock, Block groundBlock, String key) {
 		BlockPos vePos = ve.getPosition();
 		int veX =  vePos.getX();
-		int veZ =  vePos.getZ();
 		int veY =  vePos.getY();
-
-		if (improveRoadsFixPotholes(ve, groundBlock,veX, veZ, veY)) {
+		int veZ =  vePos.getZ();
+		
+		if (improveRoadsFixPotholes(ve, groundBlock,veX, veY, veZ)) {
 			if (MyConfig.aDebugLevel > 0) {
 				System.out.println(key + " fix road " +  veX +", "+veY+", "+veZ+". ");
 			}	
 		}
-		if (improveRoadsSmoothHeight(ve, footBlock, veX, veZ, veY)) {
+		if (improveRoadsSmoothHeight(ve, footBlock, groundBlock, veX, veY, veZ)) {
 			if (MyConfig.aDebugLevel > 0) {
-				System.out.println(key + " fix road slope" +  veX +", "+ veY+", "+veZ+", ");
+				System.out.println(key + " smooth road slope" +  veX +", "+ veY+", "+veZ+", ");
 			}
 			
 		}
 	}
 
 	private boolean improveRoadsFixPotholes(VillagerEntity ve, Block groundBlock,  
-			int veX, int veZ, int veY) {
+			int veX, int veY, int veZ) {
 		// fix pot holes - grass spots in road with 3-4 grass blocks orthagonal to them.
 		// to do remove "tempBlock" and put in iff statement.  Extract as method.
 		// add biome support for dirt, sand, and podzol
@@ -329,24 +375,40 @@ public class MoveEntityEvent {
 		return false;
 	}
 	
-	private boolean improveRoadsSmoothHeight(VillagerEntity ve, Block footBlock,  
-													int veX, int veZ, int veY) {
-		// to do remove "tempBlock" and put in iff statement.  Extract as method.			
-		if (footBlock instanceof GrassPathBlock) {
-			boolean doRoadSmoothing = false;
-			for (int dy=2;((dy<5) && (doRoadSmoothing==false));dy++) {
-				for(int i=0; ((i<4) && (doRoadSmoothing==false)); i++) {
+	private boolean improveRoadsSmoothHeight(VillagerEntity ve, Block footBlock, Block groundBlock, 
+													int veX, int veY, int veZ) {
+		// to do remove "tempBlock" and put in iff statement.  Extract as method.
+		boolean doRoadSmoothing = false;
+		BlockState smoothingBlockState = Blocks.GRASS_PATH.getDefaultState();
+		Block smoothingBlock = Blocks.GRASS_PATH;
+		
+		// is the block stood on a road block which can see the sky.
+		// (alternatively could check for open air 9 spaces above)
+		// removed because houses are made of road material.
+//		if ((groundBlock == Blocks.SMOOTH_SANDSTONE) &&
+//			(ve.world.getLightFor(LightType.SKY, ve.getPosition()) == 15) &&
+//			(ve.world.getBiome(ve.getPosition()).getCategory() == Biome.Category.DESERT ) 
+//			)
+//			{
+//			smoothingBlockState = Blocks.SMOOTH_SANDSTONE.getDefaultState();
+//			smoothingBlock = Blocks.SMOOTH_SANDSTONE;
+//			veY = veY - 1;  // grasspath is 0.9 tall so off set for smooth sandstone is 1.0 tall.
+//			doRoadSmoothing = true;
+//		}
+		if (footBlock == Blocks.GRASS_PATH) {
+			doRoadSmoothing = true;
+		}
+		// Check for higher block to smooth up towards
+		if (doRoadSmoothing) {
+			for (int dy=2;dy<6;dy++) {
+				for(int i=0;i<4; i++) {
 					Block tempBlock = ve.world.getBlockState(new BlockPos (veX+dx[i],veY+dy,veZ+dz[i])).getBlock();
-					if (tempBlock == Blocks.GRASS_PATH) {
-						doRoadSmoothing = true;
+					if (tempBlock == smoothingBlock) {
+						ve.world.setBlockState(new BlockPos (veX,veY+1,veZ), smoothingBlockState);
+						ve.setMotion(0.0, 0.4, 0.0);
+						return true;
 					}
 				}
-				
-			}
-			if (doRoadSmoothing) {
-				ve.world.setBlockState(new BlockPos (veX,veY+1,veZ), Blocks.GRASS_PATH.getDefaultState());
-				ve.setMotion(0.0, 0.4, 0.0);
-				return true;
 			}
 		}
 		return false;
@@ -507,6 +569,9 @@ public class MoveEntityEvent {
 	private boolean isOkayToBuildWallHere(VillagerEntity ve, Block footBlock, Block groundBlock,
 			Optional<GlobalPos> vMeetingPlace, int veX, int veY, int veZ) {
 		boolean okayToBuildWalls = true;
+		if (ve.isAirBorne) {
+			okayToBuildWalls = false;
+		}
 		if (!(vMeetingPlace.isPresent())) {
 			okayToBuildWalls = false;
 		}

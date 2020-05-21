@@ -65,7 +65,7 @@ public class MyConfig {
 	public static class Server {
 
 		public final IntValue     debugLevel;
-		public final DoubleValue     eatingHeals;
+		public final DoubleValue  eatingHeals;
 		public final ConfigValue<String> defaultRegrowthMobsActual;
 		// mod:mob,type(eat,cut,grow,both,tall,villagerflags),Seconds;
 		public final String defaultRegrowthMobs6464 = 

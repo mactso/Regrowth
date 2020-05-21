@@ -52,7 +52,7 @@ public class MoveEntityEvent {
 	static int[]dx= {1,0,-1,0};
 	static int[]dz= {0,1,0,-1};
 	static int TICKS_PER_SECOND = 20;	
-    static int[][]facingArray = {{0,-1},{1,-1},{1,0},{1,1},{0,1},{-1,1},{-1,0},{-1,-1}};
+    static int[][]facingArray = {{0,1},{-1,1},{-1,0},{-1,-1},{0,-1},{1,-1},{1,0},{1,1}};
 	
 	@SubscribeEvent
     public void doEntityMove(LivingUpdateEvent event) { 
@@ -69,7 +69,12 @@ public class MoveEntityEvent {
 		}
 	
 		Block footBlock = eventEntity.world.getBlockState(eventEntity.getPosition()).getBlock();
-		Block groundBlock = eventEntity.world.getBlockState(eventEntity.getPosition().down()).getBlock();
+		Block groundBlock;
+		if (footBlock == Blocks.GRASS_PATH) {
+			groundBlock = footBlock;
+		} else {
+			groundBlock = eventEntity.world.getBlockState(eventEntity.getPosition().down()).getBlock();	
+		}
 
 		BlockPos eventEntityPos = eventEntity.getPosition(); // floats
 		int eventEntityX =  eventEntityPos.getX(); // Int
@@ -220,7 +225,7 @@ public class MoveEntityEvent {
 
 	private void improveLeaves(VillagerEntity ve, String key, int veX, int veY, int veZ) {
 		float veYaw=ve.getYaw(1.0f)/45;
-		int facingNdx = Math.round(veYaw)+4;
+		int facingNdx = Math.round(veYaw);
 		facingNdx %= 8;
 		while (facingNdx<0) {
 			facingNdx += 8;
@@ -354,13 +359,37 @@ public class MoveEntityEvent {
 		// to do remove "tempBlock" and put in iff statement.  Extract as method.
 		// add biome support for dirt, sand, and podzol
 		int grassPathCount = 0;
-		int fixHeight = 1;
+		int fixHeight = 2;
 		if (Biome.Category.TAIGA == ve.world.getBiome(ve.getPosition()).getCategory()) {
 			fixHeight = 4;
 		}
+		
+		int pitVeY = veY;
+		if (groundBlock == Blocks.GRASS_PATH ) {
+			pitVeY = veY+ 1;
+		}
+		if ((groundBlock == Blocks.DIRT)||
+				(groundBlock == Blocks.GRASS_BLOCK)||
+				(groundBlock == Blocks.GRASS_PATH)) {
+			grassPathCount = 0;
+			for(int i=0; i<4; i++) {
+				Block tempBlock = ve.world.getBlockState(new BlockPos (veX+dx[i],pitVeY,veZ+dz[i])).getBlock();
+				if (tempBlock == Blocks.GRASS_PATH) {
+					grassPathCount += 1;
+				}
+			}
+			if (grassPathCount==4) {
+				ve.world.setBlockState(new BlockPos (veX, pitVeY, veZ), Blocks.GRASS_PATH.getDefaultState());
+				ve.setMotion(0.0, 0.4, 0.0);
+				return true;
+			}
+
+		} 
+			
 		if ((groundBlock == Blocks.DIRT)||(groundBlock instanceof GrassBlock)) {
+			grassPathCount = 0;
 			for(int dy=-1; dy<=fixHeight; dy++) { // on gentle slopes too
-				for(int i=0; ((i<4)&&(grassPathCount<3)); i++) {
+				for(int i=0;i<4; i++) {
 					Block tempBlock = ve.world.getBlockState(new BlockPos (veX+dx[i],veY+dy,veZ+dz[i])).getBlock();
 					if (tempBlock == Blocks.GRASS_PATH) {
 						grassPathCount += 1;

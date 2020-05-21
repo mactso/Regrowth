@@ -67,7 +67,7 @@ public class MyConfig {
 		public final IntValue     debugLevel;
 		public final DoubleValue     eatingHeals;
 		public final ConfigValue<String> defaultRegrowthMobsActual;
-		// mod:mob,type(eat,cut,grow,both,tall,villagerflags),%;
+		// mod:mob,type(eat,cut,grow,both,tall,villagerflags),Seconds;
 		public final String defaultRegrowthMobs6464 = 
 				  "minecraft:cow,both,240.0;"
   			    + "minecraft:horse,eat,360.0;"

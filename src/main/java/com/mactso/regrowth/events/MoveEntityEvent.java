@@ -10,6 +10,7 @@ import net.minecraft.block.BedBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
+import net.minecraft.block.DoublePlantBlock;
 import net.minecraft.block.FenceBlock;
 import net.minecraft.block.FlowerBlock;
 import net.minecraft.block.GrassBlock;
@@ -29,6 +30,9 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.brain.Brain;
 import net.minecraft.entity.ai.brain.memory.MemoryModuleType;
 import net.minecraft.entity.merchant.villager.VillagerEntity;
+import net.minecraft.entity.passive.horse.AbstractHorseEntity;
+import net.minecraft.entity.passive.horse.DonkeyEntity;
+import net.minecraft.entity.passive.horse.HorseEntity;
 import net.minecraft.potion.EffectInstance;
 import net.minecraft.potion.Effects;
 import net.minecraft.util.ResourceLocation;
@@ -101,14 +105,13 @@ public class MoveEntityEvent {
 		if (randomD100Roll <= regrowthEventOdds) {
 			if (eventEntity instanceof VillagerEntity) {
 				VillagerEntity ve = (VillagerEntity) eventEntity;
-				if (!(ve.isAirBorne)) {
+				if ((ve.onGround)) {
 					doVillagerRegrowthEvents(ve, footBlock, groundBlock, registryNameAsString, regrowthType,
 							eventEntityX, eventEntityY, eventEntityZ);
 				}
 			}
 		}
 	
-
 		doMobRegrowthEvents(eventEntity, footBlock, groundBlock, registryNameAsString, regrowthType, regrowthEventOdds, randomD100Roll,
 							eventEntityX, eventEntityY, eventEntityZ);
 
@@ -144,15 +147,30 @@ public class MoveEntityEvent {
 				return;
 			}
 		}
-	    
-		// Note: growth creates many blocks.  Eating only eats one block.  So make more common.
-		if ((randomD100Roll <= regrowthEventOdds*10)) {
-			if (entityEatGrassOrFlower(eventEntity, regrowthType, footBlock)) {
-				if (MyConfig.aDebugLevel > 0) {
-					System.out.println(key + " eat at " +  eX +", "+ eY +", "+ eZ +".");
-				}
+
+		double eatingOdds = regrowthEventOdds;
+		if  ((regrowthType.contentEquals("eat")) ||(regrowthType.contentEquals("both"))) {
+			// Balance eating and growth odds/timing for "both" case.
+			if  ((regrowthType.contentEquals("both"))) {
+				eatingOdds = regrowthEventOdds * 15;				
 			}
-			return;
+			if (eventEntity instanceof AbstractHorseEntity) {
+				AbstractHorseEntity h = (AbstractHorseEntity) eventEntity;
+				BlockPos debugPos = h.getPosition();
+				if (!(h.isEatingHaystack())) {
+					eatingOdds = 0.0;  // Horse, Donkey, Mule only eat if animation eating.
+				} else {
+					eatingOdds = regrowthEventOdds * 25;   // Increase eating odds during eating animation.
+				}
+			}			
+			if ((randomD100Roll <= eatingOdds)) {
+				if (entityEatGrassOrFlower(eventEntity, regrowthType, footBlock)) {
+ 					if (MyConfig.aDebugLevel > 0) {
+						System.out.println(key + " eat at " +  eX +", "+ eY +", "+ eZ +".");
+					}
+				}
+				return;
+			}
 		}
 		return;
 	}
@@ -160,10 +178,11 @@ public class MoveEntityEvent {
 	private void doVillagerRegrowthEvents(VillagerEntity ve, Block footBlock, Block groundBlock, String key, String regrowthType,
 											int veX, int veY, int veZ)
 	{
-
+		// Villagers hopping, falling, etc. are doing improvements.
 		if (!(ve.onGround)) {
 			return;
 		}
+		// Give custom debugging names to nameless villagers.
 		if (MyConfig.aDebugLevel > 0) {
 			ITextComponent tName = new StringTextComponent ("");
 			float veYaw=ve.getYaw(1.0f);
@@ -171,8 +190,10 @@ public class MoveEntityEvent {
 			ve.setCustomName(tName);
 		}
 		else { // remove custom debugging names added by Regrowth
-			if (ve.getCustomName().toString().contains("Reg-")){
-				ve.setCustomName(null);
+			if (ve.getCustomName() != null) {
+				if (ve.getCustomName().toString().contains("Reg-")){
+					ve.setCustomName(null);
+				}
 			}
 		}
 		// note all villagers may not have a home.  poor homeless villagers.
@@ -209,7 +230,7 @@ public class MoveEntityEvent {
 
 
 		// note villages may not have a meeting place.  Sometimes they change.  Sometimes they take a few minutes to form.
-		if (regrowthType.contains("w")) {
+		if ((regrowthType.contains("w")||(regrowthType.contains("p")))) {
 				improveWalls(ve, footBlock, groundBlock, key, regrowthType,veX,veY,veZ);
 		}
 		
@@ -571,16 +592,28 @@ public class MoveEntityEvent {
 	}
 
 	private boolean isGrassOrFlower(Block footBlock) {
-		boolean grassOrFlower = false;
-		if (footBlock instanceof GrassBlock) 
-		{
-			grassOrFlower = true;
-		}
 		if (footBlock instanceof TallGrassBlock) 
 		{
-			grassOrFlower = true;
+			return true;
 		}
-		return grassOrFlower;
+		if (footBlock instanceof FlowerBlock) 
+		{
+			return true;
+		}
+		if (footBlock instanceof DoublePlantBlock) 
+		{
+			return true;
+		}
+		if (footBlock == Blocks.FERN) 
+		{
+			return true;
+		}
+		if (footBlock == Blocks.LARGE_FERN) 
+		{
+			return true;
+		}
+
+		return false;
 	}
 
 	private boolean isImpossibleRegrowthEvent(Block footBlock, String regrowthType) {
@@ -602,10 +635,10 @@ public class MoveEntityEvent {
 	private boolean isOkayToBuildWallHere(VillagerEntity ve, Block footBlock, Block groundBlock,
 			Optional<GlobalPos> vMeetingPlace, int veX, int veY, int veZ) {
 		boolean okayToBuildWalls = true;
-		if (ve.isAirBorne) {
+		if (!(vMeetingPlace.isPresent())) {
 			okayToBuildWalls = false;
 		}
-		if (!(vMeetingPlace.isPresent())) {
+		if (!(ve.onGround)) {
 			okayToBuildWalls = false;
 		}
 		if (!(isFootBlockOkayToBuildIn(footBlock))) {

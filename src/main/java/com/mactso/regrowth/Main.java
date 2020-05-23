@@ -1,6 +1,8 @@
-// 15.2 - 0.0.0.1 regrowth
+// 15.2 - 1.0.0.0 regrowth
 package com.mactso.regrowth;
 
+import com.mactso.regrowth.Commands.RegrowthCommands;
+// import com.mactso.regrowth.Commands.RegrowthCommands;
 import com.mactso.regrowth.config.MyConfig;
 import com.mactso.regrowth.events.MoveEntityEvent;
 
@@ -38,7 +40,7 @@ public class Main {
 		// in 14.4 and later, config file loads when the server starts when the world starts.
 		@SubscribeEvent 
 		public void onServerStarting (FMLServerStartingEvent event) {
-//			HTCommand.register(event.getCommandDispatcher());
+			RegrowthCommands.register(event.getCommandDispatcher());
 		}
 }
 

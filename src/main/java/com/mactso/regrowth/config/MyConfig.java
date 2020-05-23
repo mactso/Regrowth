@@ -1,3 +1,4 @@
+// 15.2 - 1.0.0.0 regrowth
 package com.mactso.regrowth.config;
 
 import java.util.Arrays;
@@ -74,6 +75,8 @@ public class MyConfig {
 				+ "minecraft:donkey,eat,360.0;"
 				+ "minecraft:sheep,eat,240.0;"
 				+ "minecraft:pig,grow,800.0;"
+				+ "minecraft:bee,grow,1000.0;"
+				+ "minecraft:chicken,grow,600.0;"
 				+ "minecraft:villager,crwlvpt,5.0;"
 				+ "minecraft:creeper,tall,60.0"
 				;

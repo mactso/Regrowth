@@ -10,6 +10,7 @@ import net.minecraft.block.BedBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
+import net.minecraft.block.CactusBlock;
 import net.minecraft.block.DoublePlantBlock;
 import net.minecraft.block.FenceBlock;
 import net.minecraft.block.FlowerBlock;
@@ -265,10 +266,10 @@ public class MoveEntityEvent {
 		for (int iY=0;iY<2;iY++) {
 			BlockPos tmpBP = new BlockPos (veX+dx,veY+iY,veZ+dz);
 			Block tempBlock = ve.world.getBlockState(tmpBP).getBlock();
-			if (tempBlock instanceof LeavesBlock) {
+			if ((tempBlock instanceof LeavesBlock)||((tempBlock instanceof CactusBlock))) {
 				ve.world.destroyBlock(tmpBP, false);
 				if (MyConfig.aDebugLevel > 0) {
-					System.out.println(key + " clear leaves at" +  +  veX +", "+veY+iY +", "+veZ+", ");
+					System.out.println(key + " clear "+ tempBlock.getTranslationKey().toString() +" at" +  +  veX +", "+veY+iY +", "+veZ+", ");
 				}
 			}
 		}
@@ -333,12 +334,14 @@ public class MoveEntityEvent {
 				Block tempBlock = ve.world.getBlockState(new BlockPos (veX+dx[i],veY-1,veZ+dz[i])).getBlock();
 				if (tempBlock == Blocks.FARMLAND) {
 					nextToFarmlandBlock = true;
+					i=4;
 				}
 			}
 			for(int i=0; i<4; i++) {
 				Block tempBlock = ve.world.getBlockState(new BlockPos (veX+dx[i],veY-1,veZ+dz[i])).getBlock();
 				if (tempBlock == Blocks.WATER) {
 					nextToWaterBlock = true;
+					i=4;
 				}
 			}
 			if ((groundBlock instanceof LogBlock) && (nextToWaterBlock)){
@@ -362,11 +365,9 @@ public class MoveEntityEvent {
 						}
 					}
 				}
-				if ((veX == -213)&&(veZ==122)) {
-					int k = 5;
-					k+=3;
+				if (MyConfig.aDebugLevel > 0) {
+					System.out.println("Farmer on "+groundBlock.getTranslationKey().toString()+" water:(" + nextToWaterBlock + "): "+  veX +", "+ veY+", "+veZ+", ");
 				}
-				System.out.println("Farmer on "+groundBlock.getTranslationKey().toString()+" water:("+nextToWaterBlock+"): "+  veX +", "+ veY+", "+veZ+", ");
 				if ((groundBlock instanceof GrassBlock) || (groundBlock == Blocks.DIRT)) {
 					ve.world.setBlockState(ve.getPosition().down(), Blocks.FARMLAND.getDefaultState());
 					return true;

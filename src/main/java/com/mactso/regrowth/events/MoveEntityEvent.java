@@ -10,6 +10,7 @@ import net.minecraft.block.BedBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
+import net.minecraft.block.CactusBlock;
 import net.minecraft.block.DoublePlantBlock;
 import net.minecraft.block.FenceBlock;
 import net.minecraft.block.FlowerBlock;
@@ -17,6 +18,7 @@ import net.minecraft.block.GrassBlock;
 import net.minecraft.block.GrassPathBlock;
 import net.minecraft.block.IGrowable;
 import net.minecraft.block.LeavesBlock;
+import net.minecraft.block.LogBlock;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.TallGrassBlock;
 import net.minecraft.block.WallBlock;
@@ -30,6 +32,7 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.brain.Brain;
 import net.minecraft.entity.ai.brain.memory.MemoryModuleType;
 import net.minecraft.entity.merchant.villager.VillagerEntity;
+import net.minecraft.entity.merchant.villager.VillagerProfession;
 import net.minecraft.entity.passive.horse.AbstractHorseEntity;
 import net.minecraft.entity.passive.horse.DonkeyEntity;
 import net.minecraft.entity.passive.horse.HorseEntity;
@@ -57,6 +60,9 @@ public class MoveEntityEvent {
 	static int[]dz= {0,1,0,-1};
 	static int TICKS_PER_SECOND = 20;	
     static int[][]facingArray = {{0,1},{-1,1},{-1,0},{-1,-1},{0,-1},{1,-1},{1,0},{1,1}};
+	static int lastTorchX=0;
+	static int lastTorchY=0;
+	static int lastTorchZ=0;
 	
 	@SubscribeEvent
     public void doEntityMove(LivingUpdateEvent event) { 
@@ -158,7 +164,7 @@ public class MoveEntityEvent {
 				AbstractHorseEntity h = (AbstractHorseEntity) eventEntity;
 				BlockPos debugPos = h.getPosition();
 				if (!(h.isEatingHaystack())) {
-					eatingOdds = 0.0;  // Horse, Donkey, Mule only eat if animation eating.
+					eatingOdds = 0.0;  // Horse, Donkey, Mule, (Llama?) only eat if animation eating.
 				} else {
 					eatingOdds = regrowthEventOdds * 25;   // Increase eating odds during eating animation.
 				}
@@ -198,7 +204,7 @@ public class MoveEntityEvent {
 		}
 		// note all villagers may not have a home.  poor homeless villagers.
 		//default = repair farms
-		if (improveFarm(ve,groundBlock,regrowthType,veX,veY,veZ)) {
+		if (improveFarm(ve,groundBlock,footBlock, regrowthType,veX,veY,veZ)) {
 			if (MyConfig.aDebugLevel > 0) {
 				System.out.println(key + " farm improved at " +  +  veX +", "+veY +", "+veZ+", ");
 			}	
@@ -235,7 +241,7 @@ public class MoveEntityEvent {
 		}
 		
 
-		if((regrowthType.contains("l")&&(footBlock != Blocks.TORCH))) {
+		if((regrowthType.contains("t")&&(footBlock != Blocks.TORCH))) {
 			if (improveLighting(ve, footBlock, groundBlock, veX, veY, veZ)) {
 				if (MyConfig.aDebugLevel > 0) {
 					System.out.println(key +"- "+ footBlock +", " + groundBlock +" pitch: "+ve.rotationPitch + " improve lighting at " +  ve.getPosX() +", "+ve.getPosY()+", "+ve.getPosZ());
@@ -260,10 +266,10 @@ public class MoveEntityEvent {
 		for (int iY=0;iY<2;iY++) {
 			BlockPos tmpBP = new BlockPos (veX+dx,veY+iY,veZ+dz);
 			Block tempBlock = ve.world.getBlockState(tmpBP).getBlock();
-			if (tempBlock instanceof LeavesBlock) {
+			if ((tempBlock instanceof LeavesBlock)||((tempBlock instanceof CactusBlock))) {
 				ve.world.destroyBlock(tmpBP, false);
 				if (MyConfig.aDebugLevel > 0) {
-					System.out.println(key + " clear leaves at" +  +  veX +", "+veY+iY +", "+veZ+", ");
+					System.out.println(key + " clear "+ tempBlock.getTranslationKey().toString() +" at" +  +  veX +", "+veY+iY +", "+veZ+", ");
 				}
 			}
 		}
@@ -304,26 +310,56 @@ public class MoveEntityEvent {
 
 	// if a grassblock in village has farmland next to it on the same level- retill it. 
 	// todo add hydration check before tilling land.
-	private boolean improveFarm(VillagerEntity ve, Block groundBlock, String regrowthType,
+	private boolean improveFarm(VillagerEntity ve, Block groundBlock, Block footBlock, String regrowthType,
 								int veX, int veY, int veZ) {
 		boolean nextToFarmBlock = false;
-		for(int i=0; i<4; i++) {
-			Block tempBlock = ve.world.getBlockState(new BlockPos (veX+dx[i],veY-1,veZ+dz[i])).getBlock();
-			if (tempBlock == Blocks.FARMLAND) {
-				nextToFarmBlock = true;
+		boolean nextToWaterBlock = false;
+		boolean torchExploit = false;
+		
+		if ( ve.getVillagerData().getProfession() == VillagerProfession.FARMER) {
+			if ((lastTorchX==veX) && (lastTorchY == veY) && (lastTorchZ == veZ)) {
+				torchExploit = true;
 			}
-		}
-
-		if (nextToFarmBlock) {
-			if (groundBlock == Blocks.SMOOTH_SANDSTONE) {
-				if (regrowthType.contains("t")) {
-					ve.world.setBlockState(ve.getPosition(), Blocks.TORCH.getDefaultState());
+			for(int i=0; i<4; i++) {
+				Block tempBlock = ve.world.getBlockState(new BlockPos (veX+dx[i],veY-1,veZ+dz[i])).getBlock();
+				if (tempBlock == Blocks.FARMLAND) {
+					nextToFarmBlock = true;
+					i = 4;
 				}
 			}
-			if (groundBlock instanceof GrassBlock) {
-				ve.world.setBlockState(ve.getPosition().down(), Blocks.FARMLAND.getDefaultState());
-				return true;
+			for(int i=0; i<4; i++) {
+				Block tempBlock = ve.world.getBlockState(new BlockPos (veX+dx[i],veY-1,veZ+dz[i])).getBlock();
+				if (tempBlock == Blocks.WATER) {
+					nextToWaterBlock = true;
+					i = 4;
+				}
 			}
+			if ((groundBlock instanceof LogBlock) && (nextToWaterBlock)){
+				if (regrowthType.contains("t")) {
+					if ((footBlock == Blocks.AIR) && (!torchExploit)) {
+						ve.world.setBlockState(ve.getPosition(), Blocks.TORCH.getDefaultState());
+						lastTorchX=veX;
+						lastTorchY=veY;
+						lastTorchZ=veZ;
+					}
+				}
+			}
+
+			if (nextToFarmBlock) {
+				if (groundBlock == Blocks.SMOOTH_SANDSTONE) {
+					if (regrowthType.contains("t")) {
+						ve.world.setBlockState(ve.getPosition(), Blocks.TORCH.getDefaultState());
+						lastTorchX=veX;
+						lastTorchY=veY;
+						lastTorchZ=veZ;
+					}
+				}
+				if (groundBlock instanceof GrassBlock) {
+					ve.world.setBlockState(ve.getPosition().down(), Blocks.FARMLAND.getDefaultState());
+					return true;
+				}
+			}
+			
 		}
 		return false;
 	}

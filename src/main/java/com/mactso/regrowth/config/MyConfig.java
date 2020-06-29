@@ -48,6 +48,10 @@ public class MyConfig {
 		}
 	}	
 
+	public static void pushDebugLevel() {
+		SERVER.debugLevel.set(aDebugLevel);
+	}
+	
 	public static void pushValues() {
 		SERVER.defaultRegrowthMobsActual.set(RegrowthEntitiesManager.getRegrowthHashAsString());
 	}

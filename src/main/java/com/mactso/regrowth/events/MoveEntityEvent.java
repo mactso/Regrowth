@@ -18,7 +18,6 @@ import net.minecraft.block.GrassBlock;
 import net.minecraft.block.GrassPathBlock;
 import net.minecraft.block.IGrowable;
 import net.minecraft.block.LeavesBlock;
-import net.minecraft.block.LogBlock;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.TallGrassBlock;
 import net.minecraft.block.WallBlock;
@@ -38,16 +37,18 @@ import net.minecraft.entity.passive.horse.DonkeyEntity;
 import net.minecraft.entity.passive.horse.HorseEntity;
 import net.minecraft.potion.EffectInstance;
 import net.minecraft.potion.Effects;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.GlobalPos;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.world.LightType;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.Biomes;
 import net.minecraft.world.server.ServerWorld;
+import net.minecraftforge.common.Tags;
 import net.minecraftforge.common.extensions.IForgeBlockState;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -77,16 +78,17 @@ public class MoveEntityEvent {
 		if (!(eventEntity.world instanceof ServerWorld)) {
 			return;
 		}
-	
-		Block footBlock = eventEntity.world.getBlockState(eventEntity.getPosition()).getBlock();
+
+		BlockPos debugBlockPos = getBlockPos(eventEntity);
+		Block footBlock = eventEntity.world.getBlockState(getBlockPos(eventEntity)).getBlock();
 		Block groundBlock;
 		if (footBlock == Blocks.GRASS_PATH) {
 			groundBlock = footBlock;
 		} else {
-			groundBlock = eventEntity.world.getBlockState(eventEntity.getPosition().down()).getBlock();	
+			groundBlock = eventEntity.world.getBlockState(getBlockPos(eventEntity).down()).getBlock();	
 		}
 
-		BlockPos eventEntityPos = eventEntity.getPosition(); // floats
+		BlockPos eventEntityPos = getBlockPos(eventEntity); // floats
 		int eventEntityX =  eventEntityPos.getX(); // Int
 		int eventEntityY =  eventEntityPos.getY(); // Int
 		int eventEntityZ =  eventEntityPos.getZ(); // Int
@@ -111,8 +113,9 @@ public class MoveEntityEvent {
 		if (randomD100Roll <= regrowthEventOdds) {
 			if (eventEntity instanceof VillagerEntity) {
 				VillagerEntity ve = (VillagerEntity) eventEntity;
-				if ((ve.onGround)) {
-					doVillagerRegrowthEvents(ve, footBlock, groundBlock, registryNameAsString, regrowthType,
+				// if onGround
+				if ((isOnGround (ve))) {
+					doVillagerRegrowthEvents(ve, footBlock, groundBlock, eventEntityPos, registryNameAsString, regrowthType,
 							eventEntityX, eventEntityY, eventEntityZ);
 				}
 			}
@@ -135,6 +138,7 @@ public class MoveEntityEvent {
 			return;
 		}
 
+		
 		if ((regrowthType.equals("tall")) && (randomD100Roll <= regrowthEventOdds)){
 			entityGrowTallGrassToDoubleGrass(eventEntity, footBlock, regrowthType);
 			if (MyConfig.aDebugLevel > 0) {
@@ -146,7 +150,7 @@ public class MoveEntityEvent {
 		if ( ((regrowthType.equals("grow")) || (regrowthType.equals("both"))) && (randomD100Roll <= regrowthEventOdds) ) {
 			if (footBlock instanceof AirBlock ) {
 	        	IGrowable ib = (IGrowable) groundBlock;
-	    		ib.grow((ServerWorld)eventEntity.world, eventEntity.world.rand, eventEntity.getPosition(), eventEntity.world.getBlockState(eventEntity.getPosition()));    			
+	    		ib.grow((ServerWorld)eventEntity.world, eventEntity.world.rand, getBlockPos(eventEntity), eventEntity.world.getBlockState(getBlockPos(eventEntity)));    			
 				if (MyConfig.aDebugLevel > 0) {
 					System.out.println(key + " grow at " +  eX +", "+ eY +", "+ eZ +".");
 				}
@@ -162,7 +166,7 @@ public class MoveEntityEvent {
 			}
 			if (eventEntity instanceof AbstractHorseEntity) {
 				AbstractHorseEntity h = (AbstractHorseEntity) eventEntity;
-				BlockPos debugPos = h.getPosition();
+				BlockPos debugPos = getBlockPos(eventEntity);
 				if (!(h.isEatingHaystack())) {
 					eatingOdds = 0.0;  // Horse, Donkey, Mule, (Llama?) only eat if animation eating.
 				} else {
@@ -170,7 +174,7 @@ public class MoveEntityEvent {
 				}
 			}			
 			if ((randomD100Roll <= eatingOdds)) {
-				if (entityEatGrassOrFlower(eventEntity, regrowthType, footBlock)) {
+				if (entityEatGrassOrFlower(eventEntity, getBlockPos(eventEntity), regrowthType, footBlock)) {
  					if (MyConfig.aDebugLevel > 0) {
 						System.out.println(key + " eat at " +  eX +", "+ eY +", "+ eZ +".");
 					}
@@ -181,11 +185,11 @@ public class MoveEntityEvent {
 		return;
 	}
 
-	private void doVillagerRegrowthEvents(VillagerEntity ve, Block footBlock, Block groundBlock, String key, String regrowthType,
+	private void doVillagerRegrowthEvents(VillagerEntity ve, Block footBlock, Block groundBlock, BlockPos eventEntityPos, String key, String regrowthType,
 											int veX, int veY, int veZ)
 	{
 		// Villagers hopping, falling, etc. are doing improvements.
-		if (!(ve.onGround)) {
+		if (!(isOnGround (ve))) {
 			return;
 		}
 		// Give custom debugging names to nameless villagers.
@@ -222,14 +226,14 @@ public class MoveEntityEvent {
 		
 		if(regrowthType.contains("c")) {
 			if (footBlock instanceof TallGrassBlock) {
-				ve.world.destroyBlock(ve.getPosition(), false);
+				ve.world.destroyBlock(eventEntityPos, false);
 				if (MyConfig.aDebugLevel > 0) {
 					System.out.println(key + " cut at " +  veX +", "+veY+", "+veZ+".");
 				}					
 			}
 		}
 		// improve roads  
-		// to do - replace "r" with a meaningful constant.
+		// to do - replace "r" with a meaningful constant.f
 		if(regrowthType.contains("r")) {
 			improveRoads(ve, footBlock, groundBlock, key);
 		}
@@ -275,7 +279,7 @@ public class MoveEntityEvent {
 		}
 	}
 
-	private boolean entityEatGrassOrFlower(Entity eventEntity, String regrowthType, Block footBlock) {
+	private boolean entityEatGrassOrFlower(Entity eventEntity, BlockPos eventEntityPos, String regrowthType, Block footBlock) {
 
 		if (!(isGrassOrFlower(footBlock))) {
 			return false;
@@ -284,7 +288,7 @@ public class MoveEntityEvent {
 			 !(regrowthType.equals("both")) ) {
 			return false;
 		}
-		eventEntity.world.destroyBlock(eventEntity.getPosition(), false);
+		eventEntity.world.destroyBlock(eventEntityPos, false);
 		LivingEntity le = (LivingEntity) eventEntity;
 		if (eventEntity instanceof AgeableEntity) {
 			AgeableEntity ae = (AgeableEntity) eventEntity;
@@ -302,7 +306,7 @@ public class MoveEntityEvent {
 	private boolean entityGrowTallGrassToDoubleGrass(Entity eventEntity, Block footBlock, String regrowthType) {
 		if (footBlock instanceof TallGrassBlock ) {
 			IGrowable ib = (IGrowable) footBlock;
-			ib.grow((ServerWorld)eventEntity.world, eventEntity.world.rand, eventEntity.getPosition(), eventEntity.world.getBlockState(eventEntity.getPosition()));    			
+			ib.grow((ServerWorld)eventEntity.world, eventEntity.world.rand, getBlockPos(eventEntity), eventEntity.world.getBlockState(getBlockPos(eventEntity)));    			
 			return true;
 		}
 		return false;
@@ -315,6 +319,7 @@ public class MoveEntityEvent {
 		boolean nextToFarmBlock = false;
 		boolean nextToWaterBlock = false;
 		boolean torchExploit = false;
+		
 		
 		if ( ve.getVillagerData().getProfession() == VillagerProfession.FARMER) {
 			if ((lastTorchX==veX) && (lastTorchY == veY) && (lastTorchZ == veZ)) {
@@ -334,10 +339,10 @@ public class MoveEntityEvent {
 					i = 4;
 				}
 			}
-			if ((groundBlock instanceof LogBlock) && (nextToWaterBlock)){
+			if ((BlockTags.LOGS.func_230235_a_(groundBlock)) && (nextToWaterBlock)){
 				if (regrowthType.contains("t")) {
 					if ((footBlock == Blocks.AIR) && (!torchExploit)) {
-						ve.world.setBlockState(ve.getPosition(), Blocks.TORCH.getDefaultState());
+						ve.world.setBlockState( getBlockPos(ve), Blocks.TORCH.getDefaultState());
 						lastTorchX=veX;
 						lastTorchY=veY;
 						lastTorchZ=veZ;
@@ -348,14 +353,14 @@ public class MoveEntityEvent {
 			if (nextToFarmBlock) {
 				if (groundBlock == Blocks.SMOOTH_SANDSTONE) {
 					if (regrowthType.contains("t")) {
-						ve.world.setBlockState(ve.getPosition(), Blocks.TORCH.getDefaultState());
+						ve.world.setBlockState(getBlockPos(ve), Blocks.TORCH.getDefaultState());
 						lastTorchX=veX;
 						lastTorchY=veY;
 						lastTorchZ=veZ;
 					}
 				}
 				if (groundBlock instanceof GrassBlock) {
-					ve.world.setBlockState(ve.getPosition().down(), Blocks.FARMLAND.getDefaultState());
+					ve.world.setBlockState(getBlockPos(ve).down(), Blocks.FARMLAND.getDefaultState());
 					return true;
 				}
 			}
@@ -367,8 +372,8 @@ public class MoveEntityEvent {
 
 	private boolean improveLighting(VillagerEntity ve, Block footBlock, Block groundBlock,
 							int veX, int veY, int veZ ) {
-		int skylightValue = ve.world.getLightFor(LightType.SKY, ve.getPosition());
-		Biome.Category villageBiomeCategory = ve.world.getBiome(ve.getPosition()).getCategory();
+		int skylightValue = ve.world.getLightFor(LightType.SKY, getBlockPos(ve));
+		Biome.Category villageBiomeCategory = ve.world.getBiome(getBlockPos(ve)).getCategory();
 		if (ve.isSleeping()) { 
 			return false;
 		}
@@ -384,9 +389,9 @@ public class MoveEntityEvent {
 			((groundBlock == Blocks.SMOOTH_SANDSTONE) && (skylightValue<14)) ||
 			((groundBlock == Blocks.COBBLESTONE) && (skylightValue<14) && (villageBiomeCategory == Biome.Category.TAIGA))
 			) {
-				int blockLightValue = ve.world.getLightFor(LightType.BLOCK, ve.getPosition());
+				int blockLightValue = ve.world.getLightFor(LightType.BLOCK, getBlockPos(ve));
 				if (blockLightValue < 8) {
- 					ve.world.setBlockState(ve.getPosition(), Blocks.TORCH.getDefaultState());
+ 					ve.world.setBlockState(getBlockPos(ve), Blocks.TORCH.getDefaultState());
 					return true;
 				}
 
@@ -396,7 +401,7 @@ public class MoveEntityEvent {
 
 
 	private void improveRoads(VillagerEntity ve, Block footBlock, Block groundBlock, String key) {
-		BlockPos vePos = ve.getPosition();
+		BlockPos vePos = getBlockPos(ve);
 		int veX =  vePos.getX();
 		int veY =  vePos.getY();
 		int veZ =  vePos.getZ();
@@ -421,7 +426,7 @@ public class MoveEntityEvent {
 		// add biome support for dirt, sand, and podzol
 		int grassPathCount = 0;
 		int fixHeight = 2;
-		if (Biome.Category.TAIGA == ve.world.getBiome(ve.getPosition()).getCategory()) {
+		if (Biome.Category.TAIGA == ve.world.getBiome(getBlockPos(ve)).getCategory()) {
 			fixHeight = 4;
 		}
 		
@@ -458,7 +463,7 @@ public class MoveEntityEvent {
 				}
 		    } 
 			if (grassPathCount >= 3) {
-				ve.world.setBlockState(ve.getPosition().down(), Blocks.GRASS_PATH.getDefaultState());
+				ve.world.setBlockState(getBlockPos(ve).down(), Blocks.GRASS_PATH.getDefaultState());
 				return true;
 			}
 		}
@@ -531,7 +536,7 @@ public class MoveEntityEvent {
 				absvx, absvz)) {
 			if (regrowthType.contains("t")) {
 				if (isValidTorchLocation(wallPerimeter, wallTorchSpacing, absvx, absvz)) {
-					ve.world.setBlockState(ve.getPosition().up(), Blocks.TORCH.getDefaultState());
+					ve.world.setBlockState(getBlockPos(ve).up(), Blocks.TORCH.getDefaultState());
 				}
 			}
 			return true;
@@ -570,7 +575,7 @@ public class MoveEntityEvent {
 				absvx, absvz)) {
 			if (regrowthType.contains("t")) {
 				if (isValidTorchLocation(wallPerimeter, wallTorchSpacing, absvx, absvz)) {
-					ve.world.setBlockState(ve.getPosition().up(), Blocks.TORCH.getDefaultState());
+					ve.world.setBlockState(getBlockPos(ve).up(), Blocks.TORCH.getDefaultState());
 				}
 			}			
 			return true;
@@ -674,7 +679,7 @@ public class MoveEntityEvent {
 		if (!(vMeetingPlace.isPresent())) {
 			okayToBuildWalls = false;
 		}
-		if (!(ve.onGround)) {
+		if (!(isOnGround(ve))) {
 			okayToBuildWalls = false;
 		}
 		if (!(isFootBlockOkayToBuildIn(footBlock))) {
@@ -697,7 +702,7 @@ public class MoveEntityEvent {
 	}
 
 	private boolean isValidGroundBlockToBuildWallOn (VillagerEntity ve,Block groundBlock) {
-		int blockSkyLightValue = ve.world.getLightFor(LightType.SKY, ve.getPosition());
+		int blockSkyLightValue = ve.world.getLightFor(LightType.SKY, getBlockPos(ve));
 		int z=4;
 		if (blockSkyLightValue < 14) {
 			return false;
@@ -747,13 +752,13 @@ public class MoveEntityEvent {
 			if (absvz <= wallPerimeter) {
 				if (absvz == wallCenter) {
 					if (buildCenterGate) {
-						ve.world.setBlockState(ve.getPosition().down(), gateBlockType);
+						ve.world.setBlockState(getBlockPos(ve).down(), gateBlockType);
 						return true;
 					} else {
 						return false;
 					}
 				} else {
-					ve.world.setBlockState(ve.getPosition(), wallType);
+					ve.world.setBlockState(getBlockPos(ve), wallType);
 					return true;
 				}
 			}
@@ -763,19 +768,28 @@ public class MoveEntityEvent {
 			if (absvx <= wallPerimeter) {
 				if (absvx == wallCenter) {
 					if (buildCenterGate) {
-						ve.world.setBlockState(ve.getPosition().down(), gateBlockType);
+						ve.world.setBlockState(getBlockPos(ve).down(), gateBlockType);
 						return true;
 					} else {
 						return false;
 					}
 				} else {
-					ve.world.setBlockState(ve.getPosition(), wallType);
+					ve.world.setBlockState(getBlockPos(ve), wallType);
 					return true;
 				}
 			}
 		}
 		return false;
 	}
+	
+	private BlockPos getBlockPos (Entity e) {
+		return e.func_233580_cy_();
+	}
+	
+	private boolean isOnGround (Entity e) {
+		return e.func_233570_aj_();
+	}
+
 }
 	
 

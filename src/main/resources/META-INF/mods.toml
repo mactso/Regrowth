@@ -1,5 +1,5 @@
 modLoader="javafml"
-loaderVersion="[30,)"
+loaderVersion="[32,)"
 [[mods]]
 modId="regrowth"
 version="${file.jarVersion}"
@@ -11,13 +11,13 @@ description='''Regrowth Mod.'''
 [[dependencies.regrowth]]
     modId="forge"
     mandatory=true
-    versionRange="[30,)"
+    versionRange="[32,)"
     ordering="NONE"
     side="SERVER"
 
 [[dependencies.regrowth]]
     modId="minecraft"
     mandatory=true
-    versionRange="[1.15.1,1.16)"
+    versionRange="[1.16.1]"
     ordering="NONE"
     side="SERVER"

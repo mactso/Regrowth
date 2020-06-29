@@ -2,6 +2,8 @@
 package com.mactso.regrowth.Commands;
 
 
+import java.util.UUID;
+
 import com.mactso.regrowth.config.MyConfig;
 import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.command.Commands;
@@ -20,6 +22,7 @@ import net.minecraft.util.math.EntityRayTraceResult;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -45,6 +48,7 @@ public class RegrowthCommands {
 			)
 		.then(Commands.literal("info").executes(ctx -> {
 					ServerPlayerEntity p = ctx.getSource().asPlayer();
+
 					World worldName = p.world;
 					String objectInfo = "";
 					MinecraftServer srv = p.getServer();
@@ -55,22 +59,29 @@ public class RegrowthCommands {
 	                    	EntityRayTraceResult ertr = (EntityRayTraceResult) object;
 	                    	Entity tempEntity = ertr.getEntity();
 	                    	objectInfo = tempEntity.getEntityString();
+	                     } else {
+	                   		objectInfo = "You are not looking at an entity.";	                    	 
 	                     }
 					} else {
-						objectInfo = "Dedicated Server.";
+						objectInfo = "Load single player game to see entity you are looking at.";
 					}
-					ITextComponent component = new StringTextComponent (worldName.getDimension().getType().getRegistryName() 
+					//ITextComponent component = new StringTextComponent (worldName.getDimension().getType().getRegistryName() 
+		            //		+ "\n Current Values");
+					StringTextComponent component = new StringTextComponent (worldName.func_234923_W_().toString()
 		            		+ "\n Current Values");
-		            component.applyTextStyle(TextFormatting.BOLD);
-		            component.applyTextStyle(TextFormatting.DARK_GREEN);
-		            p.sendMessage(component);
+					// set to Dark Green Bold
+					Style chatStyle = Style.field_240709_b_.func_240712_a_(TextFormatting.DARK_GREEN).func_240713_a_(true);
+					
+					p.sendMessage(component.func_230530_a_(chatStyle) , p.getUniqueID());
 		            component = new StringTextComponent (
-		              		  "\n  Regrowth Version 1.15.2 1.0.0.0"  
+		              		  "\n  Regrowth Version 1.16.1 06/29/2020"  
 		            		+ "\n  Debug Level...........: " + MyConfig.aDebugLevel
 		            		+ "\n  Looking At................:"  + objectInfo
 		            		);
-		            component.applyTextStyle(TextFormatting.DARK_GREEN);
-		            p.sendMessage(component);
+
+		            // component.applyTextStyle(TextFormatting.DARK_GREEN);
+					chatStyle = Style.field_240709_b_.func_240712_a_(TextFormatting.DARK_GREEN).func_240713_a_(false);
+		            p.sendMessage(component.func_230530_a_(chatStyle) , p.getUniqueID());
 					return 1;
 			}
 			)
@@ -81,7 +92,7 @@ public class RegrowthCommands {
 
 	public static int setDebugLevel (int newDebugLevel) {
 		MyConfig.aDebugLevel = newDebugLevel;
-		MyConfig.pushValues();
+		MyConfig.pushDebugLevel();
 		return 1;
 	}
 }

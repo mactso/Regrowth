@@ -1,15 +1,12 @@
 // 15.2 - 1.0.0.0 regrowth
 package com.mactso.regrowth.config;
 
-import java.sql.Array;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.StringTokenizer;
 
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.world.dimension.DimensionType;
 import net.minecraftforge.registries.ForgeRegistries;
 
 public class RegrowthEntitiesManager {

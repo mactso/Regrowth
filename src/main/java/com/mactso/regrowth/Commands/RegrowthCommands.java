@@ -81,7 +81,7 @@ public class RegrowthCommands {
 
 	public static int setDebugLevel (int newDebugLevel) {
 		MyConfig.aDebugLevel = newDebugLevel;
-		MyConfig.pushValues();
+		MyConfig.pushDebugLevel();
 		return 1;
 	}
 }

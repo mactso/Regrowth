@@ -15,16 +15,12 @@ import net.minecraft.block.DoublePlantBlock;
 import net.minecraft.block.FenceBlock;
 import net.minecraft.block.FlowerBlock;
 import net.minecraft.block.GrassBlock;
-import net.minecraft.block.GrassPathBlock;
 import net.minecraft.block.IGrowable;
 import net.minecraft.block.LeavesBlock;
 import net.minecraft.block.LogBlock;
-import net.minecraft.block.SoundType;
+import net.minecraft.block.StairsBlock;
 import net.minecraft.block.TallGrassBlock;
 import net.minecraft.block.WallBlock;
-import net.minecraft.block.WoodType;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.material.MaterialColor;
 import net.minecraft.entity.AgeableEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
@@ -34,21 +30,16 @@ import net.minecraft.entity.ai.brain.memory.MemoryModuleType;
 import net.minecraft.entity.merchant.villager.VillagerEntity;
 import net.minecraft.entity.merchant.villager.VillagerProfession;
 import net.minecraft.entity.passive.horse.AbstractHorseEntity;
-import net.minecraft.entity.passive.horse.DonkeyEntity;
-import net.minecraft.entity.passive.horse.HorseEntity;
 import net.minecraft.potion.EffectInstance;
 import net.minecraft.potion.Effects;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.GlobalPos;
-import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.world.LightType;
 import net.minecraft.world.biome.Biome;
-import net.minecraft.world.biome.Biomes;
 import net.minecraft.world.server.ServerWorld;
-import net.minecraftforge.common.extensions.IForgeBlockState;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -221,7 +212,7 @@ public class MoveEntityEvent {
 		// to do - replace "c" with a meaningful constant.
 		
 		if(regrowthType.contains("c")) {
-			if (footBlock instanceof TallGrassBlock) {
+			if ((footBlock instanceof TallGrassBlock)||(footBlock instanceof DoublePlantBlock)) {
 				ve.world.destroyBlock(ve.getPosition(), false);
 				if (MyConfig.aDebugLevel > 0) {
 					System.out.println(key + " cut at " +  veX +", "+veY+", "+veZ+".");
@@ -698,7 +689,7 @@ public class MoveEntityEvent {
 
 	private boolean isValidGroundBlockToBuildWallOn (VillagerEntity ve,Block groundBlock) {
 		int blockSkyLightValue = ve.world.getLightFor(LightType.SKY, ve.getPosition());
-		int z=4;
+
 		if (blockSkyLightValue < 14) {
 			return false;
 		}
@@ -742,18 +733,32 @@ public class MoveEntityEvent {
 			BlockState gateBlockType, boolean buildCenterGate, BlockState wallType, 
 			int absvx,int absvz) 
 	{
+
+		BlockPos vePosDown = ve.getPosition().down();
+		Block testBlock = ve.world.getBlockState(vePosDown).getBlock();
+		// do not place walls on stairs to avoid blocking doors
+		if (testBlock instanceof StairsBlock) {
+			return false;
+		}
 		// Build North and South Walls (and corners)
 		if (absvx == wallPerimeter) {
 			if (absvz <= wallPerimeter) {
 				if (absvz == wallCenter) {
 					if (buildCenterGate) {
-						ve.world.setBlockState(ve.getPosition().down(), gateBlockType);
+						ve.world.setBlockState(vePosDown, gateBlockType);
 						return true;
 					} else {
 						return false;
 					}
 				} else {
-					ve.world.setBlockState(ve.getPosition(), wallType);
+					// edge case "hanging off edge of a higher block on hill"
+					if ((testBlock instanceof AirBlock)||
+						(testBlock instanceof TallGrassBlock)
+						) {
+						ve.world.setBlockState(vePosDown, wallType);
+					} else {
+						ve.world.setBlockState(ve.getPosition(), wallType);
+					}
 					return true;
 				}
 			}
@@ -769,7 +774,14 @@ public class MoveEntityEvent {
 						return false;
 					}
 				} else {
-					ve.world.setBlockState(ve.getPosition(), wallType);
+					// edge case "hanging off edge of a higher block on hill"
+					if ((testBlock instanceof AirBlock)||
+						(testBlock instanceof TallGrassBlock)
+						) {
+						ve.world.setBlockState(vePosDown, wallType);
+					} else {
+						ve.world.setBlockState(ve.getPosition(), wallType);
+					}
 					return true;
 				}
 			}

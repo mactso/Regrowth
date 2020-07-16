@@ -6,7 +6,10 @@ import com.mactso.regrowth.Commands.RegrowthCommands;
 import com.mactso.regrowth.config.MyConfig;
 import com.mactso.regrowth.events.MoveEntityEvent;
 
+
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
@@ -35,12 +38,16 @@ public class Main {
 			System.out.println("Regrowth: Registering Handler");
 			MinecraftForge.EVENT_BUS.register(new MoveEntityEvent ());
 			
-		}       
+		}
+		@SubscribeEvent 		
+		public void onCommandsRegistry(final RegisterCommandsEvent event) {
+			RegrowthCommands.register(event.getDispatcher());			
+		}
 
 		// in 14.4 and later, config file loads when the server starts when the world starts.
 		@SubscribeEvent 
 		public void onServerStarting (FMLServerStartingEvent event) {
-			RegrowthCommands.register(event.getCommandDispatcher());
+
 		}
 }
 

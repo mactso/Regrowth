@@ -5,6 +5,7 @@ modId="regrowth"
 version="${file.jarVersion}"
 displayName="Regrowth Mod"
 displayURL="https://www.curseforge.com/minecraft/mc-mods/regrowth"
+updateJSONURL="https://github.com/mactso/Regrowth/raw/master/update.json"
 logoFile="RegrowthMod.png"
 authors="MacTso, Lupicus"
 description='''Regrowth Mod.'''

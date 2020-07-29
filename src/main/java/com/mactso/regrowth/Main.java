@@ -25,11 +25,9 @@ public class Main {
 	    
 	    public Main()
 	    {
-
 			FMLJavaModLoadingContext.get().getModEventBus().register(this);
 	        ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER,MyConfig.SERVER_SPEC );
-			MinecraftForge.EVENT_BUS.register(this);
-			
+			// MinecraftForge.EVENT_BUS.register(this);
 	    }
 
 	    // Register ourselves for server and other game events we are interested in
@@ -39,16 +37,18 @@ public class Main {
 			MinecraftForge.EVENT_BUS.register(new MoveEntityEvent ());
 			
 		}
-		@SubscribeEvent 		
-		public void onCommandsRegistry(final RegisterCommandsEvent event) {
-			RegrowthCommands.register(event.getDispatcher());			
-		}
+		
 
-		// in 14.4 and later, config file loads when the server starts when the world starts.
-		@SubscribeEvent 
-		public void onServerStarting (FMLServerStartingEvent event) {
+	    @Mod.EventBusSubscriber()
+	    public static class ForgeEvents
+	    {
+			@SubscribeEvent 		
+			public void onCommandsRegistry(final RegisterCommandsEvent event) {
+				RegrowthCommands.register(event.getDispatcher());			
+			}
 
-		}
+	    }
+
 }
 
 

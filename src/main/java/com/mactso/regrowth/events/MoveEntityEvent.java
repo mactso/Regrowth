@@ -257,11 +257,26 @@ public class MoveEntityEvent {
 		}
 		int dx = facingArray[facingNdx][0];
 		int dz = facingArray[facingNdx][1];
+		BlockPos tmpBP = null;
+		BlockState tempBS = null;
+		Block tempBlock = null;
+		boolean destroyBlock = false;
 		for (int iY=0;iY<2;iY++) {
-			BlockPos tmpBP = new BlockPos (veX+dx,veY+iY,veZ+dz);
-			Block tempBlock = ve.world.getBlockState(tmpBP).getBlock();
-			if ((tempBlock instanceof LeavesBlock)||((tempBlock instanceof CactusBlock))) {
+			tmpBP = new BlockPos (veX+dx,veY+iY,veZ+dz);
+			tempBS = ve.world.getBlockState(tmpBP);
+			tempBlock = tempBS.getBlock();
+			if (tempBlock instanceof LeavesBlock) {
+				boolean persistantLeaves = tempBS.get(LeavesBlock.PERSISTENT);
+				if (!(persistantLeaves)) {
+					destroyBlock = true;
+				}
+			}
+			if 	((tempBlock instanceof CactusBlock)) {
+				destroyBlock = true;
+			}
+			if (destroyBlock) {
 				ve.world.destroyBlock(tmpBP, false);
+				destroyBlock = false;
 				if (MyConfig.aDebugLevel > 0) {
 					System.out.println(key + " clear "+ tempBlock.getTranslationKey().toString() +" at" +  +  veX +", "+veY+iY +", "+veZ+", ");
 				}

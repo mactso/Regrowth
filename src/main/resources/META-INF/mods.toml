@@ -1,5 +1,6 @@
 modLoader="javafml"
 loaderVersion="[32,)"
+license="MIT License"
 [[mods]]
 modId="regrowth"
 version="${file.jarVersion}"

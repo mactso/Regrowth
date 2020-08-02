@@ -66,9 +66,11 @@ public class MoveEntityEvent {
 		
 		Entity eventEntity = event.getEntity();
 		World world = eventEntity.world;
+		
 		if (world == null) {
 			return;
 		}
+		
 		if (!(world instanceof ServerWorld)) {
 			return;
 		}
@@ -515,7 +517,7 @@ public class MoveEntityEvent {
 	}
 
 	private boolean improveWallForMeetingPlace(VillagerEntity ve, 
-			String regrowthType, BlockPos villageMeetingPlaceBlockPos) {
+			String regrowthType, BlockPos villageMeetingPlaceBlockPos, Block groundBlock) {
 
 		Biome villageBiome = ve.world.getBiome(villageMeetingPlaceBlockPos);		
 		int wallPerimeter = 31;
@@ -540,7 +542,7 @@ public class MoveEntityEvent {
 		if (placeOneWallPiece(ve, regrowthType, wallPerimeter, wallTorchSpacing, wallCenter, gateBlockType, buildCenterGate, wallType,
 				absvx, absvz)) {
 			if (regrowthType.contains("t")) {
-				if (isValidTorchLocation(wallPerimeter, wallTorchSpacing, absvx, absvz)) {
+				if (isValidTorchLocation(wallPerimeter, wallTorchSpacing, absvx, absvz, ve.world.getBlockState(ve.getPosition()).getBlock() )) {
 					ve.world.setBlockState(ve.getPosition().up(), Blocks.TORCH.getDefaultState());
 				}
 			}
@@ -551,7 +553,7 @@ public class MoveEntityEvent {
 
 	// villagers build protective walls around their homes. currently 32 out.
 	// to do- reduce distance of wall from home.
-	private boolean improveWallForPersonalHome(VillagerEntity ve, BlockPos vHomePos,String regrowthType ) {
+	private boolean improveWallForPersonalHome(VillagerEntity ve, BlockPos vHomePos,String regrowthType, Block groundBlock ) {
 
 		Biome villageBiome = ve.world.getBiome(vHomePos);
 		int wallPerimeter = 5;
@@ -579,7 +581,7 @@ public class MoveEntityEvent {
 		if (placeOneWallPiece(ve, regrowthType, wallPerimeter, wallTorchSpacing, wallCenter, gateBlockType, buildCenterGate, wallType,
 				absvx, absvz)) {
 			if (regrowthType.contains("t")) {
-				if (isValidTorchLocation(wallPerimeter, wallTorchSpacing, absvx, absvz)) {
+				if (isValidTorchLocation(wallPerimeter, wallTorchSpacing, absvx, absvz, groundBlock )) {
 					ve.world.setBlockState(ve.getPosition().up(), Blocks.TORCH.getDefaultState());
 				}
 			}			
@@ -602,7 +604,7 @@ public class MoveEntityEvent {
 			// Don't block any roads or paths regardless of biome.
 
 			if (regrowthType.contains("w")) {
-				if (improveWallForMeetingPlace(ve, regrowthType, villageMeetingPlaceBlockPos)) {
+				if (improveWallForMeetingPlace(ve, regrowthType, villageMeetingPlaceBlockPos, groundBlock)) {
 					if (MyConfig.aDebugLevel > 0) {
 						System.out.println(key + " Meeting Place wall at " +  veX +", "+veY+", "+veZ+".");
 					}
@@ -618,7 +620,7 @@ public class MoveEntityEvent {
 					// don't build personal walls inside the village wall perimeter.
 					// don't build personal walls until the village has a meeting place.
 					if (isOutsideMeetingPlaceWall(ve, vMeetingPlace, vMeetingPlace.get().getPos(), veX, veY, veZ)) {
-						if (improveWallForPersonalHome(ve, villagerHomePos, regrowthType)) {
+						if (improveWallForPersonalHome(ve, villagerHomePos, regrowthType, groundBlock)) {
 							if (MyConfig.aDebugLevel > 0) {
 								System.out.println(key + " personal wall at " +veX+", "+veY+", "+veZ+".");
 							}
@@ -706,45 +708,63 @@ public class MoveEntityEvent {
 		return true;
 	}
 
-	private boolean isValidGroundBlockToBuildWallOn (VillagerEntity ve,Block groundBlock) {
+	private boolean isValidGroundBlockToBuildWallOn (VillagerEntity ve, Block groundBlock) {
 		int blockSkyLightValue = ve.world.getLightFor(LightType.SKY, ve.getPosition());
 
 		if (blockSkyLightValue < 14) {
 			return false;
 		}
+		
 		if ((groundBlock == Blocks.SAND)  ||
 			(groundBlock == Blocks.GRASS) ||
 			(groundBlock == Blocks.PODZOL)||
 			(groundBlock == Blocks.FERN)) {
 			return true;
 		}
+		
 		if ((groundBlock == Blocks.GRASS_PATH) ||
 		    (groundBlock == Blocks.SMOOTH_SANDSTONE) ||
 		    (groundBlock == Blocks.GRAVEL) ||
 		    (groundBlock == Blocks.HAY_BLOCK) ||
+		    (groundBlock == Blocks.FARMLAND) ||
+		    (groundBlock == Blocks.TORCH) ||
+		    (groundBlock == Blocks.AIR) ||
 		    (groundBlock instanceof WallBlock) ||
 		    (groundBlock instanceof FenceBlock)
 			){
 			return false;
 		}
+		
 		return true;
+		
 	}
 	
 //	ItemStack iStk = new ItemStack(Items.BONE_MEAL,1);
 //	BoneMealItem.applyBonemeal(iStk, e.world,e.getPosition());
 // (likely 12.2 and 14.4 call?)	ib.func_225535_a_((ServerWorld)e.world, e.world.rand, e.getPosition(), w.getBlockState(e.getPosition()));\
 	
-	private boolean isValidTorchLocation(int wallPerimeter,int wallTorchSpacing, int absvx, int absvz) {
-			if  ((absvx == wallPerimeter ) && ((absvz % wallTorchSpacing) == 1)) {
-				return true;
-			}
-			if  (((absvx % wallTorchSpacing) == 1) && (absvz == wallPerimeter )) {
-				return true;
-			}
-			if ((absvx == wallPerimeter) && (absvz == wallPerimeter)) {
-				return true;
-			}
+	private boolean isValidTorchLocation(int wallPerimeter,int wallTorchSpacing, int absvx, int absvz, Block wallFenceBlock) {
+
+		boolean hasAWallUnderIt = false;
+		if (wallFenceBlock instanceof WallBlock) {
+			hasAWallUnderIt = true;
+		}
+		if (wallFenceBlock instanceof FenceBlock) {
+			hasAWallUnderIt = true;
+		}
+		if (!(hasAWallUnderIt)) {
 			return false;
+		}
+		if  ((absvx == wallPerimeter ) && ((absvz % wallTorchSpacing) == 1)) {
+			return true;
+		}
+		if  (((absvx % wallTorchSpacing) == 1) && (absvz == wallPerimeter )) {
+			return true;
+		}
+		if ((absvx == wallPerimeter) && (absvz == wallPerimeter)) {
+			return true;
+		}
+		return false;
 	}
 
 	private boolean placeOneWallPiece(VillagerEntity ve, String regrowthType, 

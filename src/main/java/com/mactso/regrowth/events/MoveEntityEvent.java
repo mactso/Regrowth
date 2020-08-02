@@ -38,6 +38,7 @@ import net.minecraft.util.math.GlobalPos;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.world.LightType;
+import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
@@ -62,22 +63,37 @@ public class MoveEntityEvent {
 		if (event.getEntity() == null) {
 			return;
 		}
-		
+
 		Entity eventEntity = event.getEntity();
+		World world = eventEntity.world;
 		
-		if (!(eventEntity.world instanceof ServerWorld)) {
+		if (world == null) {
+			return;
+		}
+		
+		if (!(world instanceof ServerWorld)) {
 			return;
 		}
 
 		BlockPos debugBlockPos = getBlockPos(eventEntity);
-		Block footBlock = eventEntity.world.getBlockState(getBlockPos(eventEntity)).getBlock();
+		Block footBlock = world.getBlockState(getBlockPos(eventEntity)).getBlock();
+		if (footBlock == null) {
+			return;
+		}
+
 		Block groundBlock;
+
 		if (footBlock == Blocks.GRASS_PATH) {
 			groundBlock = footBlock;
 		} else {
-			groundBlock = eventEntity.world.getBlockState(getBlockPos(eventEntity).down()).getBlock();	
+			groundBlock = world.getBlockState(getBlockPos(eventEntity).down()).getBlock();	
 		}
 
+		if (groundBlock == null) {
+			return;
+		}
+
+		
 		BlockPos eventEntityPos = getBlockPos(eventEntity); // floats
 		int eventEntityX =  eventEntityPos.getX(); // Int
 		int eventEntityY =  eventEntityPos.getY(); // Int
@@ -106,13 +122,13 @@ public class MoveEntityEvent {
 				// if onGround
 				if ((isOnGround (ve))) {
 					doVillagerRegrowthEvents(ve, footBlock, groundBlock, eventEntityPos, registryNameAsString, regrowthType,
-							eventEntityX, eventEntityY, eventEntityZ);
+							eventEntityX, eventEntityY, eventEntityZ, world);
 				}
 			}
 		}
 	
 		doMobRegrowthEvents(eventEntity, footBlock, groundBlock, registryNameAsString, regrowthType, regrowthEventOdds, randomD100Roll,
-							eventEntityX, eventEntityY, eventEntityZ);
+							eventEntityX, eventEntityY, eventEntityZ, world);
 
 		int debugBreakPoint = 0;
 
@@ -120,7 +136,7 @@ public class MoveEntityEvent {
 
 	private void doMobRegrowthEvents(Entity eventEntity, Block footBlock, Block groundBlock, String key,
 			String regrowthType, double regrowthEventOdds, double randomD100Roll,
-			int eX, int eY, int eZ) {
+			int eX, int eY, int eZ, World world) {
 
 		// all remaining actions currently require a grass block underfoot so if not a grass block- can exit now.
 
@@ -140,7 +156,13 @@ public class MoveEntityEvent {
 		if ( ((regrowthType.equals("grow")) || (regrowthType.equals("both"))) && (randomD100Roll <= regrowthEventOdds) ) {
 			if (footBlock instanceof AirBlock ) {
 	        	IGrowable ib = (IGrowable) groundBlock;
-	    		ib.grow((ServerWorld)eventEntity.world, eventEntity.world.rand, getBlockPos(eventEntity), eventEntity.world.getBlockState(getBlockPos(eventEntity)));    			
+	        	if (ib == null) {
+	        		return;
+	        	}
+				if (MyConfig.aDebugLevel > 1) {
+					System.out.println(key + " trying to grow plants sat " +  eX +", "+ eY +", "+ eZ +".");
+				}
+	        	ib.grow((ServerWorld)eventEntity.world, eventEntity.world.rand, getBlockPos(eventEntity), eventEntity.world.getBlockState(getBlockPos(eventEntity)));    			
 				if (MyConfig.aDebugLevel > 0) {
 					System.out.println(key + " grow at " +  eX +", "+ eY +", "+ eZ +".");
 				}
@@ -164,6 +186,9 @@ public class MoveEntityEvent {
 				}
 			}			
 			if ((randomD100Roll <= eatingOdds)) {
+				if (MyConfig.aDebugLevel > 1) {
+					System.out.println(key + " trying to eat at " +  eX +", "+ eY +", "+ eZ +".");
+				}
 				if (entityEatGrassOrFlower(eventEntity, getBlockPos(eventEntity), regrowthType, footBlock)) {
  					if (MyConfig.aDebugLevel > 0) {
 						System.out.println(key + " eat at " +  eX +", "+ eY +", "+ eZ +".");
@@ -176,7 +201,7 @@ public class MoveEntityEvent {
 	}
 
 	private void doVillagerRegrowthEvents(VillagerEntity ve, Block footBlock, Block groundBlock, BlockPos eventEntityPos, String key, String regrowthType,
-											int veX, int veY, int veZ)
+											int veX, int veY, int veZ, World world)
 	{
 		// Villagers hopping, falling, etc. are doing improvements.
 		if (!(isOnGround (ve))) {
@@ -216,6 +241,7 @@ public class MoveEntityEvent {
 		
 		if(regrowthType.contains("c")) {
 			if ((footBlock instanceof TallGrassBlock)||(footBlock instanceof DoublePlantBlock)) {
+
 				ve.world.destroyBlock(eventEntityPos, false);
 				if (MyConfig.aDebugLevel > 0) {
 					System.out.println(key + " cut at " +  veX +", "+veY+", "+veZ+".");

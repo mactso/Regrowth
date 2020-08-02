@@ -43,7 +43,8 @@ public class Main {
 	    public static class ForgeEvents
 	    {
 			@SubscribeEvent 		
-			public void onCommandsRegistry(final RegisterCommandsEvent event) {
+			public static void onCommandsRegistry(final RegisterCommandsEvent event) {
+				System.out.println("Regrowth: Registering Command Dispatcher");
 				RegrowthCommands.register(event.getDispatcher());			
 			}
 

@@ -1,0 +1,37 @@
+{
+  "parent":"regrowth:story/off_limits",
+	"display": {
+		"title": {
+			"text": "Safer Hedges!",
+			"color": "green"
+		},
+		"description": {
+			"text": "Villagers won't cut leaf blocks you place.  Your hedge mazes are safe!",
+			"color": "green"
+		},
+		"icon": {
+			"item": "minecraft:oak_leaves"
+		}
+	},
+	"rewards": {
+		"experience": 1
+	},
+
+	"criteria": {
+		"inv_changed-minecraft:oak_leaves": {
+			"trigger": "minecraft:inventory_changed",
+			"conditions": {
+				"items": [
+					{
+						"item": "minecraft:oak_leaves"
+					}					
+				]
+			}
+		}
+	},
+	"requirements": [
+		[
+			"inv_changed-minecraft:oak_leaves"
+		]	
+	]
+}

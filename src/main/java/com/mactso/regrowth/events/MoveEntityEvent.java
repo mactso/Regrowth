@@ -630,6 +630,7 @@ public class MoveEntityEvent {
 
 	private void improveWalls(VillagerEntity ve, Block footBlock, Block groundBlock, String key, String regrowthType,
 								int veX, int veY, int veZ ) {
+		
 		Brain<VillagerEntity> vb = ve.getBrain();
 		Optional<GlobalPos> vMeetingPlace = vb.getMemory(MemoryModuleType.MEETING_POINT);
 
@@ -762,6 +763,7 @@ public class MoveEntityEvent {
 		    (groundBlock == Blocks.SMOOTH_SANDSTONE) ||
 		    (groundBlock == Blocks.GRAVEL) ||
 		    (groundBlock == Blocks.HAY_BLOCK) ||
+		    (groundBlock == Blocks.FARMLAND) ||
 		    (groundBlock == Blocks.TORCH) ||
 		    (groundBlock == Blocks.AIR) ||
             (groundBlock instanceof TallGrassBlock) ||

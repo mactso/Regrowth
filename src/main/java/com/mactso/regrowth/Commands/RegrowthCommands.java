@@ -20,6 +20,7 @@ import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.math.EntityRayTraceResult;
 import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.util.text.Color;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.Style;
@@ -67,21 +68,15 @@ public class RegrowthCommands {
 					}
 					//ITextComponent component = new StringTextComponent (worldName.getDimension().getType().getRegistryName() 
 		            //		+ "\n Current Values");
-					StringTextComponent component = new StringTextComponent (worldName.func_234923_W_().toString()
-		            		+ "\n Current Values");
-					// set to Dark Green Bold
-					Style chatStyle = Style.field_240709_b_.func_240712_a_(TextFormatting.DARK_GREEN).func_240713_a_(true);
-					
-					p.sendMessage(component.func_230530_a_(chatStyle) , p.getUniqueID());
-		            component = new StringTextComponent (
+
+					MyConfig.sendBoldChat(p, worldName.func_234923_W_().toString()
+		            		+ "\n Current Values", Color.func_240744_a_(TextFormatting.DARK_GREEN));
+
+		            String msg = 
 		              		  "\n  Regrowth Version 1.16.1 06/29/2020"  
 		            		+ "\n  Debug Level...........: " + MyConfig.aDebugLevel
-		            		+ "\n  Looking At................:"  + objectInfo
-		            		);
-
-		            // component.applyTextStyle(TextFormatting.DARK_GREEN);
-					chatStyle = Style.field_240709_b_.func_240712_a_(TextFormatting.DARK_GREEN).func_240713_a_(false);
-		            p.sendMessage(component.func_230530_a_(chatStyle) , p.getUniqueID());
+		            		+ "\n  Looking At................:"  + objectInfo;
+		            MyConfig.sendChat(p, msg, Color.func_240744_a_(TextFormatting.DARK_GREEN));
 					return 1;
 			}
 			)

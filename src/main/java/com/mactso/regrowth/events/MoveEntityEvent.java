@@ -4,6 +4,7 @@ import java.util.Optional;
 
 import com.mactso.regrowth.config.MyConfig;
 import com.mactso.regrowth.config.RegrowthEntitiesManager;
+import com.mactso.regrowth.config.WallFoundationsManager;
 
 import net.minecraft.block.AirBlock;
 import net.minecraft.block.BedBlock;
@@ -37,6 +38,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.GlobalPos;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.village.PointOfInterestData;
 import net.minecraft.world.LightType;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
@@ -44,6 +46,7 @@ import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.registries.ForgeRegistries;
 
 @Mod.EventBusSubscriber()
 public class MoveEntityEvent {
@@ -93,12 +96,11 @@ public class MoveEntityEvent {
 			return;
 		}
 
-		
 		BlockPos eventEntityPos = getBlockPos(eventEntity); // floats
 		int eventEntityX =  eventEntityPos.getX(); // Int
 		int eventEntityY =  eventEntityPos.getY(); // Int
 		int eventEntityZ =  eventEntityPos.getZ(); // Int
-		
+		Biome localBiome = world.getBiome(eventEntityPos);
 		EntityType<?> tempType = eventEntity.getType();
 		ResourceLocation registryName = tempType.getRegistryName();
 		String registryNameAsString = registryName.toString();
@@ -120,7 +122,7 @@ public class MoveEntityEvent {
 			if (eventEntity instanceof VillagerEntity) {
 				VillagerEntity ve = (VillagerEntity) eventEntity;
 				// if onGround
-				if ((isOnGround (ve))) {
+				if ((ve.isOnGround())) {
 					doVillagerRegrowthEvents(ve, footBlock, groundBlock, eventEntityPos, registryNameAsString, regrowthType,
 							eventEntityX, eventEntityY, eventEntityZ, world);
 				}
@@ -189,7 +191,7 @@ public class MoveEntityEvent {
 				if (MyConfig.aDebugLevel > 1) {
 					System.out.println(key + " trying to eat at " +  eX +", "+ eY +", "+ eZ +".");
 				}
-				if (entityEatGrassOrFlower(eventEntity, getBlockPos(eventEntity), regrowthType, footBlock)) {
+				if (entityEatGrassOrFlower(eventEntity, getBlockPos(eventEntity), regrowthType, footBlock, groundBlock)) {
  					if (MyConfig.aDebugLevel > 0) {
 						System.out.println(key + " eat at " +  eX +", "+ eY +", "+ eZ +".");
 					}
@@ -258,6 +260,7 @@ public class MoveEntityEvent {
 		// note villages may not have a meeting place.  Sometimes they change.  Sometimes they take a few minutes to form.
 		if ((regrowthType.contains("w")||(regrowthType.contains("p")))) {
 				improveWalls(ve, footBlock, groundBlock, key, regrowthType,veX,veY,veZ);
+				// "jump" villagers away if they are inside a wall or fence block.
 				if ((footBlock instanceof WallBlock) || (footBlock instanceof FenceBlock)) {
 					float veYaw=ve.getYaw(1.0f)/45;
 					int facingNdx = Math.round(veYaw);
@@ -322,7 +325,7 @@ public class MoveEntityEvent {
 		}
 	}
 
-	private boolean entityEatGrassOrFlower(Entity eventEntity, BlockPos eventEntityPos, String regrowthType, Block footBlock) {
+	private boolean entityEatGrassOrFlower(Entity eventEntity, BlockPos eventEntityPos, String regrowthType, Block footBlock, Block groundBlock) {
 
 		if (!(isGrassOrFlower(footBlock))) {
 			return false;
@@ -332,6 +335,10 @@ public class MoveEntityEvent {
 			return false;
 		}
 		eventEntity.world.destroyBlock(eventEntityPos, false);
+		double randomD100Roll = eventEntity.world.rand.nextDouble() * 100;
+		if ((randomD100Roll >60) && (groundBlock instanceof GrassBlock)) {
+			eventEntity.world.setBlockState(eventEntityPos.down(), Blocks.DIRT.getDefaultState());
+		}
 		LivingEntity le = (LivingEntity) eventEntity;
 		if (eventEntity instanceof AgeableEntity) {
 			AgeableEntity ae = (AgeableEntity) eventEntity;
@@ -375,8 +382,9 @@ public class MoveEntityEvent {
 					i = 4;
 				}
 			}
+			
 
-			if ((BlockTags.LOGS.func_230235_a_(groundBlock))){
+			if ((BlockTags.LOGS.contains(groundBlock))){
 				for(int i=0; i<4; i++) {
 					Block tempBlock = ve.world.getBlockState(new BlockPos (veX+dx[i],veY-1,veZ+dz[i])).getBlock();
 					if (tempBlock == Blocks.WATER) {
@@ -747,33 +755,17 @@ public class MoveEntityEvent {
 	}
 
 	private boolean isValidGroundBlockToBuildWallOn (VillagerEntity ve,Block groundBlock) {
-		int blockSkyLightValue = ve.world.getLightFor(LightType.SKY, getBlockPos(ve));
-		int z=4;
 
-		if (blockSkyLightValue < 14) {
-			return false;
-		}
-		if ((groundBlock == Blocks.SAND)  ||
-			(groundBlock == Blocks.GRASS) ||
-			(groundBlock == Blocks.PODZOL)||
-			(groundBlock == Blocks.FERN)) {
-			return true;
-		}
-		if ((groundBlock == Blocks.GRASS_PATH) ||
-		    (groundBlock == Blocks.SMOOTH_SANDSTONE) ||
-		    (groundBlock == Blocks.GRAVEL) ||
-		    (groundBlock == Blocks.HAY_BLOCK) ||
-		    (groundBlock == Blocks.FARMLAND) ||
-		    (groundBlock == Blocks.TORCH) ||
-		    (groundBlock == Blocks.AIR) ||
-            (groundBlock instanceof TallGrassBlock) ||
-		    (groundBlock instanceof WallBlock) ||
-		    (groundBlock instanceof FenceBlock)
-			) {
-			return false;
-		}
-	
+		int blockSkyLightValue = ve.world.getLightFor(LightType.SKY, getBlockPos(ve));
+
+		if (blockSkyLightValue < 14) return false;
+		
+		String key = groundBlock.getRegistryName().toString(); // broken out for easier debugging
+		WallFoundationsManager.wallFoundationItem currentWallFoundationItem = WallFoundationsManager.getWallFoundationInfo(key);
+		if (currentWallFoundationItem==null) return false;		
+		
 		return true;
+		
 	}
 	
 //	ItemStack iStk = new ItemStack(Items.BONE_MEAL,1);
@@ -817,6 +809,26 @@ public class MoveEntityEvent {
 		if (blockBs instanceof StairsBlock) {
 			return false;
 		}
+		
+		if ((absvx != wallPerimeter) && (absvz != wallPerimeter)) return false;
+
+		// check for nearby multiple bell cases.
+		int scan = (int) wallPerimeter - 2;
+		int scanPosX = (int) ve.getPosX();
+		int scanPosZ = (int) ve.getPosZ();
+		int scanPosY = (int) ve.getPosY();
+		boolean noOtherBells = true;
+		for (int dy = (int) scanPosY -1; dy < scanPosY + 3; dy++) {
+			for (int dx = (int) scanPosX - scan; dx < scanPosX + scan ; dx++) {
+				for (int dz = (int) scanPosZ - scan; dz < scanPosZ + scan +1; dz++) {
+					BlockPos pos = new BlockPos (dx, dy, dz);
+					if (ve.world.getBlockState(pos).getBlock() == Blocks.BELL) {
+						return false;
+					}
+				}
+			}
+		}
+
 		// Build North and South Walls (and corners)
 		if (absvx == wallPerimeter) {
 			if (absvz <= wallPerimeter) {
@@ -869,11 +881,11 @@ public class MoveEntityEvent {
 	}
 	
 	private BlockPos getBlockPos (Entity e) {
-		return e.func_233580_cy_();
+		return e.getPosition();
 	}
 	
 	private boolean isOnGround (Entity e) {
-		return e.func_233570_aj_();
+		return e.isOnGround();
 	}
 
 }

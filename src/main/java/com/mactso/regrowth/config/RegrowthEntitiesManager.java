@@ -89,9 +89,9 @@ public class RegrowthEntitiesManager {
 		double regrowthEventSeconds;
 		String regrowthType;
 		
-		public RegrowthMobItem(String regrowthType, double trailBlockSpeed) {
+		public RegrowthMobItem(String regrowthType, double regrowthEventSeconds) {
 			this.regrowthType =  regrowthType;
-			this.regrowthEventSeconds = trailBlockSpeed;
+			this.regrowthEventSeconds = regrowthEventSeconds;
 		}
 
 		public String getRegrowthType() {

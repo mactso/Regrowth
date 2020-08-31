@@ -20,6 +20,6 @@ description='''Regrowth Mod.'''
 [[dependencies.regrowth]]
     modId="minecraft"
     mandatory=true
-    versionRange="[1.16.1]"
+    versionRange="[1.16.1,1.17.0)"
     ordering="NONE"
     side="SERVER"

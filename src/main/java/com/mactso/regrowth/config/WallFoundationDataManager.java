@@ -7,7 +7,7 @@ import java.util.StringTokenizer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.registries.ForgeRegistries;
 
-public class WallFoundationsManager {
+public class WallFoundationDataManager {
 
 	public static Hashtable<String, wallFoundationItem> wallFoundationsHashtable = new Hashtable<>();
 	private static String defaultWallFoundationString = "hbm:default";
@@ -61,13 +61,13 @@ public class WallFoundationsManager {
 		while (i < MyConfig.defaultWallFoundations.length) {
 			try {
 				StringTokenizer st = new StringTokenizer(MyConfig.defaultWallFoundations[i], ",");
-				String modBlock = st.nextToken();
-				String key = modBlock;
-				wallFoundationsHashtable.put(key, new wallFoundationItem(modBlock));
-				if (!modBlock.contentEquals("hbm:default") &&
-				    !ForgeRegistries.BLOCKS.containsKey(new ResourceLocation(modBlock))
+				String wallFoundationBlockKey = st.nextToken();
+				String key = wallFoundationBlockKey;				
+				wallFoundationsHashtable.put(key, new wallFoundationItem(wallFoundationBlockKey));
+				if (!wallFoundationBlockKey.contentEquals("hbm:default") &&
+				    !ForgeRegistries.BLOCKS.containsKey(new ResourceLocation(wallFoundationBlockKey))
 				   )  {
-					System.out.println("Regrowth Debug: Wall Foundation Block: " + modBlock + " not in Forge Entity Type Registry.  Mispelled?  Missing semicolon? ");
+					System.out.println("Regrowth Debug: Wall Foundation Block: " + wallFoundationBlockKey + " not in Forge Entity Type Registry.  Mispelled?  Missing semicolon? ");
 				}
 			} catch (Exception e) {
 				System.out.println("Regrowth Debug:  Bad Wall Foundation Config : " + MyConfig.defaultWallFoundations[i]);

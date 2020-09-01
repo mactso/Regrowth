@@ -37,14 +37,23 @@ public class MyConfig {
 	public static double    aEatingHeals;	
 	public static String[]  defaultRegrowthMobs;
 	public static String    defaultRegrowthMobs6464;
-
+	public static String[]  defaultWallFoundations;
+	public static String    defaultWallFoundations6464;
+	public static String[]  defaultWallBiomeData;
+	public static String    defaultWallBiomeData6464;
+	
 	@SubscribeEvent
 	public static void onModConfigEvent(final ModConfig.ModConfigEvent configEvent)
 	{
 		if (configEvent.getConfig().getSpec() == MyConfig.SERVER_SPEC)
 		{
+			if (aDebugLevel > 0) {
+				System.out.println("Regrowth:onModConfigEvent Level: " + aDebugLevel );
+			}
 			bakeConfig();
 			RegrowthEntitiesManager.regrowthMobInit();
+			WallFoundationDataManager.wallFoundationsInit();
+			WallBiomeDataManager.wallBiomeDataInit();
 		}
 	}	
 	public static void pushDebugLevel() {
@@ -52,7 +61,12 @@ public class MyConfig {
 	}
 	
 	public static void pushValues() {
+		if (aDebugLevel > 0) {
+			System.out.println("Regrowth:pushValues Level: " + aDebugLevel );
+		}
 		SERVER.defaultRegrowthMobsActual.set(RegrowthEntitiesManager.getRegrowthHashAsString());
+		SERVER.defaultWallFoundationsActual.set(WallFoundationDataManager.getWallFoundationHashAsString());
+		SERVER.defaultBiomeWallDataActual.set(WallBiomeDataManager.getWallBiomeDataHashAsString());
 	}
 	
 	// remember need to push each of these values separately once we have commands.
@@ -60,9 +74,11 @@ public class MyConfig {
 	{
 		aDebugLevel = SERVER.debugLevel.get();
 		aEatingHeals = SERVER.eatingHeals.get();		
-		defaultRegrowthMobs6464 = SERVER.defaultRegrowthMobsActual.get() ;
+		defaultRegrowthMobs6464 = SERVER.defaultRegrowthMobsActual.get();
+		defaultWallFoundations6464 = SERVER.defaultWallFoundationsActual.get() ;
+		defaultWallBiomeData6464 = SERVER.defaultBiomeWallDataActual.get() ;
 		if (aDebugLevel > 0) {
-			System.out.println("Regrowth Debug Level: " + aDebugLevel );
+			System.out.println("Regrowth:BakeConfig Debug Level: " + aDebugLevel );
 		}
 	}
 	
@@ -74,16 +90,51 @@ public class MyConfig {
 		// mod:mob,type(eat,cut,grow,both,tall,villagerflags),Seconds;
 		public final String defaultRegrowthMobs6464 = 
 				  "minecraft:cow,both,240.0;"
-  			    + "minecraft:horse,eat,360.0;"
-				+ "minecraft:donkey,eat,360.0;"
-				+ "minecraft:sheep,eat,240.0;"
-				+ "minecraft:pig,grow,800.0;"
-				+ "minecraft:bee,grow,1000.0;"
-				+ "minecraft:chicken,grow,600.0;"
-				+ "minecraft:villager,crwlvpt,5.0;"
-				+ "minecraft:creeper,tall,60.0"
+	  			    + "minecraft:horse,eat,360.0;"
+					+ "minecraft:donkey,eat,360.0;"
+					+ "minecraft:sheep,eat,240.0;"
+					+ "minecraft:pig,grow,800.0;"
+					+ "minecraft:bee,grow,1000.0;"
+					+ "minecraft:chicken,grow,600.0;"
+					+ "minecraft:villager,crwlvt,5.0;"
+					+ "minecraft:creeper,tall,60.0"
+					;
+
+
+		// blocks walls can be built on
+		public final ConfigValue<String> defaultWallFoundationsActual;
+		public final String defaultWallFoundations6464 = 
+				  "minecraft:grass_block;"
+				+ "minecraft:sand;"
+				+ "minecraft:red_sand;"
+				+ "minecraft:netherrack;"
+				+ "minecraft:sandstone;"
+				+ "minecraft:podzol;"
+				+ "minecraft:dirt;"
+				+ "minecraft:stone;"
+				+ "minecraft:coarse_dirt"
+				;
+
+		// biome to get biome category, wall size, wall block type
+		public final ConfigValue<String> defaultBiomeWallDataActual;
+		public final String defaultBiomeWallData6464 = 
+				  "Regrowth:default,48,minecraft:cobblestone_wall,minecraft:oak_fence;"
+				+ "minecraft:plains,64,minecraft:cobblestone_wall,minecraft:oak_fence;"
+				+ "minecraft:desert,48,minecraft:sandstone_wall,minecraft:birch_fence;"
+				+ "minecraft:taiga,48,minecraft:mossy_cobblestone_wall,minecraft:spruce_fence;"
+				+ "minecraft:savanna,48,minecraft:stone_brick_wall,minecraft:acacia_fence;"
+				+ "minecraft:icy,40,minecraft:diorite_wall,minecraft:spruce_fence;"
+				+ "minecraft:the_end,40,minecraft:end_stone_brick_wall,minecraft:birch_fence;"
+				+ "minecraft:beach,48,minecraft:sandstone_wall,minecraft:oak_fence;"
+				+ "minecraft:forest,64,minecraft:mossy_stone_brick_wall,minecraft:oak_fence;"
+				+ "minecraft:mesa,48,minecraft:red_sandstone_wall,minecraft:oak_fence;"
+				+ "minecraft:jungle,48,minecraft:granite_wall,minecraft:jungle_fence;"
+				+ "minecraft:river,48,minecraft:sandstone_wall,minecraft:oak_fence;"
+				+ "minecraft:nether,40,minecraft:cobblestone_wall,minecraft:nether_brick_fence;"
+				+ "Regrowth:minimum,32,regrowth:minimum_wall_size,regrowth:fence_placeholder"
 				;
 		
+
 		public Server(ForgeConfigSpec.Builder builder) {
 			builder.push("Regrowth Control Values");
 			
@@ -105,7 +156,24 @@ public class MyConfig {
 					.comment("RegrowthMobs String 6464")
 					.translation(Main.MODID + ".config" + "defaultRegrowthMobsActual")
 					.define("defaultRegrowthMobsActual", defaultRegrowthMobs6464);
+			builder.pop();		
+			
+			builder.push ("Regrowth Wall Foundations 6464");
+			
+			defaultWallFoundationsActual = builder
+					.comment("WallFoundations String 6464")
+					.translation(Main.MODID + ".config" + "defaultWallFoundationsActual")
+					.define("defaultWallFoundationsActual", defaultWallFoundations6464);
 			builder.pop();			
+
+			builder.push ("Regrowth Biome Wall Data 6464");
+			
+			defaultBiomeWallDataActual = builder
+					.comment("Biome Meeting Wall Data String 6464")
+					.translation(Main.MODID + ".config" + "defaultBiomeWallDataActual")
+					.define("defaultBiomeWallDataActual", defaultBiomeWallData6464);
+			builder.pop();	
+
 		}
 	}
 }

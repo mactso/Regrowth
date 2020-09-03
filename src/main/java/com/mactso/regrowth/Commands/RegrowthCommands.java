@@ -2,32 +2,21 @@
 package com.mactso.regrowth.Commands;
 
 
-import java.util.UUID;
-
 import com.mactso.regrowth.config.MyConfig;
 import com.mojang.brigadier.CommandDispatcher;
-import net.minecraft.command.Commands;
-import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
-import com.sun.jna.platform.win32.WinUser.MSG;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.MinecraftGame;
-import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.command.CommandSource;
+import net.minecraft.command.Commands;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.math.EntityRayTraceResult;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.text.Color;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.api.distmarker.OnlyIns;
 
 public class RegrowthCommands {
 	String subcommand = "";

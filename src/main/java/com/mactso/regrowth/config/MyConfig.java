@@ -1,23 +1,14 @@
 // 15.2 - 1.0.0.0 regrowth
 package com.mactso.regrowth.config;
 
-import java.util.Arrays;
-import java.util.List;
-import com.mactso.regrowth.Main;
-import com.mactso.regrowth.config.RegrowthEntitiesManager;
 import org.apache.commons.lang3.tuple.Pair;
 
-import org.apache.commons.lang3.tuple.Pair;
+import com.mactso.regrowth.Main;
 
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.text.Color;
 import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.Style;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraftforge.common.ForgeConfig.Server;
 import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.common.ForgeConfigSpec.BooleanValue;
 import net.minecraftforge.common.ForgeConfigSpec.ConfigValue;
 import net.minecraftforge.common.ForgeConfigSpec.DoubleValue;
 import net.minecraftforge.common.ForgeConfigSpec.IntValue;
@@ -95,7 +86,7 @@ public class MyConfig {
 				+ "minecraft:pig,grow,800.0;"
 				+ "minecraft:bee,grow,1000.0;"
 				+ "minecraft:chicken,grow,600.0;"
-				+ "minecraft:villager,crwlvt,5.0;"
+				+ "minecraft:villager,crwplvt,5.0;"
 				+ "minecraft:creeper,tall,60.0"
 				;
 
@@ -119,6 +110,7 @@ public class MyConfig {
 				  "Regrowth:default,48,minecraft:cobblestone_wall,minecraft:oak_fence;"
 				+ "minecraft:plains,64,minecraft:cobblestone_wall,minecraft:oak_fence;"
 				+ "minecraft:desert,48,minecraft:sandstone_wall,minecraft:birch_fence;"
+				+ "minecraft:extreme_hills,48,minecraft:cobblestone_wall,minecraft:spruce_fence;"
 				+ "minecraft:taiga,48,minecraft:mossy_cobblestone_wall,minecraft:spruce_fence;"
 				+ "minecraft:savanna,48,minecraft:stone_brick_wall,minecraft:acacia_fence;"
 				+ "minecraft:icy,40,minecraft:diorite_wall,minecraft:spruce_fence;"

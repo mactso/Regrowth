@@ -50,9 +50,16 @@ public class WallBiomeDataManager {
 	public static void wallBiomeDataInit() {
 
 		List<String> dTL6464 = new ArrayList<>();
-		List<Block> walls = BlockTags.WALLS.getAllElements();
-		List<Block> fences = BlockTags.FENCES.getAllElements();
 
+		List<Block> walls = new ArrayList<>();
+        List<Block> fences = new ArrayList<>();
+        try {
+            walls = BlockTags.WALLS.getAllElements();
+            fences = BlockTags.FENCES.getAllElements();
+        }
+        catch (Exception e) {
+        }
+        
 		int i = 0;
 		String wallBiomeDataLine6464 = "";
 		// Forge Issue 6464 patch.

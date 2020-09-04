@@ -108,7 +108,7 @@ public class MyConfig {
 		public final ConfigValue<String> defaultBiomeWallDataActual;
 		public final String defaultBiomeWallData6464 = 
 				  "Regrowth:default,48,minecraft:cobblestone_wall,minecraft:oak_fence;"
-				+ "minecraft:plains,64,minecraft:cobblestone_wall,minecraft:oak_fence;"
+				+ "minecraft:plains,48,minecraft:cobblestone_wall,minecraft:oak_fence;"
 				+ "minecraft:desert,48,minecraft:sandstone_wall,minecraft:birch_fence;"
 				+ "minecraft:extreme_hills,48,minecraft:cobblestone_wall,minecraft:spruce_fence;"
 				+ "minecraft:taiga,48,minecraft:mossy_cobblestone_wall,minecraft:spruce_fence;"
@@ -116,10 +116,10 @@ public class MyConfig {
 				+ "minecraft:icy,40,minecraft:diorite_wall,minecraft:spruce_fence;"
 				+ "minecraft:the_end,40,minecraft:end_stone_brick_wall,minecraft:birch_fence;"
 				+ "minecraft:beach,48,minecraft:sandstone_wall,minecraft:oak_fence;"
-				+ "minecraft:forest,64,minecraft:mossy_stone_brick_wall,minecraft:oak_fence;"
+				+ "minecraft:forest,48,minecraft:mossy_stone_brick_wall,minecraft:oak_fence;"
 				+ "minecraft:mesa,48,minecraft:red_sandstone_wall,minecraft:oak_fence;"
 				+ "minecraft:jungle,48,minecraft:granite_wall,minecraft:jungle_fence;"
-				+ "minecraft:river,48,minecraft:sandstone_wall,minecraft:oak_fence;"
+				+ "minecraft:river,48,minecraft:mossy_cobblestone_wall,minecraft:oak_fence;"
 				+ "minecraft:nether,40,minecraft:blackstone_wall,minecraft:nether_brick_fence;"
 				+ "Regrowth:minimum,32,regrowth:minimum_wall_size,regrowth:fence_placeholder"
 				;

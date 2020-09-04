@@ -805,7 +805,6 @@ public class MoveEntityEvent {
 						break;
 					}
 				}
-				System.out.println(P.getType().toString() + " " + P.getPos().toString());
 			}
 		} else if ((result.isEmpty())) {
 			buildWall = true;

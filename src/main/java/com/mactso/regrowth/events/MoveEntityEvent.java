@@ -476,10 +476,21 @@ public class MoveEntityEvent {
 			return false;
 		}
 		
-		ve.world.setBlockState(ve.getPosition(), Blocks.TORCH.getDefaultState());
+		if (isValidGroundBlockToPlaceTorchOn(ve, groundBlock) && (footBlock instanceof AirBlock)) {
+			ve.world.setBlockState(ve.getPosition(), Blocks.TORCH.getDefaultState());
+		}
 		return true;
 	}
 
+	private boolean isValidGroundBlockToPlaceTorchOn (VillagerEntity ve,Block groundBlock) {
+
+		String key = groundBlock.getRegistryName().toString(); // broken out for easier debugging
+		WallFoundationDataManager.wallFoundationItem currentWallFoundationItem = WallFoundationDataManager.getWallFoundationInfo(key);
+		if (currentWallFoundationItem==null) return false;		
+		
+		return true;
+		
+	}	
 
 	private void improveRoads(VillagerEntity ve, Block footBlock, Block groundBlock, String key, Biome localBiome) {
 		BlockPos vePos = ve.getPosition();
@@ -542,35 +553,54 @@ public class MoveEntityEvent {
 			return false;
 		}
 		
-		// fix single block "potholes" in the road.
-		// grass_path special case.  block is partial block.
-//		if (groundBlock == Blocks.GRASS_PATH) {
-//			veY = veY+1;
-//		}
-//		if (groundBlock != biomeRoadBlock) {
-//			int roadBlockCount = 0;
-//			for(int i=0; i<4; i++) {
-//				Block tempBlock = ve.world.getBlockState(new BlockPos (veX+dx[i],veY+1,veZ+dz[i])).getBlock();
-//				if (tempBlock == biomeRoadBlock) {
-//					roadBlockCount += 1;
-//					if (roadBlockCount == 4) {
-//						ve.world.setBlockState(getBlockPos(ve).down(), biomeRoadBlock.getDefaultState());
-//						return true;
-//					}			
-//				}
-//			}
-//		}		
-		
+	
 		BlockState smoothingBlockState = biomeRoadBlock.getDefaultState();		
 		Block smoothingBlock = biomeRoadBlock;
 
 		// Check for higher block to smooth up towards
+		int poiDistance = 3;
+		String key = "minecraft:"+localBiome.getCategory().toString();
+		key = key.toLowerCase();
+		if (key.equals("minecraft:desert")) {
+			poiDistance = 7;
+		}
 
-		for (int dy=2;dy<6;dy++) {
+// 08/30/20 Collection pre 16.2 bug returns non empty collections.
+//		the collection is not empty when it should be.
+// 	    are returned in the collection so have to loop thru it manually.
+
+		Collection<PointOfInterest> result = ((ServerWorld) ve.world).getPointOfInterestManager()
+				.getInSquare(t -> true, ve.getPosition(), poiDistance, Status.ANY)
+				.collect(Collectors.toCollection(ArrayList::new));
+
+		if (!(result.isEmpty())) {
+			Iterator<PointOfInterest> i = result.iterator();
+			while (i.hasNext()) { // in 16.1, finds the point of interest.
+				PointOfInterest P = i.next();
+				int disX = Math.abs(ve.getPosition().getX() - P.getPos().getX());
+				int disZ = Math.abs(ve.getPosition().getZ() - P.getPos().getZ());
+				if ((disX < poiDistance) && (disZ < poiDistance)) {
+					if (MyConfig.aDebugLevel > 1) {
+						System.out.println("Point of Interest Found: " + P.getType().toString() + ", " + veX + " " + veY + " " + veZ +".");
+					}
+					return false;
+				}
+			}
+		}
+
+		WallBiomeDataManager.WallBiomeDataItem currentWallBiomeDataItem = WallBiomeDataManager.getWallBiomeDataItem(key);
+		
+		int yAdjust = 0;
+		if (smoothingBlock == Blocks.GRASS_PATH) {
+			yAdjust = 1;
+		}
+		for (int dy=1+yAdjust;dy<5+yAdjust;dy++) {
 			for(int i=0;i<4; i++) {
 				Block tempBlock = ve.world.getBlockState(new BlockPos (veX+dx[i],veY+dy,veZ+dz[i])).getBlock();
+//				System.out.println ("MoveEntity: " + (veX+dx[i]) + " " + (veY+dy)+ " " + (veZ+dz[i]) +": "+ tempBlock.toString());
+				
 				if (tempBlock == smoothingBlock) {
-					ve.world.setBlockState(new BlockPos (veX,veY+1,veZ), smoothingBlockState);
+					ve.world.setBlockState(new BlockPos (veX,veY+yAdjust,veZ), smoothingBlockState);
 					ve.setMotion(0.0, 0.4, 0.0);
 					return true;
 				}
@@ -579,11 +609,11 @@ public class MoveEntityEvent {
 
 		return false;
 	}
-	
-	
+
 	private boolean improveWallForMeetingPlace(VillagerEntity ve, 
 			String regrowthActions, BlockPos villageMeetingPlaceBlockPos, Block groundBlock, Block footBlock, Biome localBiome) {
 
+		int debug3= 1;
 		String key = "minecraft:"+localBiome.getCategory().toString();
 		ResourceLocation biomeName = ForgeRegistries.BIOMES.getKey(localBiome);
 		key = key.toLowerCase();
@@ -597,14 +627,13 @@ public class MoveEntityEvent {
 				System.out.println("222 WallbiomeData was null at " + (int) ve.getPosX() + ":, "+(int) ve.getPosY() +", "+(int) ve.getPosZ() +".");
 
 			}
-
 			key = "minecraft:"+localBiome.getCategory().toString().toLowerCase();
 			currentWallBiomeDataItem = WallBiomeDataManager.getWallBiomeDataItem(key);
 			if (currentWallBiomeDataItem == null) {
 			currentWallBiomeDataItem = WallBiomeDataManager.getWallBiomeDataItem("minecraft:plains");
 			}
 		}
-		int wallPerimeter = currentWallBiomeDataItem.getWallSize();
+		int wallPerimeter = currentWallBiomeDataItem.getWallDiameter();
 		if (wallPerimeter < 32) wallPerimeter = 32;
 		if (wallPerimeter > 80) wallPerimeter = 80;
 
@@ -643,7 +672,6 @@ public class MoveEntityEvent {
 							break;
 						}
 					}
-					System.out.println(P.getType().toString() + " " + P.getPos().toString());
 				}
 			} else if ((result.isEmpty())) {
 				buildWall = true;
@@ -692,42 +720,135 @@ public class MoveEntityEvent {
 		}
 
 		return false;
-	}
-
+	}	
+	
 	// villagers build protective walls around their homes. currently 32 out.
 	// to do- reduce distance of wall from home.
 	// villagers build protective walls around their homes. currently 32 out.
 	// to do- reduce distance of wall from home.
-	private boolean improveWallForPersonalHome(VillagerEntity ve, BlockPos vHomePos,String regrowthAction, Block groundBlock, Block footBlock, Biome localBiome ) {
+	private boolean improveHomeFence(VillagerEntity ve, BlockPos vHomePos, String regrowthActions, Block groundBlock,
+			Block footBlock, Biome localBiome) {
 
-
-		int wallPerimeter = 5;
-		final int wallCenter = 0;
-		BlockState wallBlock = getBiomeWallBlock(localBiome, WALL_TYPE_FENCE);
-		BlockState gateBlockType = getBiomeRoadBlockType(localBiome);
-		if (localBiome.getCategory() == Biome.Category.DESERT ) {
-			wallPerimeter += 2;
+		String key = "minecraft:" + localBiome.getCategory().toString();
+		ResourceLocation biomeName = ForgeRegistries.BIOMES.getKey(localBiome);
+		key = key.toLowerCase();
+		int dbg = 3;
+		WallBiomeDataManager.WallBiomeDataItem currentWallBiomeDataItem = WallBiomeDataManager
+				.getWallBiomeDataItem(key);
+		int wd = currentWallBiomeDataItem.getWallDiameter();
+		Block w = currentWallBiomeDataItem.getWallBlockState().getBlock();
+		Block f = currentWallBiomeDataItem.getFenceBlockState().getBlock();
+		if (MyConfig.aDebugLevel == 1) {
+			Block fence = currentWallBiomeDataItem.getFenceBlockState().getBlock();
+			System.out.println("111 improveWallForPersonalHome: WallbiomeData Key:" + key + " at " + (int) ve.getPosX()
+					+ ", " + (int) ve.getPosY() + ", " + (int) ve.getPosZ() + ".");
 		}
-		int wallTorchSpacing = wallPerimeter+1/2;		
+
+		if (currentWallBiomeDataItem == null) {
+			if (MyConfig.aDebugLevel == 2) {
+				System.out.println("222 WallbiomeData was null at " + (int) ve.getPosX() + ":, " + (int) ve.getPosY()
+						+ ", " + (int) ve.getPosZ() + ".");
+
+			}
+
+			key = "minecraft:" + localBiome.getCategory().toString().toLowerCase();
+			currentWallBiomeDataItem = WallBiomeDataManager.getWallBiomeDataItem(key);
+			if (currentWallBiomeDataItem == null) {
+				currentWallBiomeDataItem = WallBiomeDataManager.getWallBiomeDataItem("minecraft:plains");
+			}
+		}
+
+		int homeFenceDiameter = currentWallBiomeDataItem.getWallDiameter();
+		homeFenceDiameter = homeFenceDiameter / 4; // resize for personal home fence.
+		if (homeFenceDiameter < 7)
+			homeFenceDiameter = 7;
+		if (homeFenceDiameter > 16)
+			homeFenceDiameter = 16;
+		int wallTorchSpacing = homeFenceDiameter / 4;
+		homeFenceDiameter = (homeFenceDiameter / 2) - 1;
+
 		int absvx = (int) Math.abs(ve.getPosX() - vHomePos.getX());
 		int absvz = (int) Math.abs(ve.getPosZ() - vHomePos.getZ());
-		if (isOnWallPerimeter(wallPerimeter, absvx, absvz)) {
+
+		Collection<PointOfInterest> result = ((ServerWorld) ve.world).getPointOfInterestManager()
+				.getInSquare(t -> t == PointOfInterestType.HOME, ve.getPosition(), 17, Status.ANY)
+				.collect(Collectors.toCollection(ArrayList::new));
+
+		// 08/30/20 Collection had bug with range that I couldn't resolve.
+		boolean buildWall = true;
+		if (!(result.isEmpty())) {
+			Iterator<PointOfInterest> i = result.iterator();
+			while (i.hasNext()) { // in 16.1, finds the point of interest.
+				PointOfInterest P = i.next();
+				if ((vHomePos.getX() == P.getPos().getX())
+						&& (vHomePos.getY() == P.getPos().getY())
+						&& (vHomePos.getZ() == P.getPos().getZ())) {
+					continue; // ignore meeting place that owns this wall segment.
+				} else {
+					int disX = Math.abs(ve.getPosition().getX() - P.getPos().getX());
+					int disZ = Math.abs(ve.getPosition().getZ() - P.getPos().getZ());
+					if (MyConfig.aDebugLevel > 0) {
+						int veX = ve.getPosition().getX();
+						int veY = ve.getPosition().getX();
+						int veZ = ve.getPosition().getZ();
+						int poX = ve.getPosition().getX();
+						int poY = ve.getPosition().getX();
+						int poZ = ve.getPosition().getZ();
+						System.out.println(key + " Extra Point of Interest:"+ P.getType().toString() + " at "+  poX +", "+poY+", "+poZ+"."+ " for Villager at "+  veX +", "+veY+", "+veZ+".");
+					}	
+
+					if ((disX < homeFenceDiameter) && (disZ < homeFenceDiameter)) {
+						buildWall = false; // another meeting place too close. cancel wall.
+						break;
+					}
+				}
+				System.out.println(P.getType().toString() + " " + P.getPos().toString());
+			}
+		} else if ((result.isEmpty())) {
+			buildWall = true;
+			if (MyConfig.aDebugLevel > 1) {
+				System.out.println("222: No extra beds found by villager on fence perimeter at" + (int) ve.getPosX()
+						+ ", " + (int) ve.getPosY() + ", " + (int) ve.getPosZ() + ".");
+			}
+		}
+
+		if (buildWall) {
+
+			BlockState fenceBlockState = currentWallBiomeDataItem.getFenceBlockState();
+			if (fenceBlockState == null) {
+				fenceBlockState = Blocks.OAK_FENCE.getDefaultState();
+			}
+			BlockState wallBlock = fenceBlockState;
+			BlockState gateBlockType = getBiomeRoadBlockType(localBiome);
+			if (MyConfig.aDebugLevel > 1) {
+				System.out.println("222: wallBlock (" + fenceBlockState.getBlock().getRegistryName().toString()
+						+ ") at" + (int) ve.getPosX() + ", " + (int) ve.getPosY() + ", " + (int) ve.getPosZ() + ".");
+			}
+
 			boolean buildCenterGate = true;
-			
-			if (placeOneWallPiece(ve, regrowthAction, wallPerimeter, wallTorchSpacing, gateBlockType, buildCenterGate, wallBlock, absvx,
-					absvz, groundBlock, footBlock)) {
-				if (regrowthAction.contains("t")) {
-					if (isValidTorchLocation(wallPerimeter, wallTorchSpacing, absvx, absvz, groundBlock)) {
+			if (placeOneWallPiece(ve, regrowthActions, homeFenceDiameter, wallTorchSpacing, gateBlockType, buildCenterGate,
+					wallBlock, absvx, absvz, groundBlock, footBlock)) {
+				if (MyConfig.aDebugLevel > 1) {
+					System.out.println("222: wall built at" + (int) ve.getPosX() + ", " + (int) ve.getPosY() + ", "
+							+ (int) ve.getPosZ() + ".");
+				}
+				if (regrowthActions.contains("t")) {
+					if (isValidTorchLocation(homeFenceDiameter, wallTorchSpacing, absvx, absvz,
+							ve.world.getBlockState(ve.getPosition()).getBlock())) {
 						ve.world.setBlockState(ve.getPosition().up(), Blocks.TORCH.getDefaultState());
 					}
-				}			
+				}
 				return true;
 			}
-			
+			if (MyConfig.aDebugLevel > 1) {
+				System.out.println("222: fence NOT built at" + (int) ve.getPosX() + ", " + (int) ve.getPosY() + ", "
+						+ (int) ve.getPosZ() + ".");
+			}
 		}
-		return false;
 
+		return false;
 	}
+
 
 	private void improveWalls(VillagerEntity ve, Block footBlock, Block groundBlock, String key, String regrowthActions,
 								int veX, int veY, int veZ, Biome localBiome ) {
@@ -758,7 +879,7 @@ public class MoveEntityEvent {
 					// don't build personal walls inside the village wall perimeter.
 					// don't build personal walls until the village has a meeting place.
 					if (isOutsideMeetingPlaceWall(ve, vMeetingPlace, vMeetingPlace.get().getPos(), veX, veY, veZ)) {
-						if (improveWallForPersonalHome(ve, villagerHomePos, regrowthActions, groundBlock, footBlock, localBiome)) {
+						if (improveHomeFence(ve, villagerHomePos, regrowthActions, groundBlock, footBlock, localBiome)) {
 						if (MyConfig.aDebugLevel > 0) {
 								System.out.println(key + " personal wall at " +veX+", "+veY+", "+veZ+".");
 							}

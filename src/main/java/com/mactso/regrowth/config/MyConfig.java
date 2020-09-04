@@ -121,6 +121,7 @@ public class MyConfig {
 				  "Regrowth:default,48,minecraft:cobblestone_wall,minecraft:oak_fence;"
 				+ "minecraft:plains,64,minecraft:cobblestone_wall,minecraft:oak_fence;"
 				+ "minecraft:desert,48,minecraft:sandstone_wall,minecraft:birch_fence;"
+				+ "minecraft:extreme_hills,48,minecraft:cobblestone_wall,minecraft:spruce_fence;"				
 				+ "minecraft:taiga,48,minecraft:mossy_cobblestone_wall,minecraft:spruce_fence;"
 				+ "minecraft:savanna,48,minecraft:stone_brick_wall,minecraft:acacia_fence;"
 				+ "minecraft:icy,40,minecraft:diorite_wall,minecraft:spruce_fence;"

@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Hashtable;
 import java.util.List;
-import java.util.Set;
 import java.util.StringTokenizer;
 
 import net.minecraft.block.Block;
@@ -13,7 +12,6 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.biome.Biome;
 import net.minecraftforge.registries.ForgeRegistries;
 
 	public class WallBiomeDataManager {
@@ -23,13 +21,14 @@ import net.minecraftforge.registries.ForgeRegistries;
 
 		public static WallBiomeDataItem getWallBiomeDataItem (String key) {
 			String iKey = key;
-int dbg = 3;
-			if (wallBiomeDataHashtable.isEmpty()) {
-				wallBiomeDataInit();
-			}
 
 			WallBiomeDataItem r = wallBiomeDataHashtable.get(iKey);
-
+			if (r == null) {
+				if (MyConfig.aDebugLevel > 0) {
+					System.out.println("Error!  Villager in unknown Biome:" + key + ".  Returning minecraft:plains data instead.");
+				}
+				r = wallBiomeDataHashtable.get("minecraft:plains");
+			}
 			return r;
 		}
 
@@ -95,21 +94,25 @@ int dbg = 3;
 					for (int v = 0; v< fences.size(); v++) {
 						String fbs = fences.get(v).getBlock().getRegistryName().toString();
 						if (fbs.equals(fenceBlockString)) {
-							fenceBlockState = walls.get(v).getBlock().getDefaultState();
+							fenceBlockState = fences.get(v).getBlock().getDefaultState();
 							break;
 						}
 					}
-					if (fenceBlockState == null) fenceBlockState = Blocks.OAK_FENCE.getDefaultState();
-
+					if (fenceBlockState == null) {
+						fenceBlockState = Blocks.OAK_FENCE.getDefaultState();
+					}
+					Block f = fenceBlockState.getBlock();
 					wallBiomeDataHashtable.put(key, new WallBiomeDataItem(wallSize, wallBlockState, fenceBlockState));
 
 					//					int debug = 5;
 //					Set<ResourceLocation> s = ForgeRegistries.BIOMES.getKeys();
-					if (!modAndBiome.contentEquals("Regrowth:default") &&
-						!modAndBiome.contentEquals("Regrowth:minimum") &&	
-						!modAndBiome.contentEquals("minecraft:icy") &&	// TODO: Hack...
-						!ForgeRegistries.BIOMES.containsKey(new ResourceLocation(modAndBiome))
-					   )  {
+					if (!modAndBiome.contentEquals("Regrowth:default") 
+						&& !modAndBiome.contentEquals("Regrowth:minimum")
+						&& !modAndBiome.contentEquals("minecraft:icy") // TODO: Hack...
+						&& !modAndBiome.contentEquals("minecraft:extreme_hills") // TODO: Hack...
+						&& !modAndBiome.contentEquals("minecraft:mesa") // TODO: Hack...
+						&& !modAndBiome.contentEquals("minecraft:nether")  // TODO: Hack...
+						&& !ForgeRegistries.BIOMES.containsKey(new ResourceLocation(modAndBiome))) {
 						System.out.println("Regrowth Debug: Wall Biome Data: " + wallBlockString + " not in Forge Entity Type Registry.  Mispelled?");
 					}
 				} catch (Exception e) {
@@ -131,7 +134,7 @@ int dbg = 3;
 				this.fenceBlockState = fenceBlockState;
 			}
 
-			public int getWallSize() {
+			public int getWallDiameter() {
 				return wallSize;
 			}
 			public BlockState getWallBlockState() {

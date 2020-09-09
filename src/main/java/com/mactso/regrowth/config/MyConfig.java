@@ -19,16 +19,32 @@ import net.minecraftforge.fml.config.ModConfig;
 @Mod.EventBusSubscriber(modid = Main.MODID, bus=Mod.EventBusSubscriber.Bus.MOD)
 public class MyConfig {
 	
-	public static final Server SERVER;
-	public static final ForgeConfigSpec SERVER_SPEC;
+	public static final Common COMMON;
+	public static final ForgeConfigSpec COMMON_SPEC;
 	
 	static
 	{
-		final Pair<Server, ForgeConfigSpec> specPair = new ForgeConfigSpec.Builder().configure(Server::new);
-		SERVER_SPEC = specPair.getRight();
-		SERVER = specPair.getLeft();
+		final Pair<Common, ForgeConfigSpec> specPair = new ForgeConfigSpec.Builder().configure(Common::new);
+		COMMON_SPEC = specPair.getRight();
+		COMMON = specPair.getLeft();
 	}
 	
+	public static int getaDebugLevel() {
+		return aDebugLevel;
+	}
+
+	public static void setaDebugLevel(int aDebugLevel) {
+		MyConfig.aDebugLevel = aDebugLevel;
+	}
+
+	public static double getaEatingHeals() {
+		return aEatingHeals;
+	}
+
+	public static void setaEatingHeals(double aEatingHeals) {
+		MyConfig.aEatingHeals = aEatingHeals;
+	}
+
 	public static int       aDebugLevel;
 	public static double    aEatingHeals;	
 	public static String[]  defaultRegrowthMobs;
@@ -40,7 +56,7 @@ public class MyConfig {
 	@SubscribeEvent
 	public static void onModConfigEvent(final ModConfig.ModConfigEvent configEvent)
 	{
-		if (configEvent.getConfig().getSpec() == MyConfig.SERVER_SPEC)
+		if (configEvent.getConfig().getSpec() == MyConfig.COMMON_SPEC)
 		{
 			bakeConfig();
 			RegrowthEntitiesManager.regrowthMobInit();
@@ -50,29 +66,29 @@ public class MyConfig {
 	}	
 
 	public static void pushDebugLevel() {
-		SERVER.debugLevel.set(aDebugLevel);
+		COMMON.debugLevel.set(aDebugLevel);
 	}
 	
 	public static void pushValues() {
-		SERVER.defaultRegrowthMobsActual.set(RegrowthEntitiesManager.getRegrowthHashAsString());
-		SERVER.defaultWallFoundationsActual.set(WallFoundationDataManager.getWallFoundationHashAsString());
-		SERVER.defaultBiomeWallDataActual.set(WallBiomeDataManager.getWallBiomeDataHashAsString());
+		COMMON.defaultRegrowthMobsActual.set(RegrowthEntitiesManager.getRegrowthHashAsString());
+		COMMON.defaultWallFoundationsActual.set(WallFoundationDataManager.getWallFoundationHashAsString());
+		COMMON.defaultBiomeWallDataActual.set(WallBiomeDataManager.getWallBiomeDataHashAsString());
 	}
 	
 	// remember need to push each of these values separately once we have commands.
 	public static void bakeConfig()
 	{
-		aDebugLevel = SERVER.debugLevel.get();
-		aEatingHeals = SERVER.eatingHeals.get();		
-		defaultRegrowthMobs6464 = SERVER.defaultRegrowthMobsActual.get() ;
-		defaultWallFoundations6464 = SERVER.defaultWallFoundationsActual.get() ;
-		defaultWallBiomeData6464 = SERVER.defaultBiomeWallDataActual.get() ;
+		aDebugLevel = COMMON.debugLevel.get();
+		aEatingHeals = COMMON.eatingHeals.get();		
+		defaultRegrowthMobs6464 = COMMON.defaultRegrowthMobsActual.get() ;
+		defaultWallFoundations6464 = COMMON.defaultWallFoundationsActual.get() ;
+		defaultWallBiomeData6464 = COMMON.defaultBiomeWallDataActual.get() ;
 		if (aDebugLevel > 0) {
 			System.out.println("Regrowth Debug Level: " + aDebugLevel );
 		}
 	}
 	
-	public static class Server {
+	public static class Common {
 
 		public final IntValue     debugLevel;
 		public final DoubleValue  eatingHeals;
@@ -125,7 +141,7 @@ public class MyConfig {
 				;
 		
 		
-		public Server(ForgeConfigSpec.Builder builder) {
+		public Common(ForgeConfigSpec.Builder builder) {
 			builder.push("Regrowth Control Values");
 			
 			debugLevel = builder

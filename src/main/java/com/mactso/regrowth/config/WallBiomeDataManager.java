@@ -13,7 +13,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.registries.ForgeRegistries;
 
 public class WallBiomeDataManager {
-	public static Hashtable<String, WallBiomeDataItem> wallBiomeDataHashtable = new Hashtable<>();
+	private static Hashtable<String, WallBiomeDataItem> wallBiomeDataHashtable = new Hashtable<>();
 	private static String defaultRegrowthMobString = "regrowth:default";
 	private static String defaultRegrowthMobKey = defaultRegrowthMobString;
 

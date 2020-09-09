@@ -60,17 +60,22 @@ import net.minecraftforge.registries.ForgeRegistries;
 @Mod.EventBusSubscriber()
 public class MoveEntityEvent {
 	
-	static int[]dx= {1,0,-1,0};
-	static int[]dz= {0,1,0,-1};
-	static int TICKS_PER_SECOND = 20;	
-    static int[][]facingArray = {{0,1},{-1,1},{-1,0},{-1,-1},{0,-1},{1,-1},{1,0},{1,1}};
-	static int lastTorchX=0;
-	static int lastTorchY=0;
-	static int lastTorchZ=0;
+	private static int[]dx= {1,0,-1,0};
+	private static int[]dz= {0,1,0,-1};
+	private static int TICKS_PER_SECOND = 20;	
+	private static int[][]facingArray = {{0,1},{-1,1},{-1,0},{-1,-1},{0,-1},{1,-1},{1,0},{1,1}};
+	private static int lastTorchX=0;
+	private static int lastTorchY=0;
+	private static int lastTorchZ=0;
 	static final int WALL_CENTER = 0;
 	static final int FENCE_CENTER = 0;
 	static final int WALL_TYPE_WALL = -1;
 	static final int WALL_TYPE_FENCE = -2;
+
+	
+	
+	
+	
 	@SubscribeEvent
     public void doEntityMove(LivingUpdateEvent event) { 
 
@@ -91,7 +96,13 @@ public class MoveEntityEvent {
 		}
 
 		BlockPos debugBlockPos = getBlockPos(eventEntity);
-		Block footBlock = world.getBlockState(getBlockPos(eventEntity)).getBlock();
+
+		BlockState footBlockState = world.getBlockState(getBlockPos(eventEntity));
+		if (footBlockState == null) {
+			return;
+		}	
+		
+		Block footBlock = footBlockState.getBlock();
 		if (footBlock == null) {
 			return;
 		}
@@ -100,12 +111,22 @@ public class MoveEntityEvent {
 //		Set tdt = ForgeRegistries.FOLIAGE_PLACER_TYPES.getEntries();
 //		List<Block> saplings = BlockTags.SAPLINGS.getAllElements();
 		
+//		xxzzy BYG/BOP mod support here
+//		Tags for grass?
+		BlockState groundBlockState = null;
 		Block groundBlock = null;
 
+
+	
 		if (footBlock == Blocks.GRASS_PATH) {
+			groundBlockState = footBlockState;
 			groundBlock = footBlock;
 		} else {
-			groundBlock = world.getBlockState(getBlockPos(eventEntity).down()).getBlock();	
+			groundBlockState = world.getBlockState(getBlockPos(eventEntity).down());	
+			if (groundBlockState == null) {
+				return;
+			}
+			groundBlock = groundBlockState.getBlock();	
 		}
 
 		if (groundBlock == null) {
@@ -113,14 +134,15 @@ public class MoveEntityEvent {
 		}
 
 		BlockPos eventEntityPos = getBlockPos(eventEntity); // floats
-		int eventEntityX =  eventEntityPos.getX(); // Int
-		int eventEntityY =  eventEntityPos.getY(); // Int
-		int eventEntityZ =  eventEntityPos.getZ(); // Int
+		int eventX =  eventEntityPos.getX(); // Int
+		int eventY =  eventEntityPos.getY(); // Int
+		int eventZ =  eventEntityPos.getZ(); // Int
 		Biome localBiome = world.getBiome(eventEntityPos);
 		EntityType<?> tempType = eventEntity.getType();
 		ResourceLocation registryName = tempType.getRegistryName();
 		String registryNameAsString = registryName.toString();
 		RegrowthEntitiesManager.RegrowthMobItem currentRegrowthMobItem = RegrowthEntitiesManager.getRegrowthMobInfo(registryNameAsString);
+
 		if (currentRegrowthMobItem==null) {  // This mob isn't configured to do Regrowth Events
 			return;
 		}
@@ -143,13 +165,13 @@ public class MoveEntityEvent {
 						footBlock = Blocks.AIR;
 					}
 					doVillagerRegrowthEvents(ve, footBlock, groundBlock, eventEntityPos, registryNameAsString, regrowthActions,
-							eventEntityX, eventEntityY, eventEntityZ, world, localBiome);
+							eventX, eventY, eventZ, world, localBiome);
 				}
 			}
 		}
 	
 		doMobRegrowthEvents(eventEntity, footBlock, groundBlock, registryNameAsString, regrowthActions, regrowthEventOdds, randomD100Roll,
-							eventEntityX, eventEntityY, eventEntityZ, world, localBiome);
+							eventX, eventY, eventZ, world, localBiome);
 
 		int debugBreakPoint = 0;
 
@@ -160,11 +182,13 @@ public class MoveEntityEvent {
 			int eX, int eY, int eZ, World world, Biome localBiome) {
 
 		// all remaining actions currently require a grass block underfoot so if not a grass block- can exit now.
-
-		if ((groundBlock != Blocks.GRASS_BLOCK)) {
-			return;
-		}
-
+		// this is for performance savings only.
+		// looks like meadow_grass_block is not a grassBlock
+		if (!(groundBlock instanceof GrassBlock) 
+			&& (!(groundBlock.getTranslationKey().equals("block.byg.meadow_grass_block")))
+				) {
+			return; 
+		} 
 		
 		if ((regrowthType.equals("tall")) && (randomD100Roll <= regrowthEventOdds)){
 			entityGrowTallGrassToDoubleGrass(eventEntity, footBlock, regrowthType);
@@ -176,6 +200,7 @@ public class MoveEntityEvent {
 		
 		double eatingOdds = regrowthEventOdds;
 		if  ((regrowthType.contentEquals("eat")) ||(regrowthType.contentEquals("both"))) {
+
 			// Balance eating and growth odds/timing for "both" case.
 			if  ((regrowthType.contentEquals("both"))) {
 				eatingOdds = regrowthEventOdds * 15;				
@@ -190,9 +215,7 @@ public class MoveEntityEvent {
 				}
 			}			
 			if ((randomD100Roll <= eatingOdds)) {
-				if (MyConfig.aDebugLevel > 1) {
-					System.out.println(key + " trying to eat at " +  eX +", "+ eY +", "+ eZ +".");
-				}
+
 				if (entityEatGrassOrFlower(eventEntity, getBlockPos(eventEntity), regrowthType, footBlock, groundBlock)) {
  					if (MyConfig.aDebugLevel > 0) {
 						System.out.println(key + " eat at " +  eX +", "+ eY +", "+ eZ +".");
@@ -265,7 +288,10 @@ public class MoveEntityEvent {
 		// to do - replace "c" with a meaningful constant.
 		
 		if(regrowthType.contains("c")) {
-			if ((footBlock instanceof TallGrassBlock)||(footBlock instanceof DoublePlantBlock)) {
+			if ((footBlock instanceof TallGrassBlock)
+					||(footBlock instanceof DoublePlantBlock)
+					||(footBlock.getTranslationKey().equals("block.byg.short_grass"))
+					) {
 
 				ve.world.destroyBlock(eventEntityPos, false);
 				if (MyConfig.aDebugLevel > 0) {
@@ -315,6 +341,9 @@ public class MoveEntityEvent {
 
 	private boolean entityEatGrassOrFlower(Entity eventEntity, BlockPos eventEntityPos, String regrowthType, Block footBlock, Block groundBlock) {
 
+		if (MyConfig.aDebugLevel > 0) {
+			System.out.println("entityEatGrassOrFlower Enter:");
+		}
 		if (!(isGrassOrFlower(footBlock))) {
 			return false;
 		}
@@ -324,6 +353,7 @@ public class MoveEntityEvent {
 		}
 		eventEntity.world.destroyBlock(eventEntityPos, false);
 		double randomD100Roll = eventEntity.world.rand.nextDouble() * 100;
+		// note bop: origin grass and bop: meadow grass do recover but maybe slower than normal grass.
 		if ((randomD100Roll >40) && (groundBlock instanceof GrassBlock)) {
 			eventEntity.world.setBlockState(eventEntityPos.down(), Blocks.DIRT.getDefaultState());
 			int evX = eventEntityPos.getX(); int evY = eventEntityPos.getY(); int evZ = eventEntityPos.getZ();
@@ -917,6 +947,7 @@ public class MoveEntityEvent {
 	}
 
 	private boolean isGrassOrFlower(Block footBlock) {
+		
 		if (footBlock instanceof TallGrassBlock) 
 		{
 			return true;
@@ -937,8 +968,28 @@ public class MoveEntityEvent {
 		{
 			return true;
 		}
-
-		return false;
+		// compatibility with other biome mods.
+        try {
+        	if (BlockTags.FLOWERS.contains(footBlock)) {
+        		return true;
+        	}
+        	if (BlockTags.TALL_FLOWERS.contains(footBlock)) {
+        		return true;
+        	}
+        }
+        catch (Exception e) {
+    		if (MyConfig.aDebugLevel > 0) {
+    			System.out.println("Tag Exception 1009-1014:" + footBlock.getTranslationKey() + ".");
+    		}
+        }
+        // biomes you'll go grass compatibility
+        if (footBlock.getTranslationKey() == "block.byg.short_grass") {
+        	return true;
+        }
+		if (MyConfig.aDebugLevel > 0) {
+			System.out.println("Not grass or Flower:" + footBlock.getTranslationKey() + ".");
+		}
+        return false;
 	}
 
 	private boolean isImpossibleRegrowthEvent(Block footBlock, String regrowthType) {

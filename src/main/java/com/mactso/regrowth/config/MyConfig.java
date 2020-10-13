@@ -92,7 +92,7 @@ public class MyConfig {
 
 		public final IntValue     debugLevel;
 		public final DoubleValue  eatingHeals;
-		// mod:mob,type(eat,cut,grow,both,tall,villagerflags),Seconds;
+		// mod:mob,type(eat,cut,grow,both,tall,villager flags),Seconds;
 		public final ConfigValue<String> defaultRegrowthMobsActual;
 		public final String defaultRegrowthMobs6464 = 
 				  "minecraft:cow,both,240.0;"
@@ -103,7 +103,9 @@ public class MyConfig {
 				+ "minecraft:bee,grow,1000.0;"
 				+ "minecraft:chicken,grow,600.0;"
 				+ "minecraft:villager,crwplvt,5.0;"
-				+ "minecraft:creeper,tall,60.0"
+				+ "minecraft:creeper,tall,60.0;"
+				+ "minecraft:zombie,stumble,60.0;"
+				+ "minecraft:skeleton,mushroom,60.0;"
 				;
 
 		// blocks walls can be built on

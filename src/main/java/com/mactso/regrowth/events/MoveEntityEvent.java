@@ -26,7 +26,9 @@ import net.minecraft.block.FlowerBlock;
 import net.minecraft.block.GrassBlock;
 import net.minecraft.block.IGrowable;
 import net.minecraft.block.LeavesBlock;
+import net.minecraft.block.MushroomBlock;
 import net.minecraft.block.TallGrassBlock;
+import net.minecraft.block.TorchBlock;
 import net.minecraft.block.WallBlock;
 import net.minecraft.entity.AgeableEntity;
 import net.minecraft.entity.Entity;
@@ -52,6 +54,7 @@ import net.minecraft.world.LightType;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.server.ServerWorld;
+import net.minecraftforge.common.Tags;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -173,7 +176,6 @@ public class MoveEntityEvent {
 		doMobRegrowthEvents(eventEntity, footBlock, groundBlock, registryNameAsString, regrowthActions, regrowthEventOdds, randomD100Roll,
 							eventX, eventY, eventZ, world, localBiome);
 
-		int debugBreakPoint = 0;
 
 	}
 
@@ -181,6 +183,79 @@ public class MoveEntityEvent {
 			String regrowthType, double regrowthEventOdds, double randomD100Roll,
 			int eX, int eY, int eZ, World world, Biome localBiome) {
 
+		BlockPos bP = new BlockPos (eX, eY, eZ);
+		
+		if ((footBlock instanceof TorchBlock ) && (randomD100Roll <= regrowthEventOdds)) {
+			if (regrowthType.equals("stumble")) {
+				bP = new BlockPos (eX, eY, eZ);
+				world.destroyBlock(bP, true);
+			}
+			if (MyConfig.aDebugLevel > 0) {
+				System.out.println(key + " stumble at " +  eX +", "+ eY +", "+ eZ +".");
+			}
+			return;
+		}			
+
+		//	XXZZY remove 100.0
+		boolean closeMushroom = false;
+
+		if ((regrowthType.equals("mushroom"))) {
+			if ((randomD100Roll <= (0.3 + regrowthEventOdds))){
+				
+				if (world.canSeeSky(bP)) {
+					return;
+				}
+				
+//				double mushroomyes = world.getBiome(bP).INFO_NOISE.noiseAt(eX, eZ, true );
+				float temp = world.getBiome(bP).getTemperature(bP);
+				if ((temp < 0.3) || (temp > 0.89)) {
+					return;
+				}
+				if (MyConfig.aDebugLevel > 1) {
+					System.out.println(key + " temp "+ temp +" at " +  eX +", "+ eY +", "+ eZ +".");
+				}
+
+
+				
+				if ((Math.abs(eX + eZ + eY)%5 != 1)) {
+
+					return;
+				}
+				if ((Math.abs(eX/7)+Math.abs(eZ/7))%6 == 1) {
+					return;
+				}
+				for (int mY = -1; mY <7; mY++) {
+					for (int mX = -5; mX <6; mX++) {
+						for (int mZ = -5; mZ <6; mZ++) {
+							if (world.getBlockState(new BlockPos (eX, eY, eZ)).getBlock() instanceof MushroomBlock ) {
+								if (MyConfig.aDebugLevel > 1) {
+									System.out.println(key + " mushroom too crowded at " +  eX +", "+ eY +", "+ eZ +".");
+								}
+								return;
+							}
+						}
+					}
+				}
+				if (Tags.Blocks.STONE.contains(groundBlock)) {
+					world.setBlockState(getBlockPos(eventEntity).down(), Blocks.MYCELIUM.getDefaultState());
+					if ((world.rand.nextDouble() * 100) > 80) {
+						world.setBlockState(getBlockPos(eventEntity), Blocks.RED_MUSHROOM.getDefaultState());
+					} else {
+						world.setBlockState(getBlockPos(eventEntity), Blocks.BROWN_MUSHROOM.getDefaultState());
+					}
+					MushroomBlock mb = (MushroomBlock) world.getBlockState(getBlockPos(eventEntity)).getBlock();
+					mb.grow((ServerWorld) world, getBlockPos (eventEntity), world.getBlockState(getBlockPos(eventEntity)), world.rand);
+				}
+				
+				if (MyConfig.aDebugLevel > 0) {
+					System.out.println(key + " mushroom at " +  eX +", "+ eY +", "+ eZ +".");
+				}
+				
+				return;
+			}		
+			
+		}
+		
 		// all remaining actions currently require a grass block underfoot so if not a grass block- can exit now.
 		// this is for performance savings only.
 		// looks like meadow_grass_block is not a grassBlock

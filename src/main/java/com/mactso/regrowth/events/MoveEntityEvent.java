@@ -24,8 +24,10 @@ import net.minecraft.block.GrassBlock;
 import net.minecraft.block.IGrowable;
 import net.minecraft.block.LeavesBlock;
 import net.minecraft.block.LogBlock;
+import net.minecraft.block.MushroomBlock;
 import net.minecraft.block.StairsBlock;
 import net.minecraft.block.TallGrassBlock;
+import net.minecraft.block.TorchBlock;
 import net.minecraft.block.WallBlock;
 import net.minecraft.entity.AgeableEntity;
 import net.minecraft.entity.Entity;
@@ -50,6 +52,7 @@ import net.minecraft.world.LightType;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.server.ServerWorld;
+import net.minecraftforge.common.Tags;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -126,23 +129,24 @@ public class MoveEntityEvent {
 		double regrowthEventOdds = 2/currentRegrowthMobItem.getRegrowthEventSeconds() * TICKS_PER_SECOND;
 		double randomD100Roll = world.rand.nextDouble() * 100; 
 
-		if (randomD100Roll <= regrowthEventOdds) {
-			if (eventEntity instanceof VillagerEntity) {
-				VillagerEntity ve = (VillagerEntity) eventEntity;
-				// if onGround
-				if ((ve.onGround)) {
-					if (footBlock == Blocks.SNOW) footBlock = Blocks.AIR; // snow layers
-					doVillagerRegrowthEvents(ve, footBlock, groundBlock, registryNameAsString, regrowthActions,
-							eventEntityX, eventEntityY, eventEntityZ, world, localBiome);
+	
+
+		if (eventEntity instanceof VillagerEntity) {
+			if (randomD100Roll <= regrowthEventOdds) {
+			VillagerEntity ve = (VillagerEntity) eventEntity;
+			if ((ve.onGround)) {  // ignore villager hopping or falling.
+				if (footBlock == Blocks.SNOW) footBlock = Blocks.AIR; // snow layers
+				doVillagerRegrowthEvents(ve, footBlock, groundBlock, registryNameAsString, regrowthActions,
+						eventEntityX, eventEntityY, eventEntityZ, world, localBiome);
 				}
 			}
-		} else {
-			doMobRegrowthEvents(eventEntity, footBlock, groundBlock, registryNameAsString, regrowthActions, regrowthEventOdds, randomD100Roll,
+			return;
+		} 
+
+		doMobRegrowthEvents(eventEntity, footBlock, groundBlock, registryNameAsString, regrowthActions, regrowthEventOdds, randomD100Roll,
 					eventEntityX, eventEntityY, eventEntityZ, world);
-		}
 
-		int debugBreakPoint = 0;
-
+		int debugBreakPoint = 7;
 	}
 
 	private void doMobRegrowthEvents(Entity eventEntity, Block footBlock, Block groundBlock, String key,
@@ -150,6 +154,77 @@ public class MoveEntityEvent {
 			int eX, int eY, int eZ, World world) {
 
 
+		BlockPos bP = new BlockPos (eX, eY, eZ);
+		
+		if ((footBlock instanceof TorchBlock ) && (randomD100Roll <= regrowthEventOdds)) {
+			if (regrowthActions.equals("stumble")) {
+				bP = new BlockPos (eX, eY, eZ);
+				world.destroyBlock(bP, true);
+			}
+			if (MyConfig.aDebugLevel > 0) {
+				System.out.println(key + " stumble at " +  eX +", "+ eY +", "+ eZ +".");
+			}
+			return;
+		}			
+
+		if ((regrowthActions.equals("mushroom"))) {
+			if ((randomD100Roll <= (0.1 + regrowthEventOdds))){
+				
+				if (world.canSeeSky(bP)) {
+					return;
+				}
+				
+//				double mushroomyes = world.getBiome(bP).INFO_NOISE.noiseAt(eX, eZ, true );
+				float temp = world.getBiome(bP).getTemperature(bP);
+				if ((temp < 0.3) || (temp > 0.89)) {
+					return;
+				}
+				if (MyConfig.aDebugLevel > 1) {
+					System.out.println(key + " temp "+ temp +" at " +  eX +", "+ eY +", "+ eZ +".");
+				}
+
+
+				
+				if ((Math.abs(eX + eZ + eY)%5 != 1)) {
+
+					return;
+				}
+				if ((Math.abs(eX/7)+Math.abs(eZ/7))%6 == 1) {
+					return;
+				}
+				for (int mY = -1; mY <7; mY++) {
+					for (int mX = -5; mX <6; mX++) {
+						for (int mZ = -5; mZ <6; mZ++) {
+							if (world.getBlockState(new BlockPos (eX, eY, eZ)).getBlock() instanceof MushroomBlock ) {
+								if (MyConfig.aDebugLevel > 1) {
+									System.out.println(key + " mushroom too crowded at " +  eX +", "+ eY +", "+ eZ +".");
+								}
+								return;
+							}
+						}
+					}
+				}
+				if (Tags.Blocks.STONE.contains(groundBlock)) {
+					world.setBlockState(getBlockPos(eventEntity).down(), Blocks.MYCELIUM.getDefaultState());
+					if ((world.rand.nextDouble() * 100) > 80) {
+						world.setBlockState(getBlockPos(eventEntity), Blocks.RED_MUSHROOM.getDefaultState());
+					} else {
+						world.setBlockState(getBlockPos(eventEntity), Blocks.BROWN_MUSHROOM.getDefaultState());
+					}
+					MushroomBlock mb = (MushroomBlock) world.getBlockState(getBlockPos(eventEntity)).getBlock();
+					mb.grow((ServerWorld) world, getBlockPos (eventEntity), world.getBlockState(getBlockPos(eventEntity)), world.rand);
+				}
+				
+				if (MyConfig.aDebugLevel > 0) {
+					System.out.println(key + " mushroom at " +  eX +", "+ eY +", "+ eZ +".");
+				}
+				
+				return;
+			}		
+			
+		}
+		
+		
 		// all remaining actions currently require a grass block underfoot so if not a grass block- can exit now.
 
 		if ((groundBlock != Blocks.GRASS_BLOCK)) {
@@ -735,9 +810,9 @@ public class MoveEntityEvent {
 		int dbg = 3;
 		WallBiomeDataManager.WallBiomeDataItem currentWallBiomeDataItem = WallBiomeDataManager
 				.getWallBiomeDataItem(key);
-		int wd = currentWallBiomeDataItem.getWallDiameter();
-		Block w = currentWallBiomeDataItem.getWallBlockState().getBlock();
-		Block f = currentWallBiomeDataItem.getFenceBlockState().getBlock();
+//		int wd = currentWallBiomeDataItem.getWallDiameter();
+//		Block w = currentWallBiomeDataItem.getWallBlockState().getBlock();
+//		Block f = currentWallBiomeDataItem.getFenceBlockState().getBlock();
 		if (MyConfig.aDebugLevel == 1) {
 			Block fence = currentWallBiomeDataItem.getFenceBlockState().getBlock();
 			System.out.println("111 improveWallForPersonalHome: WallbiomeData Key:" + key + " at " + (int) ve.getPosX()
@@ -802,7 +877,6 @@ public class MoveEntityEvent {
 						break;
 					}
 				}
-				System.out.println(P.getType().toString() + " " + P.getPos().toString());
 			}
 		} else if ((result.isEmpty())) {
 			buildWall = true;
@@ -1100,6 +1174,10 @@ public class MoveEntityEvent {
 			return true;
 		}
 		
+	}
+
+	private BlockPos getBlockPos (Entity e) {
+		return e.getPosition();
 	}
 	
 	@Deprecated

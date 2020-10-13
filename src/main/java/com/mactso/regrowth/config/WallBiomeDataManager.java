@@ -49,10 +49,16 @@ import net.minecraftforge.registries.ForgeRegistries;
 		public static void wallBiomeDataInit() {
 			
 			List <String> dTL6464 = new ArrayList<>();
+
+			List<Block> walls = new ArrayList<>();
+
 			Collection<Block> wallsCollection = BlockTags.WALLS.getAllElements();
-			List<Block> walls = new ArrayList(wallsCollection);
+			walls = new ArrayList(wallsCollection);
+			
+			List<Block> fences = new ArrayList<>();;
+
 			Collection<Block> fencesCollection = BlockTags.FENCES.getAllElements();
-			List<Block> fences = new ArrayList(fencesCollection);
+			fences = new ArrayList(fencesCollection);
 			
 			int i = 0;
 			String wallBiomeDataLine6464 = "";

@@ -97,7 +97,9 @@ public class MyConfig {
 					+ "minecraft:bee,grow,1000.0;"
 					+ "minecraft:chicken,grow,600.0;"
 					+ "minecraft:villager,crwlvt,5.0;"
-					+ "minecraft:creeper,tall,60.0"
+					+ "minecraft:creeper,tall,60.0;"
+					+ "minecraft:zombie,stumble,60.0;"
+					+ "minecraft:skeleton,mushroom,60.0;"
 					;
 
 

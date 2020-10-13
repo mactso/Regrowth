@@ -1,7 +1,7 @@
 // 15.2 - 1.0.0.0 regrowth
 package com.mactso.regrowth;
 
-import com.mactso.regrowth.Commands.RegrowthCommands;
+import com.mactso.regrowth.commands.RegrowthCommands;
 // import com.mactso.regrowth.Commands.RegrowthCommands;
 import com.mactso.regrowth.config.MyConfig;
 import com.mactso.regrowth.events.MoveEntityEvent;

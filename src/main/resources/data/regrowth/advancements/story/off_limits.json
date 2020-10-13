@@ -1,0 +1,38 @@
+{
+  "parent": "minecraft:story/root",
+	"display": {
+		"title": {
+			"text": "Off Limits!",
+			"color": "green"
+		},
+		"description": {
+			"text": "Villagers won't build walls on village roads (like grass paths)!",
+			"color": "green"
+		},
+		"icon": {
+			"item": "minecraft:stone_shovel",
+      		"nbt": "{Damage:0}"
+		}
+	},
+	"rewards": {
+		"experience": 1
+	},
+	"criteria": {
+		"inv_changed-minecraft:stone_shovel": {
+			"trigger": "minecraft:inventory_changed",
+			"conditions": {
+				"items": [
+					{
+						"item": "minecraft:stone_shovel",
+						"nbt": "{Damage:0}"
+					}
+				]
+			}
+		}
+	},
+	"requirements": [
+		[
+			"inv_changed-minecraft:stone_shovel"
+		]
+	]
+}

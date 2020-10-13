@@ -1,5 +1,5 @@
-// 15.2 - 1.0.0.0 regrowth
-package com.mactso.regrowth.Commands;
+// 16.3 v14
+package com.mactso.regrowth.commands;
 
 
 import com.mactso.regrowth.config.MyConfig;

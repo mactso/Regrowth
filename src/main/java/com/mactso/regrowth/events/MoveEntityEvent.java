@@ -197,61 +197,63 @@ public class MoveEntityEvent {
 		//	XXZZY remove 100.0
 		boolean closeMushroom = false;
 
+		if ((regrowthType.equals("mushroom"))) {
+			if ((randomD100Roll <= (0.0 + regrowthEventOdds))){
+				
+				if (world.canSeeSky(bP)) {
+					return;
+				}
+				
+//				double mushroomyes = world.getBiome(bP).INFO_NOISE.noiseAt(eX, eZ, true );
+				float temp = world.getBiome(bP).getTemperature();
+				if ((temp < 0.3) || (temp > 0.89)) {
+					return;
+				}
+				if (MyConfig.aDebugLevel > 1) {
+					System.out.println(key + " temp "+ temp +" at " +  eX +", "+ eY +", "+ eZ +".");
+				}
 
-		if ((regrowthType.equals("mushroom")) && (randomD100Roll <= (0.0 + regrowthEventOdds))){
-			
-			if (world.canSeeSky(bP)) {
-				return;
-			}
-			
-//			double mushroomyes = world.getBiome(bP).INFO_NOISE.noiseAt(eX, eZ, true );
-			float temp = world.getBiome(bP).getTemperature();
-			if ((temp < 0.3) || (temp > 0.89)) {
-				return;
-			}
-			if (MyConfig.aDebugLevel > 1) {
-				System.out.println(key + " temp "+ temp +" at " +  eX +", "+ eY +", "+ eZ +".");
-			}
 
+				
+				if ((Math.abs(eX + eZ + eY)%5 != 1)) {
 
-			
-			if ((Math.abs(eX + eZ + eY)%5 != 1)) {
-
-				return;
-			}
-			if ((Math.abs(eX/7)+Math.abs(eZ/7))%6 == 1) {
-				return;
-			}
-			for (int mY = -1; mY <7; mY++) {
-				for (int mX = -5; mX <6; mX++) {
-					for (int mZ = -5; mZ <6; mZ++) {
-						if (world.getBlockState(new BlockPos (eX, eY, eZ)).getBlock() instanceof MushroomBlock ) {
-							if (MyConfig.aDebugLevel > 1) {
-								System.out.println(key + " mushroom too crowded at " +  eX +", "+ eY +", "+ eZ +".");
+					return;
+				}
+				if ((Math.abs(eX/7)+Math.abs(eZ/7))%6 == 1) {
+					return;
+				}
+				for (int mY = -1; mY <7; mY++) {
+					for (int mX = -5; mX <6; mX++) {
+						for (int mZ = -5; mZ <6; mZ++) {
+							if (world.getBlockState(new BlockPos (eX, eY, eZ)).getBlock() instanceof MushroomBlock ) {
+								if (MyConfig.aDebugLevel > 1) {
+									System.out.println(key + " mushroom too crowded at " +  eX +", "+ eY +", "+ eZ +".");
+								}
+								return;
 							}
-							return;
 						}
 					}
 				}
-			}
-			
-			if ((BlockTags.BASE_STONE_OVERWORLD.contains(groundBlock))){
-				world.setBlockState(getBlockPos(eventEntity).down(), Blocks.MYCELIUM.getDefaultState());
-				if ((world.rand.nextDouble() * 100) > 80) {
-					world.setBlockState(getBlockPos(eventEntity), Blocks.RED_MUSHROOM.getDefaultState());
-				} else {
-					world.setBlockState(getBlockPos(eventEntity), Blocks.BROWN_MUSHROOM.getDefaultState());
+				
+				if ((BlockTags.BASE_STONE_OVERWORLD.contains(groundBlock))){
+					world.setBlockState(getBlockPos(eventEntity).down(), Blocks.MYCELIUM.getDefaultState());
+					if ((world.rand.nextDouble() * 100) > 80) {
+						world.setBlockState(getBlockPos(eventEntity), Blocks.RED_MUSHROOM.getDefaultState());
+					} else {
+						world.setBlockState(getBlockPos(eventEntity), Blocks.BROWN_MUSHROOM.getDefaultState());
+					}
+					MushroomBlock mb = (MushroomBlock) world.getBlockState(getBlockPos(eventEntity)).getBlock();
+					mb.grow((ServerWorld) world, getBlockPos (eventEntity), world.getBlockState(getBlockPos(eventEntity)), world.rand);
 				}
-				MushroomBlock mb = (MushroomBlock) world.getBlockState(getBlockPos(eventEntity)).getBlock();
-				mb.grow((ServerWorld) world, getBlockPos (eventEntity), world.getBlockState(getBlockPos(eventEntity)), world.rand);
-			}
+				
+				if (MyConfig.aDebugLevel > 0) {
+					System.out.println(key + " mushroom at " +  eX +", "+ eY +", "+ eZ +".");
+				}
+				
+				return;
+			}			
 			
-			if (MyConfig.aDebugLevel > 0) {
-				System.out.println(key + " mushroom at " +  eX +", "+ eY +", "+ eZ +".");
-			}
-			
-			return;
-		}			
+		}
 		
 		// all remaining actions currently require a grass block underfoot so if not a grass block- can exit now.
 		// this is for performance savings only.
@@ -632,7 +634,18 @@ public class MoveEntityEvent {
 		if (Biome.Category.TAIGA == localBiome.getCategory()) {
 			fixHeight = 5;
 		}
+
 		Block biomeRoadBlock = getBiomeRoadBlockType(localBiome).getBlock();
+		if (biomeRoadBlock.getBlock() == Blocks.SMOOTH_SANDSTONE) {
+			int skyLightValue = ve.world.getLightFor(LightType.SKY, getBlockPos(ve));
+			if (skyLightValue <13) {
+				return false;
+			}
+			if (!(ve.getWorld().canSeeSky(ve.getPosition()))) {
+				return false;
+			}
+		}
+		
 		if (groundBlock != biomeRoadBlock) {
 			int roadBlockCount = 0;
 			for(int dy=-1; dy<=fixHeight; dy++) {
@@ -678,6 +691,9 @@ public class MoveEntityEvent {
 		key = key.toLowerCase();
 		if (key.equals("minecraft:desert")) {
 			poiDistance = 7;
+			if (!(ve.getWorld().canSeeSky(ve.getPosition()))) {
+				return false;
+			}
 		}
 
 // 08/30/20 Collection pre 16.2 bug returns non empty collections.

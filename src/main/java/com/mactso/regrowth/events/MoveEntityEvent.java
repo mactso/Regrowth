@@ -748,7 +748,10 @@ public class MoveEntityEvent {
 		String key = "minecraft:"+localBiome.getCategory().toString();
 		ResourceLocation biomeName = ForgeRegistries.BIOMES.getKey(localBiome);
 		key = key.toLowerCase();
+		if (MyConfig.aDebugLevel == 2) {
+			System.out.println("222 Wall key was "+key+" at " + (int) ve.getPosX() + ":, "+(int) ve.getPosY() +", "+(int) ve.getPosZ() +".");
 
+		}
 		WallBiomeDataManager.WallBiomeDataItem currentWallBiomeDataItem = WallBiomeDataManager.getWallBiomeDataItem(key);
 		if (MyConfig.aDebugLevel == 1) {
 			System.out.println("111 WallbiomeData Key:" + key + " at " + (int) ve.getPosX() +", "+(int) ve.getPosY() +", "+(int) ve.getPosZ() +".");
@@ -815,6 +818,7 @@ public class MoveEntityEvent {
 			if (buildWall) {
 
 				BlockState wallTypeBlockState = currentWallBiomeDataItem.getWallBlockState();
+				int debug = 5;
 				if (wallTypeBlockState == null) {
 					wallTypeBlockState = Blocks.COBBLESTONE_WALL.getDefaultState();
 				}

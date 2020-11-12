@@ -19,11 +19,15 @@ public class WallBiomeDataManager {
 
 	public static WallBiomeDataItem getWallBiomeDataItem(String key) {
 		String iKey = key;
-		int dbg = 3;
+		int dbg = 4;
+		// wallBiomeDataInit();
 		if (wallBiomeDataHashtable.isEmpty()) {
 			wallBiomeDataInit();
 		}
 		WallBiomeDataItem r = wallBiomeDataHashtable.get(iKey);
+		if (MyConfig.aDebugLevel > 1) {
+			System.out.println("222 WallBiomeDataItem: "+ iKey +" wall=" + r.getWallBlockState().getBlock().toString() + "fence=" + r.getFenceBlockState().getBlock().toString() + ".");
+		}
 		if (r == null) {
 			if (MyConfig.aDebugLevel > 0) {
 				System.out.println("Error!  Villager in unknown Biome:" + key + ".");
@@ -55,9 +59,19 @@ public class WallBiomeDataManager {
         List<Block> fences = new ArrayList<>();
         try {
             walls = BlockTags.WALLS.getAllElements();
-            fences = BlockTags.FENCES.getAllElements();
+        	System.out.println("succeeded in loading walls all tags");
         }
         catch (Exception e) {
+        	System.out.println("failed to get walls all tags ");
+        	return;
+        }
+        try {
+            fences = BlockTags.FENCES.getAllElements();
+        	System.out.println("succeeded in loading fences all tags");
+        }
+        catch (Exception e) {
+        	System.out.println("failed to load fences all tags");
+        	return;
         }
         
 		int i = 0;
@@ -97,9 +111,10 @@ public class WallBiomeDataManager {
 						break;
 					}
 				}
-				if (wallBlockState == null)
+				if (wallBlockState == null) {
 					wallBlockState = Blocks.COBBLESTONE_WALL.getDefaultState();
-
+				}
+				
 				BlockState fenceBlockState = null;
 				for (int v = 0; v < fences.size(); v++) {
 					String fbs = fences.get(v).getBlock().getRegistryName().toString();

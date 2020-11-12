@@ -24,6 +24,7 @@ public class RegrowthCommands {
 	
 	public static void register(CommandDispatcher<CommandSource> dispatcher)
 	{
+		System.out.println("Enter register");
 		dispatcher.register(Commands.literal("regrowth").requires((source) -> 
 			{
 				return source.hasPermissionLevel(2);
@@ -71,7 +72,7 @@ public class RegrowthCommands {
 			)
 			)		
 		);
-
+		System.out.println("Exit Register");
 	}
 
 	public static int setDebugLevel (int newDebugLevel) {

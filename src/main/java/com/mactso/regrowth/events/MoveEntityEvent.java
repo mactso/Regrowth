@@ -234,16 +234,18 @@ public class MoveEntityEvent {
 						}
 					}
 				}
-				
-				if ((BlockTags.BASE_STONE_OVERWORLD.contains(groundBlock))){
-					world.setBlockState(getBlockPos(eventEntity).down(), Blocks.MYCELIUM.getDefaultState());
-					if ((world.rand.nextDouble() * 100) > 80) {
-						world.setBlockState(getBlockPos(eventEntity), Blocks.RED_MUSHROOM.getDefaultState());
-					} else {
-						world.setBlockState(getBlockPos(eventEntity), Blocks.BROWN_MUSHROOM.getDefaultState());
+
+				if ((BlockTags.BASE_STONE_OVERWORLD) != null) {
+					if ((BlockTags.BASE_STONE_OVERWORLD.contains(groundBlock))){
+						world.setBlockState(getBlockPos(eventEntity).down(), Blocks.MYCELIUM.getDefaultState());
+						if ((world.rand.nextDouble() * 100) > 80) {
+							world.setBlockState(getBlockPos(eventEntity), Blocks.RED_MUSHROOM.getDefaultState());
+						} else {
+							world.setBlockState(getBlockPos(eventEntity), Blocks.BROWN_MUSHROOM.getDefaultState());
+						}
+						MushroomBlock mb = (MushroomBlock) world.getBlockState(getBlockPos(eventEntity)).getBlock();
+						mb.grow((ServerWorld) world, getBlockPos (eventEntity), world.getBlockState(getBlockPos(eventEntity)), world.rand);
 					}
-					MushroomBlock mb = (MushroomBlock) world.getBlockState(getBlockPos(eventEntity)).getBlock();
-					mb.grow((ServerWorld) world, getBlockPos (eventEntity), world.getBlockState(getBlockPos(eventEntity)), world.rand);
 				}
 				
 				if (MyConfig.aDebugLevel > 0) {

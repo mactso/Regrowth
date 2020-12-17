@@ -53,11 +53,22 @@ public class WallBiomeDataManager {
 
 		List<Block> walls = new ArrayList<>();
         List<Block> fences = new ArrayList<>();
+        
         try {
             walls = BlockTags.WALLS.getAllElements();
-            fences = BlockTags.FENCES.getAllElements();
+        	System.out.println("succeeded in loading walls all tags");
         }
         catch (Exception e) {
+        	System.out.println("failed to get walls all tags ");
+        	return;
+        }
+        try {
+            fences = BlockTags.FENCES.getAllElements();
+        	System.out.println("succeeded in loading fences all tags");
+        }
+        catch (Exception e) {
+        	System.out.println("failed to load fences all tags");
+        	return;
         }
         
 		int i = 0;

@@ -1,4 +1,3 @@
-// 15.2 - 1.0.0.0 regrowth
 package com.mactso.regrowth;
 
 import com.mactso.regrowth.commands.RegrowthCommands;
@@ -30,7 +29,7 @@ public class Main {
 	    // Register ourselves for server and other game events we are interested in
 		@SubscribeEvent 
 		public void preInit (final FMLCommonSetupEvent event) {
-			System.out.println("Regrowth: Registering Handler");
+			System.out.println("Regrowth 16.4 1.1.0.18: Registering Handler");
 			MinecraftForge.EVENT_BUS.register(new MoveEntityEvent ());
 			
 		}

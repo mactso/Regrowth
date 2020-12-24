@@ -19,8 +19,7 @@ public class WallBiomeDataManager {
 
 	public static WallBiomeDataItem getWallBiomeDataItem(String key) {
 		String iKey = key;
-		int dbg = 4;
-		// wallBiomeDataInit();
+
 		if (wallBiomeDataHashtable.isEmpty()) {
 			wallBiomeDataInit();
 		}
@@ -128,8 +127,6 @@ public class WallBiomeDataManager {
 
 				wallBiomeDataHashtable.put(key, new WallBiomeDataItem(wallSize, wallBlockState, fenceBlockState));
 
-				// int debug = 5;
-//					Set<ResourceLocation> s = ForgeRegistries.BIOMES.getKeys();
 				// odd bug: can't see extreme hills, mesa, or nether here but can elsewhere.
 				if (!modAndBiome.contentEquals("Regrowth:default") 
 						&& !modAndBiome.contentEquals("Regrowth:minimum")

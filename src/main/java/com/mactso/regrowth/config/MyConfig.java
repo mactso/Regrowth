@@ -28,6 +28,11 @@ public class MyConfig {
 	@RangeInt  (min=0, max=2)
 	public static int aDebugLevel = 0;
 
+	@Comment ( { "Improve Torch Light Level" } )
+	@Name ("Improve Torch Light Level 1 to 10 ")
+	@RangeInt  (min=1, max=10)
+	public static int improveTorchLightLevel = 9;
+
 	@Comment ( { "Mushroom Density Along X Coordinate." } )
 	@Name ("mushroomDensityX")
 	@RangeInt (min=3, max=11)
@@ -114,6 +119,10 @@ public class MyConfig {
 		MyConfig.aDebugLevel = aDebugLevel;
 	}
 
+	public static int getImproveTorchLightLevel() {
+		return improveTorchLightLevel;
+	}
+	
 	public static double getaEatingHeals() {
 		return aEatingHeals;
 	}

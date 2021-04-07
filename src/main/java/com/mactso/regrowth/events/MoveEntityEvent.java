@@ -1070,7 +1070,7 @@ public class MoveEntityEvent {
 			return false;
 		
 		int blockLightValue = ve.world.getLightFor(EnumSkyBlock.BLOCK, helperGetBlockPos(ve));
-		if (blockLightValue > 8)
+		if (blockLightValue >= MyConfig.getImproveTorchLightLevel())
 			return false;
 
 		int skyLightValue = ve.world.getLightFor(EnumSkyBlock.SKY, helperGetBlockPos(ve));

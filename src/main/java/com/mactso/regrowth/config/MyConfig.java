@@ -9,6 +9,7 @@ import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.common.config.Config;
+import net.minecraftforge.common.config.ConfigManager;
 import net.minecraftforge.common.config.Config.Comment;
 import net.minecraftforge.common.config.Config.Ignore;
 import net.minecraftforge.common.config.Config.Name;
@@ -69,6 +70,7 @@ public class MyConfig {
 			, "minecraft:bee,grow,1000.0" 
 			, "minecraft:chicken,grow,640.0" 
 			, "minecraft:villager,crwplvt,5.0"
+			, "mca:entityvillagermca,crwplvt,5.0"
 			, "minecraft:creeper,tall,120.0" 
 			, "minecraft:zombie,stumble, 60.0" 
 			, "minecraft:bat,stumble, 60.0"
@@ -152,6 +154,7 @@ public class MyConfig {
 	{
 		if(event.getModID().equals(Reference.MOD_ID))
 		{
+    		ConfigManager.sync (Reference.MOD_ID, Config.Type.INSTANCE);
 			RegrowthEntitiesManager.regrowthMobInit();	
 			WallFoundationDataManager.wallFoundationsInit();	
 			WallBiomeDataManager.wallBiomeDataInit();	

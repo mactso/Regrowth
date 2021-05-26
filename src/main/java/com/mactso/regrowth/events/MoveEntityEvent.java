@@ -4,12 +4,14 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Optional;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 import com.mactso.regrowth.config.MyConfig;
 import com.mactso.regrowth.config.RegrowthEntitiesManager;
 import com.mactso.regrowth.config.WallBiomeDataManager;
 import com.mactso.regrowth.config.WallFoundationDataManager;
+
 
 import net.minecraft.block.AirBlock;
 import net.minecraft.block.BedBlock;
@@ -239,7 +241,6 @@ public class MoveEntityEvent {
 				growMushroom = true;
 			}
 			
-
 			if (sWorld.isPlayerWithin((double) eX, (double) eY, (double) eZ, 12.0)) {
 				growMushroom = false;
 			}
@@ -327,17 +328,31 @@ public class MoveEntityEvent {
 		randomD100Roll = eventEntity.world.rand.nextDouble() * 100;
 		if (((regrowthType.equals("grow")) || (regrowthType.equals("both"))) && (randomD100Roll <= regrowthEventOdds)) {
 			if (footBlock instanceof AirBlock) {
-				IGrowable ib = (IGrowable) groundBlock;
-				if (ib == null) {
+				if (!(groundBlock instanceof IGrowable)) {
 					return;
 				}
+				IGrowable ib = (IGrowable) groundBlock;
 				if (MyConfig.aDebugLevel > 1) {
 					System.out.println(key + " trying to grow plants sat " + eX + ", " + eY + ", " + eZ + ".");
 				}
-				ib.grow((ServerWorld) eventEntity.world, eventEntity.world.rand, getBlockPos(eventEntity),
-						eventEntity.world.getBlockState(getBlockPos(eventEntity)));
-				if (MyConfig.aDebugLevel > 0) {
-					System.out.println(key + " grow at " + eX + ", " + eY + ", " + eZ + ".");
+				try {
+					ServerWorld serverworld = (ServerWorld) eventEntity.world;
+					Random rand = eventEntity.world.rand;
+					BlockPos bpos = getBlockPos(eventEntity);
+					BlockState bs = eventEntity.world.getBlockState(bpos);
+					if (bpos == null)
+						System.out.println ("grow grass BlockPos null");
+					if (bs == null)
+						System.out.println ("grow grass Blockstate null");
+					ib.grow(serverworld, rand, bpos, bs);
+					if (MyConfig.aDebugLevel > 0) {
+						System.out.println(key + " grew at " + eX + ", " + eY + ", " + eZ + ".");
+					}
+				}
+				catch (Exception e) {
+					if (MyConfig.aDebugLevel > 0) {
+						System.out.println(key + groundBlock.getRegistryName().toString() + " caught grow attempt exception " + eX + ", " + eY + ", " + eZ + ".");
+					}
 				}
 				return;
 			}

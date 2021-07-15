@@ -46,11 +46,13 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.potion.EffectInstance;
 import net.minecraft.potion.Effects;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.util.RegistryKey;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.GlobalPos;
 import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.registry.Registry;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.village.PointOfInterest;
@@ -65,6 +67,7 @@ import net.minecraftforge.common.util.Constants.BlockFlags;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.registries.RegistryManager;
 
 @Mod.EventBusSubscriber()
 public class MoveEntityEvent {
@@ -251,22 +254,24 @@ public class MoveEntityEvent {
 		return false;
 	}
 
-	private BlockState helperSaplingState(BlockPos pos, Biome localBiome, BlockState sapling) {
+	private BlockState helperSaplingState(World world, BlockPos pos, Biome localBiome, BlockState sapling) {
 		sapling = Blocks.OAK_SAPLING.defaultBlockState();
+		RegistryKey<Registry<Biome>> k = Registry.BIOME_REGISTRY;
+		String biomeName = world.registryAccess().registryOrThrow(k).getKey(localBiome).toString();
 
-		if (localBiome.getRegistryName().getNamespace().contains("birch")) {
+        if (biomeName.contains("birch")) {
 			sapling = Blocks.BIRCH_SAPLING.defaultBlockState();
 		}
-		if (localBiome.getRegistryName().getNamespace().contains("taiga")) {
+        if (biomeName.contains("taiga")) {
 			sapling = Blocks.SPRUCE_SAPLING.defaultBlockState();
 		}
-		if (localBiome.getRegistryName().getNamespace().contains("jungle")) {
+        if (biomeName.contains("jungle")) {
 			sapling = Blocks.JUNGLE_SAPLING.defaultBlockState();
 		}
-		if (localBiome.getRegistryName().getNamespace().contains("savanna")) {
+        if (biomeName.contains("savanna")) {
 			sapling = Blocks.ACACIA_SAPLING.defaultBlockState();
 		}
-		if (localBiome.getRegistryName().getNamespace().contains("desert")) {
+        if (biomeName.contains("desert")) {
 			sapling = Blocks.ACACIA_SAPLING.defaultBlockState();
 		}
 		return sapling;
@@ -292,7 +297,7 @@ public class MoveEntityEvent {
 
 		BlockState sapling = null;
 		// are we in a biome that has saplings in a spot a sapling can be planted?
-		sapling = helperSaplingState(ePos, localBiome, sapling);
+		sapling = helperSaplingState(entity.level, ePos, localBiome, sapling);
 
 		// check if there is room for a new tree. Original trees.
 		// don't plant a sapling near another sapling
@@ -372,7 +377,7 @@ public class MoveEntityEvent {
 			// if right next to a huge mushroom let it grow if it got past above density
 			// check.
 		} else {
-			int huge = helperCountBlocksBB(HugeMushroomBlock.class, 1, sWorld, ePos, MyConfig.getMushroomXDensity(), 1);
+			int huge = helperCountBlocksBB(HugeMushroomBlock.class, 1, sWorld, ePos, MyConfig.getMushroomDensity(), 1);
 			if (huge > 0) {
 				MyConfig.debugMsg(1, ePos, key + " huge (" + huge + ") mushroom too crowded.");
 				return;
@@ -970,11 +975,11 @@ public class MoveEntityEvent {
 		int veX = vePos.getX();
 		int veY = vePos.getY();
 		int veZ = vePos.getZ();
-		for (int dy = 1 + yAdjust; dy < 5 + yAdjust; dy++) {
+		for (int dy = 1 ; dy < 5 + yAdjust; dy++) {
 			for (int i = 0; i < 4; i++) {
 				Block tempBlock = ve.level.getBlockState(new BlockPos(veX + dx[i], veY + dy, veZ + dz[i])).getBlock();
 				if (tempBlock == smoothingBlock) {
-					ve.level.setBlockAndUpdate(new BlockPos(veX, veY + yAdjust, veZ), smoothingBlockState);
+					ve.level.setBlockAndUpdate(new BlockPos(veX, veY , veZ), smoothingBlockState);
 					ve.setDeltaMovement(0.0, 0.4, 0.0);
 					return true;
 				}

@@ -45,6 +45,10 @@ public class MyConfig {
 		MyConfig.aEatingHeals = aEatingHeals;
 	}
 
+	public static int getMushroomDensity() {
+		return MyConfig.mushroomDensity;
+	}
+
 	public static int getMushroomXDensity() {
 		return MyConfig.mushroomXDensity;
 	}
@@ -82,6 +86,7 @@ public class MyConfig {
 	public static String[] defaultWallBiomeData;
 	public static String defaultWallBiomeData6464;
 
+	private static int mushroomDensity;
 	private static int mushroomXDensity;
 	private static int mushroomZDensity;
 	private static double mushroomMinTemp;
@@ -111,6 +116,7 @@ public class MyConfig {
 	public static void bakeConfig() {
 		aDebugLevel = COMMON.debugLevel.get();
 		aEatingHeals = COMMON.eatingHeals.get();
+		MyConfig.mushroomDensity = (int) MyConfig.COMMON.mushroomDensity.get();
 		MyConfig.mushroomXDensity = (int) MyConfig.COMMON.mushroomXDensity.get();
 		MyConfig.mushroomZDensity = (int) MyConfig.COMMON.mushroomZDensity.get();
 		MyConfig.mushroomMinTemp = (double) MyConfig.COMMON.mushroomMinTemp.get();
@@ -127,6 +133,7 @@ public class MyConfig {
 
 		public final IntValue debugLevel;
 		public final DoubleValue eatingHeals;
+		public final ForgeConfigSpec.IntValue mushroomDensity;
 		public final ForgeConfigSpec.IntValue mushroomXDensity;
 		public final ForgeConfigSpec.IntValue mushroomZDensity;
 		public final ForgeConfigSpec.DoubleValue mushroomMinTemp;
@@ -173,6 +180,10 @@ public class MyConfig {
 			eatingHeals = builder.comment("Eating Heals: 0-No, 1-yes")
 					.translation(Main.MODID + ".config." + "eatingHeals")
 					.defineInRange("eatingHeals", () -> .99, 0.0, 1.0);
+
+			this.mushroomDensity = builder.comment("Mushroom density - 3 dense to 11 sparse to 21 very sparse")
+					.translation("regrowth.config.mushroomXDensity ")
+					.defineInRange("mushroomXDensity ", () -> 7, 3, 21);
 
 			this.mushroomXDensity = builder.comment("Mushroom X axis density - 3 dense to 11 sparse")
 					.translation("regrowth.config.mushroomXDensity ")

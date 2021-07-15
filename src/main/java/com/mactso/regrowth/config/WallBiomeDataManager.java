@@ -57,7 +57,7 @@ public class WallBiomeDataManager {
 		List<Block> walls = new ArrayList<>();
         List<Block> fences = new ArrayList<>();
         try {
-            walls = BlockTags.WALLS.getAllElements();
+            walls = BlockTags.WALLS.getValues();
         	System.out.println("succeeded in loading walls all tags");
         }
         catch (Exception e) {
@@ -65,7 +65,7 @@ public class WallBiomeDataManager {
         	return;
         }
         try {
-            fences = BlockTags.FENCES.getAllElements();
+            fences = BlockTags.FENCES.getValues();
         	System.out.println("succeeded in loading fences all tags");
         }
         catch (Exception e) {
@@ -106,24 +106,24 @@ public class WallBiomeDataManager {
 				for (int v = 0; v < walls.size(); v++) {
 					String wbs = walls.get(v).getBlock().getRegistryName().toString();
 					if (wbs.equals(wallBlockString)) {
-						wallBlockState = walls.get(v).getBlock().getDefaultState();
+						wallBlockState = walls.get(v).getBlock().defaultBlockState();
 						break;
 					}
 				}
 				if (wallBlockState == null) {
-					wallBlockState = Blocks.COBBLESTONE_WALL.getDefaultState();
+					wallBlockState = Blocks.COBBLESTONE_WALL.defaultBlockState();
 				}
 				
 				BlockState fenceBlockState = null;
 				for (int v = 0; v < fences.size(); v++) {
 					String fbs = fences.get(v).getBlock().getRegistryName().toString();
 					if (fbs.equals(fenceBlockString)) {
-						fenceBlockState = fences.get(v).getBlock().getDefaultState();
+						fenceBlockState = fences.get(v).getBlock().defaultBlockState();
 						break;
 					}
 				}
 				if (fenceBlockState == null)
-					fenceBlockState = Blocks.OAK_FENCE.getDefaultState();
+					fenceBlockState = Blocks.OAK_FENCE.defaultBlockState();
 
 				wallBiomeDataHashtable.put(key, new WallBiomeDataItem(wallSize, wallBlockState, fenceBlockState));
 

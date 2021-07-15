@@ -216,18 +216,18 @@ public class MyConfig {
 	// support for any color chattext
 	public static void sendChat(PlayerEntity p, String chatMessage, Color color) {
 		StringTextComponent component = new StringTextComponent(chatMessage);
-		component.getStyle().setColor(color);
-		p.sendMessage(component, p.getUniqueID());
+		component.getStyle().withColor(color);
+		p.sendMessage(component, p.getUUID());
 	}
 
 	// support for any color, optionally bold text.
 	public static void sendBoldChat(PlayerEntity p, String chatMessage, Color color) {
 		StringTextComponent component = new StringTextComponent(chatMessage);
 
-		component.getStyle().setBold(true);
-		component.getStyle().setColor(color);
+		component.getStyle().withBold(true);
+		component.getStyle().withColor(color);
 
-		p.sendMessage(component, p.getUniqueID());
+		p.sendMessage(component, p.getUUID());
 	}
 
 }

@@ -61,6 +61,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.server.ServerWorld;
+import net.minecraftforge.common.util.Constants.BlockFlags;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -84,35 +85,36 @@ public class MoveEntityEvent {
 	@SubscribeEvent
 	public void handleEntityMoveEvents(LivingUpdateEvent event) {
 
-		Entity eventEntity = event.getEntity();
-		if (eventEntity instanceof PlayerEntity) {
-			return;
-		}
-		if (!(eventEntity.world instanceof ServerWorld)) {
+		Entity entity = event.getEntity();
+		if (entity instanceof PlayerEntity) {
 			return;
 		}
 
-		ServerWorld sWorld = (ServerWorld) eventEntity.world;
-		BlockPos ePos = new BlockPos (eventEntity.getPosX(), (eventEntity.getPosY()+0.99d), (eventEntity.getPosZ()));
+		if (!(entity.level instanceof ServerWorld)) {
+			return;
+		}
 
-		Block footBlock= sWorld.getBlockState(ePos).getBlock();
+		ServerWorld sWorld = (ServerWorld) entity.level;
+
+		BlockPos ePos = getAdjustedBlockPos(entity);
+
+		Block footBlock = sWorld.getBlockState(ePos).getBlock();
 		if (footBlock instanceof CarpetBlock) {
 			return;
 		}
 		if (footBlock == Blocks.SNOW) { // ignore snow layers
 			footBlock = Blocks.AIR;
 		}
-		Block groundBlock = sWorld.getBlockState(ePos.down()).getBlock();
+		Block groundBlock = sWorld.getBlockState(ePos.below()).getBlock();
 
-		if (eventEntity.isOnGround() && footBlock == Blocks.AIR && groundBlock == Blocks.AIR) {
-			// literal edge case... standing with less than half of hit box on a higher block).
+		if (entity.isOnGround() && footBlock == Blocks.AIR && groundBlock == Blocks.AIR) {
+			// literal edge case... standing with less than half of hit box on a higher
+			// block).
 			return;
 		}
 
-		
-
 		Biome localBiome = sWorld.getBiome(ePos);
-		EntityType<?> tempType = eventEntity.getType();
+		EntityType<?> tempType = entity.getType();
 		ResourceLocation registryName = tempType.getRegistryName();
 		String registryNameAsString = registryName.toString();
 		RegrowthEntitiesManager.RegrowthMobItem currentRegrowthMobItem = RegrowthEntitiesManager
@@ -129,43 +131,49 @@ public class MoveEntityEvent {
 		}
 
 		double regrowthEventOdds = 1 / currentRegrowthMobItem.getRegrowthEventSeconds() * TICKS_PER_SECOND;
-		if (isHorseTypeEatingNow(eventEntity)) {
+		if (isHorseTypeEatingNow(entity)) {
 			regrowthEventOdds *= 20;
 		}
-		double randomD100Roll = eventEntity.world.rand.nextDouble() * 100;
+		double randomD100Roll = entity.level.random.nextDouble() * 100;
 		int debugvalue = 0; // TODO make sure value 0 after debugging.
 		if (randomD100Roll <= regrowthEventOdds + debugvalue) {
-			if (eventEntity instanceof VillagerEntity) {
-				VillagerEntity ve = (VillagerEntity) eventEntity;
+			if (entity instanceof VillagerEntity) {
+				VillagerEntity ve = (VillagerEntity) entity;
 				// if onGround
 				if ((ve.isOnGround()) && (!(footBlock instanceof BedBlock))) {
 					doVillagerRegrowthEvents(ve, footBlock, groundBlock, registryNameAsString, regrowthActions,
 							localBiome);
 				}
 			} else {
-				doMobRegrowthEvents(eventEntity, footBlock, groundBlock, registryNameAsString, regrowthActions, localBiome);
+				doMobRegrowthEvents(entity, footBlock, groundBlock, registryNameAsString, regrowthActions, localBiome);
 			}
 		}
 
 	}
 
-	private void doMobRegrowthEvents(Entity eventEntity, Block footBlock, Block groundBlock, String key,
-			String regrowthType, Biome localBiome) {
+	// this round partial height blocks up.
+	private BlockPos getAdjustedBlockPos(Entity entity) {
+		BlockPos ePos = new BlockPos(entity.getX(), (entity.getY() + 0.99d), (entity.getZ()));
+		return ePos;
+	}
+
+	private void doMobRegrowthEvents(Entity entity, Block footBlock, Block groundBlock, String key, String regrowthType,
+			Biome localBiome) {
 
 		if (regrowthType.equals("stumble")) {
 			if ((footBlock instanceof TorchBlock) || (footBlock instanceof WallTorchBlock)) {
-				mobStumbleAction(eventEntity, key);
+				mobStumbleAction(entity, key);
 			}
 			return;
 		}
 
 		if (regrowthType.equals("reforest")) {
-			mobReforestAction(eventEntity, footBlock, groundBlock, key, localBiome);
+			mobReforestAction(entity, footBlock, groundBlock, key, localBiome);
 			return;
 		}
 
 		if (regrowthType.equals("mushroom")) {
-			mobGrowMushroomAction(eventEntity, groundBlock, key);
+			mobGrowMushroomAction(entity, groundBlock, key);
 			return;
 		}
 
@@ -179,12 +187,12 @@ public class MoveEntityEvent {
 		}
 
 		if (regrowthType.equals("tall")) {
-			mobGrowTallAction(eventEntity, footBlock, key);
+			mobGrowTallAction(entity, footBlock, key);
 			return;
 		}
 
 		if (regrowthType.equals("both")) {
-			if (eventEntity.world.rand.nextDouble() * 100 > 85.0) {
+			if (entity.level.random.nextDouble() * 100 > 85.0) {
 				regrowthType = "grow";
 			} else {
 				regrowthType = "eat";
@@ -192,34 +200,33 @@ public class MoveEntityEvent {
 		}
 
 		if (regrowthType.contentEquals("eat")) {
-			mobEatPlantsAction(eventEntity, footBlock, groundBlock, key, regrowthType);
+			mobEatPlantsAction(entity, footBlock, groundBlock, key, regrowthType);
 			return;
 		}
 
 		if ((regrowthType.equals("grow"))) {
-			mobGrowPlantsAction(eventEntity, footBlock, groundBlock, key);
+			mobGrowPlantsAction(entity, footBlock, groundBlock, key);
 			return;
 		}
-
 	}
 
-	private boolean mobGrowPlantsAction(Entity eventEntity, Block footBlock, Block groundBlock, String key) {
+	private boolean mobGrowPlantsAction(Entity entity, Block footBlock, Block groundBlock, String key) {
 		if (footBlock instanceof AirBlock) {
 			if (!(groundBlock instanceof IGrowable)) {
 				return false;
 			}
-			BlockPos bpos = eventEntity.getPosition();
+			BlockPos bpos = entity.blockPosition();
 			if (bpos == null) {
 				MyConfig.debugMsg(1, "ERROR:" + key + "grow plant null position.");
 				return false;
 			}
 			IGrowable ib = (IGrowable) groundBlock;
-			MyConfig.debugMsg(1, eventEntity.getPosition(), key + " growable plant found.");
+			MyConfig.debugMsg(1, entity.blockPosition(), key + " growable plant found.");
 			try {
-				ServerWorld serverworld = (ServerWorld) eventEntity.world;
-				Random rand = eventEntity.world.rand;
-				BlockState bs = eventEntity.world.getBlockState(bpos);
-				ib.grow(serverworld, rand, bpos, bs);
+				ServerWorld serverworld = (ServerWorld) entity.level;
+				Random rand = entity.level.random;
+				BlockState bs = entity.level.getBlockState(bpos);
+				ib.performBonemeal(serverworld, rand, bpos, bs);
 				MyConfig.debugMsg(1, bpos, key + " grew plant.");
 			} catch (Exception e) {
 				MyConfig.debugMsg(1, bpos, key + " caught grow attempt exception.");
@@ -231,7 +238,7 @@ public class MoveEntityEvent {
 	private boolean isKindOfGrassBlock(Block groundBlock) {
 		if (groundBlock instanceof GrassBlock)
 			return true;
-		if (groundBlock.getTranslationKey().equals("block.byg.meadow_grass_block"))
+		if (groundBlock.getDescriptionId().equals("block.byg.meadow_grass_block"))
 			return true;
 		return false;
 	}
@@ -245,34 +252,34 @@ public class MoveEntityEvent {
 	}
 
 	private BlockState helperSaplingState(BlockPos pos, Biome localBiome, BlockState sapling) {
-		sapling = Blocks.OAK_SAPLING.getDefaultState();
+		sapling = Blocks.OAK_SAPLING.defaultBlockState();
 
 		if (localBiome.getRegistryName().getNamespace().contains("birch")) {
-			sapling = Blocks.BIRCH_SAPLING.getDefaultState();
+			sapling = Blocks.BIRCH_SAPLING.defaultBlockState();
 		}
 		if (localBiome.getRegistryName().getNamespace().contains("taiga")) {
-			sapling = Blocks.SPRUCE_SAPLING.getDefaultState();
+			sapling = Blocks.SPRUCE_SAPLING.defaultBlockState();
 		}
 		if (localBiome.getRegistryName().getNamespace().contains("jungle")) {
-			sapling = Blocks.JUNGLE_SAPLING.getDefaultState();
+			sapling = Blocks.JUNGLE_SAPLING.defaultBlockState();
 		}
 		if (localBiome.getRegistryName().getNamespace().contains("savanna")) {
-			sapling = Blocks.ACACIA_SAPLING.getDefaultState();
+			sapling = Blocks.ACACIA_SAPLING.defaultBlockState();
 		}
 		if (localBiome.getRegistryName().getNamespace().contains("desert")) {
-			sapling = Blocks.ACACIA_SAPLING.getDefaultState();
+			sapling = Blocks.ACACIA_SAPLING.defaultBlockState();
 		}
 		return sapling;
 	}
 
-	private void mobReforestAction(Entity ent, Block footBlock, Block groundBlock, String key, Biome localBiome) {
+	private void mobReforestAction(Entity entity, Block footBlock, Block groundBlock, String key, Biome localBiome) {
 		if (footBlock != Blocks.AIR)
 			return;
 
 		if (!(isBlockGrassOrDirt(groundBlock)))
 			return;
 
-		BlockPos ePos = helperGetBlockPos(ent);
+		BlockPos ePos = getAdjustedBlockPos(entity);
 		int eX = ePos.getX();
 		int eY = ePos.getY();
 		int eZ = ePos.getZ();
@@ -280,7 +287,7 @@ public class MoveEntityEvent {
 
 		double sinY = Math.sin((double) ((eY + 64) % 256) / 256);
 
-		if (ent.world.rand.nextDouble() > Math.abs(sinY))
+		if (entity.level.random.nextDouble() > Math.abs(sinY))
 			return;
 
 		BlockState sapling = null;
@@ -294,7 +301,7 @@ public class MoveEntityEvent {
 		int yval = 0;
 		int yrange = 0;
 
-		if (helperCountBlocksBB(SaplingBlock.class, 1, ent.world, ePos, hval, yrange) > 0)
+		if (helperCountBlocksBB(SaplingBlock.class, 1, entity.level, ePos, hval, yrange) > 0)
 			return;
 
 		// check if there is room for a new tree.
@@ -304,22 +311,22 @@ public class MoveEntityEvent {
 		yrange = 0;
 		hval = 4;
 
-		if (sapling == Blocks.ACACIA_SAPLING.getDefaultState()) {
+		if (sapling == Blocks.ACACIA_SAPLING.defaultBlockState()) {
 			yval = 5;
 			hval = 7;
 		}
 		// TEST: The LeavesBlock
-		leafCount = helperCountBlocksBB(LeavesBlock.class, 1, ent.world, ePos.up(yval), hval, yrange);
+		leafCount = helperCountBlocksBB(LeavesBlock.class, 1, entity.level, ePos.above(yval), hval, yrange);
 		if (leafCount > 0)
 			return;
 
-		ent.world.setBlockState(ePos, sapling);
+		entity.level.setBlockAndUpdate(ePos, sapling);
 		MyConfig.debugMsg(1, ePos, key + " planted sapling.");
 	}
 
-	private void mobGrowMushroomAction(Entity eventEntity, Block groundBlock, String key) {
-		BlockPos ePos = helperGetBlockPos(eventEntity);
-		ServerWorld sWorld = (ServerWorld) eventEntity.world;
+	private void mobGrowMushroomAction(Entity entity, Block groundBlock, String key) {
+		BlockPos ePos = getAdjustedBlockPos(entity);
+		ServerWorld sWorld = (ServerWorld) entity.level;
 
 		if (sWorld.getBlockState(ePos).getBlock() instanceof MushroomBlock) {
 			return;
@@ -328,7 +335,7 @@ public class MoveEntityEvent {
 		if (sWorld.canSeeSky(ePos)) {
 			return;
 		}
-		if (!(isGoodMushroomTemperature(eventEntity))) {
+		if (!(isGoodMushroomTemperature(entity))) {
 			return;
 		}
 
@@ -351,12 +358,12 @@ public class MoveEntityEvent {
 
 		// dust the top of giant mushrooms with little mushrooms of the same type.
 		if (groundBlock == Blocks.RED_MUSHROOM_BLOCK) {
-			sWorld.setBlockState(ePos, Blocks.RED_MUSHROOM.getDefaultState());
+			sWorld.setBlockAndUpdate(ePos, Blocks.RED_MUSHROOM.defaultBlockState());
 			return;
 		}
 
 		if (groundBlock == Blocks.BROWN_MUSHROOM_BLOCK) {
-			sWorld.setBlockState(ePos, Blocks.BROWN_MUSHROOM.getDefaultState());
+			sWorld.setBlockAndUpdate(ePos, Blocks.BROWN_MUSHROOM.defaultBlockState());
 			return;
 		}
 
@@ -393,25 +400,25 @@ public class MoveEntityEvent {
 
 		if (growMushroom) {
 
-			double vx = eventEntity.getPositionVec().getX() - (ePos.getX() + 0.5d);
-			double vz = eventEntity.getPositionVec().getZ() - (ePos.getZ() + 0.5d);
+			double vx = entity.position().x() - (ePos.getX() + 0.5d);
+			double vz = entity.position().z() - (ePos.getZ() + 0.5d);
 
 			Vector3d vM = new Vector3d(vx, 0.0d, vz).normalize().scale(1.0d).add(0, 0.5, 0);
-			eventEntity.setMotion(eventEntity.getMotion().add(vM));
+			entity.setDeltaMovement(entity.getDeltaMovement().add(vM));
 			if (fertilityDouble > 0.9) {
-				sWorld.setBlockState(ePos.down(), Blocks.MYCELIUM.getDefaultState());
+				sWorld.setBlockAndUpdate(ePos.below(), Blocks.MYCELIUM.defaultBlockState());
 			}
 
 			Block theBlock = null;
-			if (sWorld.rand.nextDouble() * 100.0 > 75.0) {
+			if (sWorld.random.nextDouble() * 100.0 > 75.0) {
 				theBlock = Blocks.RED_MUSHROOM;
 			} else {
 				theBlock = Blocks.BROWN_MUSHROOM;
 			}
-			sWorld.setBlockState(ePos, theBlock.getDefaultState());
+			sWorld.setBlockAndUpdate(ePos, theBlock.defaultBlockState());
 			MushroomBlock mb = (MushroomBlock) theBlock;
 			try {
-				mb.grow(sWorld, ePos, theBlock.getDefaultState(), sWorld.rand);
+				mb.growMushroom(sWorld, ePos, theBlock.defaultBlockState(), sWorld.random);
 			} catch (Exception e) {
 				// technically an "impossible" error but it's happened so this should
 				// bulletproof it.
@@ -420,9 +427,9 @@ public class MoveEntityEvent {
 			// light the top stem inside the cap with glowshroom.
 			if (theBlock == Blocks.RED_MUSHROOM) {
 				for (int y = 9; y > 3; y--) {
-					Block b = sWorld.getBlockState(ePos.up(y)).getBlock();
+					Block b = sWorld.getBlockState(ePos.above(y)).getBlock();
 					if (b == Blocks.MUSHROOM_STEM) {
-						sWorld.setBlockState(ePos.up(y), Blocks.SHROOMLIGHT.getDefaultState());
+						sWorld.setBlockAndUpdate(ePos.above(y), Blocks.SHROOMLIGHT.defaultBlockState());
 						break;
 					}
 				}
@@ -447,13 +454,13 @@ public class MoveEntityEvent {
 			int upperBoundY) {
 		int count = 0;
 		for (int j = lowerBoundY; j <= upperBoundY; j++) {
-			if (w.getBlockState(bPos.up(j).east(1)).getBlock() == searchBlock)
+			if (w.getBlockState(bPos.above(j).east(1)).getBlock() == searchBlock)
 				count++;
-			if (w.getBlockState(bPos.up(j).west(1)).getBlock() == searchBlock)
+			if (w.getBlockState(bPos.above(j).west(1)).getBlock() == searchBlock)
 				count++;
-			if (w.getBlockState(bPos.up(j).north(1)).getBlock() == searchBlock)
+			if (w.getBlockState(bPos.above(j).north(1)).getBlock() == searchBlock)
 				count++;
-			if (w.getBlockState(bPos.up(j).south(1)).getBlock() == searchBlock)
+			if (w.getBlockState(bPos.above(j).south(1)).getBlock() == searchBlock)
 				count++;
 			if (count >= maxCount)
 				return count;
@@ -532,9 +539,10 @@ public class MoveEntityEvent {
 		return count;
 	}
 
-	private boolean isGoodMushroomTemperature(Entity e) {
-		float biomeTemp = e.world.getBiome(e.getPosition()).getTemperature(e.getPosition());
-		MyConfig.debugMsg(1, e.getPosition(), "Mushroom Biome temp: " + biomeTemp + ".");
+	private boolean isGoodMushroomTemperature(Entity entity) {
+		BlockPos ePos = getAdjustedBlockPos(entity);
+		float biomeTemp = entity.level.getBiome(ePos).getTemperature(ePos);
+		MyConfig.debugMsg(1, ePos, "Mushroom Biome temp: " + biomeTemp + ".");
 		if (biomeTemp < MyConfig.getMushroomMinTemp())
 			return false;
 		if (biomeTemp > MyConfig.getMushroomMaxTemp())
@@ -542,39 +550,36 @@ public class MoveEntityEvent {
 		return true;
 	}
 
-	private boolean mobEatPlantsAction(Entity eventEntity, Block footBlock, Block groundBlock, String key,
+	private boolean mobEatPlantsAction(Entity entity, Block footBlock, Block groundBlock, String key,
 			String regrowthType) {
-
-		if (mobEatGrassOrFlower(eventEntity, regrowthType, footBlock, groundBlock)) {
-			MyConfig.debugMsg(1, eventEntity.getPosition(), key + " ate plants.");
+		if (mobEatGrassOrFlower(entity, regrowthType, footBlock, groundBlock)) {
+			MyConfig.debugMsg(1, getAdjustedBlockPos(entity), key + " ate plants.");
 			return true;
 		}
 		return false;
 	}
 
-	private boolean isHorseTypeEatingNow(Entity eventEntity) {
-		if (eventEntity instanceof AbstractHorseEntity) {
-			AbstractHorseEntity h = (AbstractHorseEntity) eventEntity;
-			if (h.isEatingHaystack()) {
+	private boolean isHorseTypeEatingNow(Entity entity) {
+		if (entity instanceof AbstractHorseEntity) {
+			AbstractHorseEntity h = (AbstractHorseEntity) entity;
+			if (h.isEating()) {
 				return true;
 			}
 		}
 		return false;
 	}
 
-	private void mobStumbleAction(Entity e, String key) {
-		e.world.destroyBlock(e.getPosition(), true);
-		MyConfig.debugMsg(1, e.getPosition(), key + " stumbled over torch.");
+	private void mobStumbleAction(Entity entity, String key) {
+		entity.level.destroyBlock(getAdjustedBlockPos(entity), true);
+		MyConfig.debugMsg(1, getAdjustedBlockPos(entity), key + " stumbled over torch.");
 	}
 
-	private BlockPos helperGetBlockPos(Entity e) {
-		return e.getPosition();
-	}
 
+	
 	private void doVillagerRegrowthEvents(VillagerEntity ve, Block footBlock, Block groundBlock, String key,
 			String regrowthType, Biome localBiome) {
 
-		BlockPos ePos = ve.getPosition();
+		BlockPos ePos = getAdjustedBlockPos(ve);
 
 		int veX = ePos.getX(); // Int
 		int veY = ePos.getY(); // Int
@@ -586,7 +591,7 @@ public class MoveEntityEvent {
 		// Give custom debugging names to nameless villagers.
 		if (MyConfig.aDebugLevel > 0) {
 			ITextComponent tName = new StringTextComponent("");
-			float veYaw = ve.getYaw(1.0f);
+			float veYaw = ve.getViewYRot(1.0f);
 			tName = new StringTextComponent("Reg-" + veX + "," + veZ + ": " + veYaw);
 			ve.setCustomName(tName);
 		} else { // remove custom debugging names added by Regrowth
@@ -599,7 +604,7 @@ public class MoveEntityEvent {
 
 		// note all villagers may not have a home. poor homeless villagers.
 		// default = repair farms
-		if (vImproveFarm(ve, groundBlock, footBlock, regrowthType, veX, veY, veZ)) {
+		if (vImproveFarm(ve, groundBlock, footBlock, regrowthType)) {
 			MyConfig.debugMsg(1, ePos, key + " farm improved.");
 		}
 		;
@@ -618,9 +623,9 @@ public class MoveEntityEvent {
 
 		if (regrowthType.contains("c")) {
 			if ((footBlock instanceof TallGrassBlock) || (footBlock instanceof DoublePlantBlock)
-					|| (footBlock.getTranslationKey().equals("block.byg.short_grass"))) {
+					|| (footBlock.getDescriptionId().equals("block.byg.short_grass"))) {
 
-				ve.world.destroyBlock(ePos, false);
+				ve.level.destroyBlock(ePos, false);
 				MyConfig.debugMsg(1, ePos, key + " grass cut.");
 			}
 		}
@@ -647,8 +652,8 @@ public class MoveEntityEvent {
 
 		if ((regrowthType.contains("t") && (footBlock != Blocks.TORCH))) {
 			if (vImproveLighting(ve, footBlock, groundBlock, localBiome)) {
-				MyConfig.debugMsg(1, ePos, key + "-" + footBlock + ", " + groundBlock + " pitch: " + ve.rotationPitch
-						+ " lighting improved.");
+				MyConfig.debugMsg(1, ePos,
+						key + "-" + footBlock + ", " + groundBlock + " pitch: " + ve.xRot + " lighting improved.");
 			}
 		}
 	}
@@ -656,7 +661,7 @@ public class MoveEntityEvent {
 	private void helperJumpAway(VillagerEntity ve, Block footBlock) {
 		// "jump" villagers away if they are inside a wall or fence block.
 		if ((footBlock instanceof WallBlock) || (footBlock instanceof FenceBlock)) {
-			float veYaw = ve.getYaw(1.0f) / 45;
+			float veYaw = ve.getViewYRot(1.0f) / 45;
 			int facingNdx = Math.round(veYaw);
 			if (facingNdx < 0) {
 				facingNdx = Math.abs(facingNdx);
@@ -664,38 +669,38 @@ public class MoveEntityEvent {
 			facingNdx %= 8;
 			double dx = (facingArray[facingNdx][0]) / 2.0;
 			double dz = (facingArray[facingNdx][1]) / 2.0;
-			ve.setMotion(dx, 0.55, dz);
+			ve.setDeltaMovement(dx, 0.55, dz);
 		}
 	}
 
-	private boolean mobEatGrassOrFlower(Entity eventEntity, String regrowthType, Block footBlock, Block groundBlock) {
+	private boolean mobEatGrassOrFlower(Entity entity, String regrowthType, Block footBlock, Block groundBlock) {
 
-		BlockPos ePos = eventEntity.getPosition();
+		BlockPos ePos = getAdjustedBlockPos(entity);
 		if (!(isGrassOrFlower(footBlock))) {
 			return false;
 		}
 		if (isKindOfGrassBlock(groundBlock)) {
-			mobTrodGrassBlock(eventEntity);
+			mobTrodGrassBlock(entity);
 		}
-		eventEntity.world.destroyBlock(ePos, false);
-		LivingEntity le = (LivingEntity) eventEntity;
-		helperChildAgeEntity(eventEntity);
+		entity.level.destroyBlock(ePos, false);
+		LivingEntity le = (LivingEntity) entity;
+		helperChildAgeEntity(entity);
 		if (le.getMaxHealth() > le.getHealth() && (MyConfig.aEatingHeals == 1)) {
-			EffectInstance ei = new EffectInstance(Effects.INSTANT_HEALTH, 1, 0, false, true);
-			le.addPotionEffect(ei);
+			EffectInstance ei = new EffectInstance(Effects.HEAL, 1, 0, false, true);
+			le.addEffect(ei);
 		}
 		return true;
 	}
 
-	private void mobTrodGrassBlock(Entity eventEntity) {
-		BlockPos ePos = eventEntity.getPosition();
-		World world = eventEntity.world;
-		List<Entity> wEntityList = world.getEntitiesWithinAABB(eventEntity.getClass(),
-				new AxisAlignedBB(ePos.west(2).north(2).down(1), ePos.east(2).south(2).up(1)));
-		world.setBlockState(ePos.down(), Blocks.DIRT.getDefaultState());
+	private void mobTrodGrassBlock(Entity entity) {
+		BlockPos ePos = getAdjustedBlockPos(entity);
+		World world = entity.level;
+		List<Entity> wEntityList = world.getEntitiesOfClass(entity.getClass(),
+				new AxisAlignedBB(ePos.west(2).north(2).below(1), ePos.east(2).south(2).above(1)));
+		world.setBlockAndUpdate(ePos.below(), Blocks.DIRT.defaultBlockState());
 		if (wEntityList.size() > 9) {
 			MyConfig.debugMsg(1, ePos, "wEntityList overpopulated: " + wEntityList.size());
-			world.setBlockState(ePos.down(), Blocks.GRASS_PATH.getDefaultState());
+			world.setBlockAndUpdate(ePos.below(), Blocks.GRASS_PATH.defaultBlockState());
 		}
 	}
 
@@ -710,18 +715,17 @@ public class MoveEntityEvent {
 	private void helperChildAgeEntity(Entity ent) {
 		if (ent instanceof AgeableEntity) {
 			AgeableEntity aEnt = (AgeableEntity) ent;
-			if (aEnt.isChild()) {
-				aEnt.setGrowingAge(aEnt.getGrowingAge() + 30);
+			if (aEnt.isBaby()) {
+				aEnt.setAge(aEnt.getAge() + 30);
 			}
 		}
 	}
 
-	private boolean mobGrowTallAction(Entity eventEntity, Block footBlock, String key) {
+	private boolean mobGrowTallAction(Entity ent, Block footBlock, String key) {
 		if (footBlock instanceof TallGrassBlock) {
+			BlockPos ePos = getAdjustedBlockPos(ent);
 			IGrowable ib = (IGrowable) footBlock;
-			ib.grow((ServerWorld) eventEntity.world, eventEntity.world.rand, helperGetBlockPos(eventEntity),
-					eventEntity.world.getBlockState(helperGetBlockPos(eventEntity)));
-			BlockPos ePos = helperGetBlockPos(eventEntity);
+			ib.performBonemeal((ServerWorld) ent.level, ent.level.random, ePos, ent.level.getBlockState(ePos));
 			MyConfig.debugMsg(1, ePos, key + " grew and hid in tall plant.");
 			return true;
 		}
@@ -729,9 +733,9 @@ public class MoveEntityEvent {
 	}
 
 	private BlockState helperBiomeRoadBlockType(Biome localBiome) {
-		BlockState gateBlockType = Blocks.GRASS_PATH.getDefaultState();
-		if (localBiome.getCategory() == Biome.Category.DESERT) {
-			gateBlockType = Blocks.SMOOTH_SANDSTONE.getDefaultState(); // 16.1 mojang change
+		BlockState gateBlockType = Blocks.GRASS_PATH.defaultBlockState();
+		if (localBiome.getBiomeCategory() == Biome.Category.DESERT) {
+			gateBlockType = Blocks.SMOOTH_SANDSTONE.defaultBlockState(); // 16.1 mojang change
 		}
 		return gateBlockType;
 	}
@@ -739,65 +743,53 @@ public class MoveEntityEvent {
 	// if a grassblock in village has farmland next to it on the same level- retill
 	// it.
 	// todo add hydration check before tilling land.
-	private boolean vImproveFarm(VillagerEntity ve, Block groundBlock, Block footBlock, String regrowthType, int veX,
-			int veY, int veZ) {
-		boolean nextToFarmBlock = false;
-		boolean nextToWaterBlock = false;
-		boolean torchExploit = false;
+	private boolean vImproveFarm(VillagerEntity ve, Block groundBlock, Block footBlock, String regrowthType) {
+		if (ve.getVillagerData().getProfession() != VillagerProfession.FARMER) {
+			return false;
+		}
 
-		if (ve.getVillagerData().getProfession() == VillagerProfession.FARMER) {
+		BlockPos vePos = getAdjustedBlockPos(ve);
+
+		if (helperCountBlocksOrthogonalBB(Blocks.FARMLAND, 1, ve.level, vePos, 0) > 0) {
+
+			if (groundBlock instanceof GrassBlock) {
+				ve.level.setBlockAndUpdate(vePos.below(), Blocks.FARMLAND.defaultBlockState());
+				return true;
+			}
+
+			if (!regrowthType.contains("t") || (footBlock != Blocks.AIR)) {
+				return false;
+			}
+
+			// Special farm lighting torches.
+			if (ve.level.getBrightness(LightType.BLOCK, vePos) > 12) {
+				return false; // block already bright enough
+			}
+
+			int veX = vePos.getX();
+			int veY = vePos.getY();
+			int veZ = vePos.getZ();
+
 			if ((lastTorchX == veX) && (lastTorchY == veY) && (lastTorchZ == veZ)) {
-				torchExploit = true;
-			}
-			for (int i = 0; i < 4; i++) {
-				Block tempBlock = ve.world.getBlockState(new BlockPos(veX + dx[i], veY - 1, veZ + dz[i])).getBlock();
-				if (tempBlock == Blocks.FARMLAND) {
-					nextToFarmBlock = true;
-					i = 4;
-				}
+				return false; // Anti torch-exploit
 			}
 
-			if ((BlockTags.LOGS.contains(groundBlock))) {
-				for (int i = 0; i < 4; i++) {
-					Block tempBlock = ve.world.getBlockState(new BlockPos(veX + dx[i], veY - 1, veZ + dz[i]))
-							.getBlock();
-					if (tempBlock == Blocks.WATER) {
-						nextToWaterBlock = true;
-						i = 4;
-					}
-				}
-				if (regrowthType.contains("t") && (nextToWaterBlock)) {
-					if ((footBlock == Blocks.AIR) && (!torchExploit)) {
-						ve.world.setBlockState(helperGetBlockPos(ve), Blocks.TORCH.getDefaultState());
-						lastTorchX = veX;
-						lastTorchY = veY;
-						lastTorchZ = veZ;
-					}
-				}
+			boolean placeTorch = false;
+			int waterValue = helperCountBlocksOrthogonalBB(Blocks.WATER, 1, ve.level, vePos.below(), 0);
+			if ((waterValue > 0) && (BlockTags.LOGS.contains(groundBlock))||(groundBlock == Blocks.SMOOTH_SANDSTONE)) {
+				ve.level.setBlock(vePos, Blocks.TORCH.defaultBlockState(), 3);
+				lastTorchX = veX;
+				lastTorchY = veY;
+				lastTorchZ = veZ;
+				return true;
 			}
-
-			if (nextToFarmBlock) {
-				if (groundBlock == Blocks.SMOOTH_SANDSTONE) {
-					if (regrowthType.contains("t")) {
-						ve.world.setBlockState(helperGetBlockPos(ve), Blocks.TORCH.getDefaultState());
-						lastTorchX = veX;
-						lastTorchY = veY;
-						lastTorchZ = veZ;
-					}
-				}
-				if (groundBlock instanceof GrassBlock) {
-					ve.world.setBlockState(helperGetBlockPos(ve).down(), Blocks.FARMLAND.getDefaultState());
-					return true;
-				}
-			}
-
 		}
 		return false;
 	}
 
 	private void vImproveLeaves(VillagerEntity ve, Block groundBlock, String key, int veX, int veY, int veZ) {
-		float veYaw = ve.getYaw(1.0f) / 45;
-		BlockPos vePos = ve.getPosition();
+		float veYaw = ve.getViewYRot(1.0f) / 45;
+		BlockPos vePos = getAdjustedBlockPos(ve);
 		int facingNdx = Math.round(veYaw);
 		if (facingNdx < 0) {
 			facingNdx = Math.abs(facingNdx);
@@ -816,10 +808,10 @@ public class MoveEntityEvent {
 		boolean destroyBlock = false;
 		for (int iY = 0; iY < 2; iY++) {
 			tmpBP = new BlockPos(veX + dx, veY + iY, veZ + dz);
-			tempBS = ve.world.getBlockState(tmpBP);
+			tempBS = ve.level.getBlockState(tmpBP);
 			tempBlock = tempBS.getBlock();
 			if (tempBlock instanceof LeavesBlock) {
-				boolean persistantLeaves = tempBS.get(LeavesBlock.PERSISTENT);
+				boolean persistantLeaves = tempBS.getValue(LeavesBlock.PERSISTENT);
 				if (!(persistantLeaves)) {
 					destroyBlock = true;
 				}
@@ -828,17 +820,19 @@ public class MoveEntityEvent {
 				destroyBlock = true;
 			}
 			if (destroyBlock) {
-				ve.world.destroyBlock(tmpBP, false);
+				ve.level.destroyBlock(tmpBP, false);
 				destroyBlock = false;
-				MyConfig.debugMsg(1, vePos, key + " cleared " + tempBlock.getTranslationKey().toString());
+				MyConfig.debugMsg(1, vePos, key + " cleared " + tempBlock.getDescriptionId().toString());
 			}
 		}
 	}
 
 	private boolean vImproveLighting(VillagerEntity ve, Block footBlock, Block groundBlock, Biome localBiome) {
-		int blockLightValue = ve.world.getLightFor(LightType.BLOCK, ve.getPosition());
+		BlockPos vePos = getAdjustedBlockPos(ve);
+		
+		int blockLightValue = ve.level.getBrightness(LightType.BLOCK, vePos);
+		int skyLightValue = ve.level.getBrightness(LightType.SKY, vePos);
 
-		int skyLightValue = ve.world.getLightFor(LightType.SKY, ve.getPosition());
 		if (blockLightValue > 8)
 			return false;
 		if (skyLightValue > 13)
@@ -852,7 +846,7 @@ public class MoveEntityEvent {
 		}
 
 		if (isValidGroundBlockToPlaceTorchOn(ve, groundBlock) && (footBlock instanceof AirBlock)) {
-			ve.world.setBlockState(helperGetBlockPos(ve), Blocks.TORCH.getDefaultState());
+			ve.level.setBlock(vePos, Blocks.TORCH.defaultBlockState(), BlockFlags.DEFAULT);
 		}
 
 		return true;
@@ -862,31 +856,31 @@ public class MoveEntityEvent {
 	private void vImproveRoads(VillagerEntity ve, Block footBlock, Block groundBlock, String key, Biome localBiome) {
 
 		if (vImproveRoadsFixUnfinished(ve, groundBlock, localBiome)) {
-			MyConfig.debugMsg(1, ve.getPosition(), key + " fix road.");
+			MyConfig.debugMsg(1, ve.blockPosition(), key + " fix road.");
 		}
 		if (vImproveRoadsSmoothHeight(ve, footBlock, groundBlock, localBiome)) {
-			MyConfig.debugMsg(1, ve.getPosition(), key + " Smooth road slope.");
+			MyConfig.debugMsg(1, ve.blockPosition(), key + " Smooth road slope.");
 		}
 	}
 
 	private boolean vImproveRoadsFixUnfinished(VillagerEntity ve, Block groundBlock, Biome localBiome) {
 
-		BlockPos vePos = ve.getPosition();
+		BlockPos vePos = getAdjustedBlockPos(ve);
 		// fix unfinished spots in road with 3-4 grass blocks orthogonal to them.
 		// on slopes too.
 
 		int fixHeight = 3;
-		if (Biome.Category.TAIGA == localBiome.getCategory()) {
+		if (Biome.Category.TAIGA == localBiome.getBiomeCategory()) {
 			fixHeight = 5;
 		}
 
 		Block biomeRoadBlock = helperBiomeRoadBlockType(localBiome).getBlock();
 		if (biomeRoadBlock.getBlock() == Blocks.SMOOTH_SANDSTONE) {
-			int skyLightValue = ve.world.getLightFor(LightType.SKY, helperGetBlockPos(ve));
+			int skyLightValue = ve.level.getBrightness(LightType.SKY, vePos);
 			if (skyLightValue < 13) {
 				return false;
 			}
-			if (!(ve.getWorld().canSeeSky(ve.getPosition()))) {
+			if (!(ve.getLevel().canSeeSky(ve.blockPosition()))) {
 				return false;
 			}
 		}
@@ -899,12 +893,12 @@ public class MoveEntityEvent {
 			int roadBlockCount = 0;
 			for (int dy = -1; dy <= fixHeight; dy++) {
 				for (int i = 0; i < 4; i++) {
-					Block tempBlock = ve.world.getBlockState(new BlockPos(veX + dx[i], veY + dy, veZ + dz[i]))
+					Block tempBlock = ve.level.getBlockState(new BlockPos(veX + dx[i], veY + dy, veZ + dz[i]))
 							.getBlock();
 					if (tempBlock == biomeRoadBlock) {
 						roadBlockCount += 1;
 						if (roadBlockCount > 2) {
-							ve.world.setBlockState(vePos.down(), biomeRoadBlock.getDefaultState());
+							ve.level.setBlockAndUpdate(vePos.below(), biomeRoadBlock.defaultBlockState());
 							return true;
 						}
 					}
@@ -915,10 +909,10 @@ public class MoveEntityEvent {
 	}
 
 	private boolean vImproveRoadsSmoothHeight(VillagerEntity ve, Block footBlock, Block groundBlock, Biome localBiome) {
-		BlockPos vePos = ve.getPosition();
+		BlockPos vePos = getAdjustedBlockPos(ve);
 		// to do remove "tempBlock" and put in iff statement. Extract as method.
 
-		int skyLightValue = ve.world.getLightFor(LightType.SKY, helperGetBlockPos(ve));
+		int skyLightValue = ve.level.getBrightness(LightType.SKY, vePos);
 		// don't smooth "inside".
 		if (skyLightValue < 14) {
 			return false;
@@ -930,16 +924,16 @@ public class MoveEntityEvent {
 			return false;
 		}
 
-		BlockState smoothingBlockState = biomeRoadBlock.getDefaultState();
+		BlockState smoothingBlockState = biomeRoadBlock.defaultBlockState();
 		Block smoothingBlock = biomeRoadBlock;
 
 		// Check for higher block to smooth up towards
 		int poiDistance = 3;
-		String key = "minecraft:" + localBiome.getCategory().toString();
+		String key = "minecraft:" + localBiome.getBiomeCategory().toString();
 		key = key.toLowerCase();
 		if (key.equals("minecraft:desert")) {
 			poiDistance = 7;
-			if (!(ve.getWorld().canSeeSky(ve.getPosition()))) {
+			if (!(ve.getLevel().canSeeSky(ve.blockPosition()))) {
 				return false;
 			}
 		}
@@ -948,18 +942,18 @@ public class MoveEntityEvent {
 //		the collection is not empty when it should be.
 // 	    are returned in the collection so have to loop thru it manually.
 
-		Collection<PointOfInterest> result = ((ServerWorld) ve.world).getPointOfInterestManager()
-				.getInSquare(t -> true, ve.getPosition(), poiDistance, Status.ANY)
+		Collection<PointOfInterest> result = ((ServerWorld) ve.level).getPoiManager()
+				.getInSquare(t -> true, ve.blockPosition(), poiDistance, Status.ANY)
 				.collect(Collectors.toCollection(ArrayList::new));
 
 		if (!(result.isEmpty())) {
 			Iterator<PointOfInterest> i = result.iterator();
 			while (i.hasNext()) { // in 16.1, finds the point of interest.
 				PointOfInterest P = i.next();
-				int disX = Math.abs(ve.getPosition().getX() - P.getPos().getX());
-				int disZ = Math.abs(ve.getPosition().getZ() - P.getPos().getZ());
+				int disX = Math.abs(ve.blockPosition().getX() - P.getPos().getX());
+				int disZ = Math.abs(ve.blockPosition().getZ() - P.getPos().getZ());
 				if ((disX < poiDistance) && (disZ < poiDistance)) {
-					MyConfig.debugMsg(1, vePos, "Point of Interest too Close: " + P.getType().toString() + ".");
+					MyConfig.debugMsg(1, vePos, "Point of Interest too Close: " + P.getPoiType().toString() + ".");
 					return false;
 				}
 			}
@@ -978,10 +972,10 @@ public class MoveEntityEvent {
 		int veZ = vePos.getZ();
 		for (int dy = 1 + yAdjust; dy < 5 + yAdjust; dy++) {
 			for (int i = 0; i < 4; i++) {
-				Block tempBlock = ve.world.getBlockState(new BlockPos(veX + dx[i], veY + dy, veZ + dz[i])).getBlock();
+				Block tempBlock = ve.level.getBlockState(new BlockPos(veX + dx[i], veY + dy, veZ + dz[i])).getBlock();
 				if (tempBlock == smoothingBlock) {
-					ve.world.setBlockState(new BlockPos(veX, veY + yAdjust, veZ), smoothingBlockState);
-					ve.setMotion(0.0, 0.4, 0.0);
+					ve.level.setBlockAndUpdate(new BlockPos(veX, veY + yAdjust, veZ), smoothingBlockState);
+					ve.setDeltaMovement(0.0, 0.4, 0.0);
 					return true;
 				}
 			}
@@ -993,18 +987,20 @@ public class MoveEntityEvent {
 	private boolean vImproveWallForMeetingPlace(VillagerEntity ve, String regrowthActions,
 			BlockPos villageMeetingPlaceBlockPos, Block groundBlock, Block footBlock, Biome localBiome) {
 
-		String key = "minecraft:" + localBiome.getCategory().toString();
+		BlockPos vePos = getAdjustedBlockPos(ve);
+		
+		String key = "minecraft:" + localBiome.getBiomeCategory().toString();
 //		ResourceLocation biomeName = ForgeRegistries.BIOMES.getKey(localBiome);
 		key = key.toLowerCase();
-		MyConfig.debugMsg(2, ve.getPosition(), key + " wall improvement.");
+		MyConfig.debugMsg(2, vePos, key + " wall improvement.");
 
 		WallBiomeDataManager.WallBiomeDataItem currentWallBiomeDataItem = WallBiomeDataManager
 				.getWallBiomeDataItem(key);
-		MyConfig.debugMsg(1, ve.getPosition(), key + " biome for wall improvement.");
+		MyConfig.debugMsg(1, vePos, key + " biome for wall improvement.");
 
 		if (currentWallBiomeDataItem == null) {
-			MyConfig.debugMsg(2, ve.getPosition(), "wallbiome data null.");
-			key = "minecraft:" + localBiome.getCategory().toString().toLowerCase();
+			MyConfig.debugMsg(2, vePos, "wallbiome data null.");
+			key = "minecraft:" + localBiome.getBiomeCategory().toString().toLowerCase();
 			currentWallBiomeDataItem = WallBiomeDataManager.getWallBiomeDataItem(key);
 			if (currentWallBiomeDataItem == null) {
 				currentWallBiomeDataItem = WallBiomeDataManager.getWallBiomeDataItem("minecraft:plains");
@@ -1018,14 +1014,14 @@ public class MoveEntityEvent {
 
 		wallPerimeter = (wallPerimeter / 2) - 1;
 
-		int absvx = (int) Math.abs(ve.getPosX() - villageMeetingPlaceBlockPos.getX());
-		int absvz = (int) Math.abs(ve.getPosZ() - villageMeetingPlaceBlockPos.getZ());
+		int absvx = (int) Math.abs(ve.getX() - villageMeetingPlaceBlockPos.getX());
+		int absvz = (int) Math.abs(ve.getZ() - villageMeetingPlaceBlockPos.getZ());
 
 		if (isOnWallPerimeter(wallPerimeter, absvx, absvz)) {
-			MyConfig.debugMsg(2, ve.getPosition(), "villager on wall perimeter: " + wallPerimeter);
+			MyConfig.debugMsg(2, ve.blockPosition(), "villager on wall perimeter: " + wallPerimeter);
 			// check for other meeting place bells blocking wall since too close.
-			Collection<PointOfInterest> result = ((ServerWorld) ve.world).getPointOfInterestManager()
-					.getInSquare(t -> t == PointOfInterestType.MEETING, ve.getPosition(), 41, Status.ANY)
+			Collection<PointOfInterest> result = ((ServerWorld) ve.level).getPoiManager()
+					.getInSquare(t -> t == PointOfInterestType.MEETING, ve.blockPosition(), 41, Status.ANY)
 					.collect(Collectors.toCollection(ArrayList::new));
 
 			// 08/30/20 Collection had bug with range that I couldn't resolve.
@@ -1039,8 +1035,8 @@ public class MoveEntityEvent {
 							&& (villageMeetingPlaceBlockPos.getZ() == P.getPos().getZ())) {
 						continue; // ignore meeting place that owns this wall segment.
 					} else {
-						int disX = Math.abs(ve.getPosition().getX() - P.getPos().getX());
-						int disZ = Math.abs(ve.getPosition().getZ() - P.getPos().getZ());
+						int disX = Math.abs(ve.blockPosition().getX() - P.getPos().getX());
+						int disZ = Math.abs(ve.blockPosition().getZ() - P.getPos().getZ());
 						if ((disX < wallPerimeter) && (disZ < wallPerimeter)) {
 							buildWall = false; // another meeting place too close. cancel wall.
 							break;
@@ -1053,7 +1049,7 @@ public class MoveEntityEvent {
 
 				BlockState wallTypeBlockState = currentWallBiomeDataItem.getWallBlockState();
 				if (wallTypeBlockState == null) {
-					wallTypeBlockState = Blocks.COBBLESTONE_WALL.getDefaultState();
+					wallTypeBlockState = Blocks.COBBLESTONE_WALL.defaultBlockState();
 				}
 				BlockState wallBlock = wallTypeBlockState;
 				BlockState gateBlockType = helperBiomeRoadBlockType(localBiome);
@@ -1065,8 +1061,8 @@ public class MoveEntityEvent {
 						buildCenterGate, wallBlock, absvx, absvz, groundBlock, footBlock)) {
 					if (regrowthActions.contains("t")) {
 						if (isValidTorchLocation(wallPerimeter, wallTorchSpacing, absvx, absvz,
-								ve.world.getBlockState(helperGetBlockPos(ve)).getBlock())) {
-							ve.world.setBlockState(helperGetBlockPos(ve).up(), Blocks.TORCH.getDefaultState());
+								ve.level.getBlockState(vePos).getBlock())) {
+							ve.level.setBlockAndUpdate(vePos.above(), Blocks.TORCH.defaultBlockState());
 						}
 					}
 					return true;
@@ -1083,15 +1079,15 @@ public class MoveEntityEvent {
 	private boolean vImproveHomeFence(VillagerEntity ve, BlockPos vHomePos, String regrowthActions, Block groundBlock,
 			Block footBlock, Biome localBiome) {
 
-		String key = "minecraft:" + localBiome.getCategory().toString();
+		BlockPos vePos = getAdjustedBlockPos(ve);
+		String key = "minecraft:" + localBiome.getBiomeCategory().toString();
 //		ResourceLocation biomeName = ForgeRegistries.BIOMES.getKey(localBiome);
 		key = key.toLowerCase();
 		WallBiomeDataManager.WallBiomeDataItem currentWallBiomeDataItem = WallBiomeDataManager
 				.getWallBiomeDataItem(key);
 		if (currentWallBiomeDataItem == null) {
 
-
-			key = "minecraft:" + localBiome.getCategory().toString().toLowerCase();
+			key = "minecraft:" + localBiome.getBiomeCategory().toString().toLowerCase();
 			currentWallBiomeDataItem = WallBiomeDataManager.getWallBiomeDataItem(key);
 			if (currentWallBiomeDataItem == null) {
 				currentWallBiomeDataItem = WallBiomeDataManager.getWallBiomeDataItem("minecraft:plains");
@@ -1107,11 +1103,11 @@ public class MoveEntityEvent {
 		int wallTorchSpacing = homeFenceDiameter / 4;
 		homeFenceDiameter = (homeFenceDiameter / 2) - 1;
 
-		int absvx = (int) Math.abs(ve.getPosX() - vHomePos.getX());
-		int absvz = (int) Math.abs(ve.getPosZ() - vHomePos.getZ());
+		int absvx = (int) Math.abs(ve.getX() - vHomePos.getX());
+		int absvz = (int) Math.abs(ve.getZ() - vHomePos.getZ());
 
-		Collection<PointOfInterest> result = ((ServerWorld) ve.world).getPointOfInterestManager()
-				.getInSquare(t -> t == PointOfInterestType.HOME, ve.getPosition(), 17, Status.ANY)
+		Collection<PointOfInterest> result = ((ServerWorld) ve.level).getPoiManager()
+				.getInSquare(t -> t == PointOfInterestType.HOME, vePos, 17, Status.ANY)
 				.collect(Collectors.toCollection(ArrayList::new));
 
 		// 08/30/20 Collection had bug with range that I couldn't resolve.
@@ -1124,8 +1120,8 @@ public class MoveEntityEvent {
 						&& (vHomePos.getZ() == P.getPos().getZ())) {
 					continue; // ignore meeting place that owns this wall segment.
 				} else {
-					int disX = Math.abs(ve.getPosition().getX() - P.getPos().getX());
-					int disZ = Math.abs(ve.getPosition().getZ() - P.getPos().getZ());
+					int disX = Math.abs(vePos.getX() - P.getPos().getX());
+					int disZ = Math.abs(vePos.getZ() - P.getPos().getZ());
 					MyConfig.debugMsg(1, P.getPos(), "extra Point of Interest Found.");
 					if ((disX < homeFenceDiameter) && (disZ < homeFenceDiameter)) {
 						buildWall = false; // another meeting place too close. cancel wall.
@@ -1141,7 +1137,7 @@ public class MoveEntityEvent {
 
 			BlockState fenceBlockState = currentWallBiomeDataItem.getFenceBlockState();
 			if (fenceBlockState == null) {
-				fenceBlockState = Blocks.OAK_FENCE.getDefaultState();
+				fenceBlockState = Blocks.OAK_FENCE.defaultBlockState();
 			}
 			BlockState wallBlock = fenceBlockState;
 			BlockState gateBlockType = helperBiomeRoadBlockType(localBiome);
@@ -1152,8 +1148,8 @@ public class MoveEntityEvent {
 
 				if (regrowthActions.contains("t")) {
 					if (isValidTorchLocation(homeFenceDiameter, wallTorchSpacing, absvx, absvz,
-							ve.world.getBlockState(helperGetBlockPos(ve)).getBlock())) {
-						ve.world.setBlockState(helperGetBlockPos(ve).up(), Blocks.TORCH.getDefaultState());
+							ve.level.getBlockState(vePos).getBlock())) {
+						ve.level.setBlockAndUpdate(vePos.above(), Blocks.TORCH.defaultBlockState());
 					}
 				}
 				return true;
@@ -1166,7 +1162,7 @@ public class MoveEntityEvent {
 	private void vImproveWalls(VillagerEntity ve, Block footBlock, Block groundBlock, String key, String regrowthType,
 			Biome localBiome) {
 
-		BlockPos ePos = ve.getPosition();
+		BlockPos vePos = getAdjustedBlockPos(ve);
 
 		Brain<VillagerEntity> vb = ve.getBrain();
 		Optional<GlobalPos> vMeetingPlace = vb.getMemory(MemoryModuleType.MEETING_POINT);
@@ -1176,9 +1172,12 @@ public class MoveEntityEvent {
 
 		if (isOkayToBuildWallHere(ve, footBlock, groundBlock)) {
 			GlobalPos gVMP = vMeetingPlace.get();
-			BlockPos villageMeetingPlaceBlockPos = gVMP.getPos();
-
-			if (!(ve.world.getBlockState(villageMeetingPlaceBlockPos.up(1)).getBlock() instanceof WallBlock)) {
+			BlockPos gVMPPos = gVMP.pos();
+			long chunkAge = ve.level.getChunkAt(gVMPPos).getInhabitedTime();
+			if (chunkAge < 1200) {
+				ve.level.setBlock(gVMPPos.above(1), Blocks.COBBLESTONE_WALL.defaultBlockState(), 3);
+			}
+			if (!(ve.level.getBlockState(gVMPPos.above(1)).getBlock() instanceof WallBlock)) {
 				return;
 			}
 
@@ -1186,10 +1185,9 @@ public class MoveEntityEvent {
 			// Don't block any roads or paths regardless of biome.
 
 			if (regrowthType.contains("w")) {
-				MyConfig.debugMsg(1, ePos, "Checking Improve Wall.");
-				if (vImproveWallForMeetingPlace(ve, regrowthType, villageMeetingPlaceBlockPos, groundBlock, footBlock,
-						localBiome)) {
-					MyConfig.debugMsg(1, ePos, "Meeting Wall Improved.");
+				MyConfig.debugMsg(1, vePos, "Checking Improve Wall.");
+				if (vImproveWallForMeetingPlace(ve, regrowthType, gVMPPos, groundBlock, footBlock, localBiome)) {
+					MyConfig.debugMsg(1, vePos, "Meeting Wall Improved.");
 				}
 			}
 
@@ -1199,7 +1197,7 @@ public class MoveEntityEvent {
 	private void vImproveFences(VillagerEntity ve, Block footBlock, Block groundBlock, String key, String regrowthType,
 			Biome localBiome) {
 
-		BlockPos ePos = ve.getPosition();
+		BlockPos ePos = ve.blockPosition();
 
 		Brain<VillagerEntity> vb = ve.getBrain();
 		Optional<GlobalPos> vMeetingPlace = vb.getMemory(MemoryModuleType.MEETING_POINT);
@@ -1209,9 +1207,9 @@ public class MoveEntityEvent {
 
 		if (isOkayToBuildWallHere(ve, footBlock, groundBlock)) {
 			GlobalPos gVMP = vMeetingPlace.get();
-			BlockPos villageMeetingPlaceBlockPos = gVMP.getPos();
+			BlockPos villageMeetingPlaceBlockPos = gVMP.pos();
 
-			if (!(ve.world.getBlockState(villageMeetingPlaceBlockPos.up(1)).getBlock() instanceof WallBlock)) {
+			if (!(ve.level.getBlockState(villageMeetingPlaceBlockPos.above(1)).getBlock() instanceof WallBlock)) {
 				return;
 			}
 
@@ -1224,10 +1222,10 @@ public class MoveEntityEvent {
 					return;
 				}
 				GlobalPos gVHP = villagerHome.get();
-				BlockPos villagerHomePos = gVHP.getPos();
+				BlockPos villagerHomePos = gVHP.pos();
 				// don't build personal walls inside the village wall perimeter.
 				// don't build personal walls until the village has a meeting place.
-				if (isOutsideMeetingPlaceWall(ve, vMeetingPlace, vMeetingPlace.get().getPos(), localBiome)) {
+				if (isOutsideMeetingPlaceWall(ve, vMeetingPlace, vMeetingPlace.get().pos(), localBiome)) {
 					MyConfig.debugMsg(1, ePos, "Outside meeting place wall.");
 					if (vImproveHomeFence(ve, villagerHomePos, regrowthType, groundBlock, footBlock, localBiome)) {
 						MyConfig.debugMsg(1, ePos, "Home Fence Improved.");
@@ -1271,15 +1269,15 @@ public class MoveEntityEvent {
 			}
 		} catch (Exception e) {
 			if (MyConfig.aDebugLevel > 0) {
-				System.out.println("Tag Exception 1009-1014:" + footBlock.getTranslationKey() + ".");
+				System.out.println("Tag Exception 1009-1014:" + footBlock.getDescriptionId() + ".");
 			}
 		}
 		// biomes you'll go grass compatibility
-		if (footBlock.getTranslationKey() == "block.byg.short_grass") {
+		if (footBlock.getDescriptionId() == "block.byg.short_grass") {
 			return true;
 		}
 		if (MyConfig.aDebugLevel > 0) {
-			System.out.println("Not grass or Flower:" + footBlock.getTranslationKey() + ".");
+			System.out.println("Not grass or Flower:" + footBlock.getDescriptionId() + ".");
 		}
 		return false;
 	}
@@ -1302,7 +1300,7 @@ public class MoveEntityEvent {
 
 	private boolean isOkayToBuildWallHere(VillagerEntity ve, Block footBlock, Block groundBlock) {
 
-		BlockPos ePos = ve.getPosition();
+		BlockPos ePos = ve.blockPosition();
 
 		boolean okayToBuildWalls = true;
 
@@ -1333,13 +1331,13 @@ public class MoveEntityEvent {
 
 //	ItemStack iStk = new ItemStack(Items.BONE_MEAL,1);
 //	BoneMealItem.applyBonemeal(iStk, e.world,e.getPosition());
-// (likely 12.2 and 14.4 call?)	ib.func_225535_a_((ServerWorld)e.world, e.world.rand, e.getPosition(), w.getBlockState(e.getPosition()));\
+// (likely 12.2 and 14.4 call?)	ib.performBonemeal((ServerWorld)e.world, e.world.rand, e.getPosition(), w.getBlockState(e.getPosition()));\
 
 	private boolean isOutsideMeetingPlaceWall(VillagerEntity ve, Optional<GlobalPos> vMeetingPlace,
 			BlockPos meetingPlacePos, Biome localBiome) {
 
-		BlockPos vePos = ve.getPosition();
-		String key = "minecraft:" + localBiome.getCategory().toString();
+		BlockPos vePos = getAdjustedBlockPos(ve);
+		String key = "minecraft:" + localBiome.getBiomeCategory().toString();
 //		ResourceLocation biomeName = ForgeRegistries.BIOMES.getKey(localBiome);
 
 		int wallDiameter = 64;
@@ -1373,8 +1371,8 @@ public class MoveEntityEvent {
 	}
 
 	private boolean isValidGroundBlockToBuildWallOn(VillagerEntity ve, Block groundBlock) {
-
-		int blockSkyLightValue = ve.world.getLightFor(LightType.SKY, helperGetBlockPos(ve));
+		BlockPos vePos = getAdjustedBlockPos(ve);
+		int blockSkyLightValue = ve.level.getBrightness(LightType.SKY, vePos);
 
 		if (blockSkyLightValue < 13)
 			return false;
@@ -1436,22 +1434,22 @@ public class MoveEntityEvent {
 
 	private boolean helperPlaceWallPiece(VillagerEntity ve, BlockState gateBlockType, boolean buildCenterGate,
 			BlockState wallType, int absva) {
-
+		BlockPos vePos = getAdjustedBlockPos(ve);
 		if (absva == WALL_CENTER) {
 			if (buildCenterGate) {
-				ve.world.setBlockState(helperGetBlockPos(ve).down(), gateBlockType);
+				ve.level.setBlockAndUpdate(vePos.below(), gateBlockType);
 				return true;
 			} else {
 				return false;
 			}
 		} else {
-			BlockState b = ve.world.getBlockState(helperGetBlockPos(ve).down());
+			BlockState b = ve.level.getBlockState(vePos.below());
 			Block block = b.getBlock();
 			if ((block instanceof AirBlock) || (block instanceof TallGrassBlock)
 					|| (block instanceof FlowerBlock || (block instanceof DoublePlantBlock))) {
-				ve.world.setBlockState(helperGetBlockPos(ve).down(), wallType);
+				ve.level.setBlockAndUpdate(vePos.below(), wallType);
 			} else {
-				ve.world.setBlockState(helperGetBlockPos(ve), wallType);
+				ve.level.setBlockAndUpdate(vePos, wallType);
 			}
 			return true;
 		}

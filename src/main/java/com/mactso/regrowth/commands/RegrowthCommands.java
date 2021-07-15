@@ -27,7 +27,7 @@ public class RegrowthCommands {
 		System.out.println("Enter register");
 		dispatcher.register(Commands.literal("regrowth").requires((source) -> 
 			{
-				return source.hasPermissionLevel(2);
+				return source.hasPermission(2);
 			}
 		)
 		.then(Commands.literal("debugLevel").then(
@@ -38,18 +38,18 @@ public class RegrowthCommands {
 			)
 			)
 		.then(Commands.literal("info").executes(ctx -> {
-					ServerPlayerEntity p = ctx.getSource().asPlayer();
+					ServerPlayerEntity p = ctx.getSource().getPlayerOrException();
 
-					World worldName = p.world;
+					World worldName = p.level;
 					String objectInfo = "";
 					MinecraftServer srv = p.getServer();
-					if (!(p.world.isRemote)) {
+					if (!(p.level.isClientSide)) {
 						Minecraft mc = Minecraft.getInstance();
-	                    RayTraceResult object = mc.objectMouseOver;
+	                    RayTraceResult object = mc.hitResult;
 	                    if (object instanceof EntityRayTraceResult) {
 	                    	EntityRayTraceResult ertr = (EntityRayTraceResult) object;
 	                    	Entity tempEntity = ertr.getEntity();
-	                    	objectInfo = tempEntity.getEntityString();
+	                    	objectInfo = tempEntity.getEncodeId();
 	                     } else {
 	                   		objectInfo = "You are not looking at an entity.";	                    	 
 	                     }
@@ -59,14 +59,14 @@ public class RegrowthCommands {
 					//ITextComponent component = new StringTextComponent (worldName.getDimension().getType().getRegistryName() 
 		            //		+ "\n Current Values");
 
-					MyConfig.sendBoldChat(p, worldName.getDimensionKey().toString()
-		            		+ "\n Current Values", Color.fromTextFormatting(TextFormatting.DARK_GREEN));
+					MyConfig.sendBoldChat(p, worldName.dimension().toString()
+		            		+ "\n Current Values", Color.fromLegacyFormat(TextFormatting.DARK_GREEN));
 
 		            String msg = 
 		              		  "\n  Regrowth Version 1.16.1 06/29/2020"  
 		            		+ "\n  Debug Level...........: " + MyConfig.aDebugLevel
 		            		+ "\n  Looking At................:"  + objectInfo;
-		            MyConfig.sendChat(p, msg, Color.fromTextFormatting(TextFormatting.DARK_GREEN));
+		            MyConfig.sendChat(p, msg, Color.fromLegacyFormat(TextFormatting.DARK_GREEN));
 					return 1;
 			}
 			)

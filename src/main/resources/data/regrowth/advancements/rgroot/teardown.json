@@ -1,0 +1,37 @@
+{
+  "parent":"regrowth:rgroot/rgroot",
+	"display": {
+		"title": {
+			"translate": "advancements.teardown.title",
+			"color": "white"
+		},
+		"description": {
+			"translate": "advancements.teardown.description",
+			"color": "white"
+		},
+		"icon": {
+			"item": "minecraft:cobblestone_wall"
+		}
+	},
+	"rewards": {
+		"experience": 1
+	},
+
+	"criteria": {
+		"inv_changed-minecraft:cobblestone_wall": {
+			"trigger": "minecraft:inventory_changed",
+			"conditions": {
+				"items": [
+					{
+						"item": "minecraft:cobblestone_wall"
+					}					
+				]
+			}
+		}
+	},
+	"requirements": [
+		[
+			"inv_changed-minecraft:cobblestone_wall"
+		]	
+	]
+}

@@ -6,6 +6,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import com.mactso.regrowth.Main;
 
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.Color;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraftforge.common.ForgeConfigSpec;
@@ -58,6 +59,18 @@ public class MyConfig {
 
 	public static double getMushroomMaxTemp() {
 		return MyConfig.mushroomMaxTemp;
+	}
+	
+	public static void debugMsg (int level, String dMsg) {
+		if (aDebugLevel > level-1) {
+			System.out.println("L"+level + ":" + dMsg);
+		}
+	}
+
+	public static void debugMsg (int level, BlockPos pos, String dMsg) {
+		if (aDebugLevel > level-1) {
+			System.out.println("L"+level+" ("+pos.getX()+","+pos.getY()+","+pos.getZ()+"): " + dMsg);
+		}
 	}
 
 	public static int aDebugLevel;
@@ -121,9 +134,9 @@ public class MyConfig {
 
 		// mod:mob,type(eat,cut,grow,both,tall,villagerflags),Seconds;
 		public final ConfigValue<String> defaultRegrowthMobsActual;
-		public final String defaultRegrowthMobs6464 = "minecraft:cow,both,480.0;" + "minecraft:horse,eat,360.0;"
-				+ "minecraft:donkey,eat,360.0;" + "minecraft:sheep,eat,240.0;" + "minecraft:pig,grow,900.0;"
-				+ "minecraft:bee,grow,1000.0;" + "minecraft:chicken,grow,640.0;" + "minecraft:villager,crwplvt,5.0;"
+		public final String defaultRegrowthMobs6464 = "minecraft:cow,both,600.0;" + "minecraft:horse,eat,360.0;"
+				+ "minecraft:donkey,eat,360.0;" + "minecraft:sheep,eat,240.0;" + "minecraft:pig,reforest,900.0;"
+				+ "minecraft:bee,grow,1000.0;" + "minecraft:chicken,grow,640.0;" + "minecraft:villager,crwvt,5.0;"
 				+ "minecraft:creeper,tall,120.0;" + "minecraft:zombie,stumble, 60.0;" + "minecraft:bat,stumble, 60.0;"
 				+ "minecraft:skeleton,mushroom, 60.0";
 

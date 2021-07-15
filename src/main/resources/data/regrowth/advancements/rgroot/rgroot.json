@@ -1,0 +1,35 @@
+{
+	"display": {
+		"icon": {
+			"item": "minecraft:bell"
+		},
+		"title": {
+			"translate": "advancements.rgroot.title"
+		},
+		"description": {
+			"translate": "advancements.rgroot.description"
+		},
+		"frame": "task",
+		"show_toast": false,
+		"announce_to_chat": false,
+		"hidden": false,
+		"background": "regrowth:textures/gui/advancements/backgrounds/rgbackground.png"
+	},
+	"criteria": {
+		"has_cobblestone": {
+			"trigger": "minecraft:inventory_changed",
+			"conditions": {
+				"items": [
+					{
+						"item": "minecraft:cobblestone"
+					}
+				]
+			}
+		}
+	},
+	"requirements": [
+		[
+			"has_cobblestone"
+		]
+	]
+}

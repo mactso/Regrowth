@@ -28,7 +28,6 @@ public class WallFoundationDataManager {
 	public static String getWallFoundationHashAsString() {
 		String returnString="";
 		String wallFoundationType;
-		double percentage;
 		for (String key:wallFoundationsHashtable.keySet()) {
 			wallFoundationType = wallFoundationsHashtable.get(key).wallFoundationType;
 			String tempString = key+"," + wallFoundationType + ";";

@@ -1,13 +1,13 @@
 {
-  "parent": "minecraft:story/root",
+  "parent": "regrowth:rgroot/rgroot",
 	"display": {
 		"title": {
-			"text": "Off Limits!",
-			"color": "green"
+			"translate": "advancements.offlimits.title",
+			"color": "white"
 		},
 		"description": {
-			"text": "Villagers won't build walls on village roads (like grass paths)!",
-			"color": "green"
+			"translate": "advancements.offlimits.description",
+			"color": "white"
 		},
 		"icon": {
 			"item": "minecraft:stone_shovel",

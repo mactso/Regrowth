@@ -166,7 +166,7 @@ public class WallBiomeDataManager {
 		}
 
 		public BlockState getFenceBlockState() {
-			Block b= fenceBlockState.getBlock();
+//			Block b= fenceBlockState.getBlock();
 			return fenceBlockState;
 		}
 	}

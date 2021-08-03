@@ -29,6 +29,7 @@ import net.minecraft.block.IGrowable;
 import net.minecraft.block.LeavesBlock;
 import net.minecraft.block.MushroomBlock;
 import net.minecraft.block.SaplingBlock;
+import net.minecraft.block.SnowBlock;
 import net.minecraft.block.TallGrassBlock;
 import net.minecraft.block.TorchBlock;
 import net.minecraft.block.WallBlock;
@@ -259,19 +260,19 @@ public class MoveEntityEvent {
 		RegistryKey<Registry<Biome>> k = Registry.BIOME_REGISTRY;
 		String biomeName = world.registryAccess().registryOrThrow(k).getKey(localBiome).toString();
 
-        if (biomeName.contains("birch")) {
+		if (biomeName.contains("birch")) {
 			sapling = Blocks.BIRCH_SAPLING.defaultBlockState();
 		}
-        if (biomeName.contains("taiga")) {
+		if (biomeName.contains("taiga")) {
 			sapling = Blocks.SPRUCE_SAPLING.defaultBlockState();
 		}
-        if (biomeName.contains("jungle")) {
+		if (biomeName.contains("jungle")) {
 			sapling = Blocks.JUNGLE_SAPLING.defaultBlockState();
 		}
-        if (biomeName.contains("savanna")) {
+		if (biomeName.contains("savanna")) {
 			sapling = Blocks.ACACIA_SAPLING.defaultBlockState();
 		}
-        if (biomeName.contains("desert")) {
+		if (biomeName.contains("desert")) {
 			sapling = Blocks.ACACIA_SAPLING.defaultBlockState();
 		}
 		return sapling;
@@ -579,8 +580,6 @@ public class MoveEntityEvent {
 		MyConfig.debugMsg(1, getAdjustedBlockPos(entity), key + " stumbled over torch.");
 	}
 
-
-	
 	private void doVillagerRegrowthEvents(VillagerEntity ve, Block footBlock, Block groundBlock, String key,
 			String regrowthType, Biome localBiome) {
 
@@ -781,7 +780,8 @@ public class MoveEntityEvent {
 
 			boolean placeTorch = false;
 			int waterValue = helperCountBlocksOrthogonalBB(Blocks.WATER, 1, ve.level, vePos.below(), 0);
-			if ((waterValue > 0) && (BlockTags.LOGS.contains(groundBlock))||(groundBlock == Blocks.SMOOTH_SANDSTONE)) {
+			if ((waterValue > 0) && (BlockTags.LOGS.contains(groundBlock))
+					|| (groundBlock == Blocks.SMOOTH_SANDSTONE)) {
 				ve.level.setBlock(vePos, Blocks.TORCH.defaultBlockState(), 3);
 				lastTorchX = veX;
 				lastTorchY = veY;
@@ -834,7 +834,7 @@ public class MoveEntityEvent {
 
 	private boolean vImproveLighting(VillagerEntity ve, Block footBlock, Block groundBlock, Biome localBiome) {
 		BlockPos vePos = getAdjustedBlockPos(ve);
-		
+
 		int blockLightValue = ve.level.getBrightness(LightType.BLOCK, vePos);
 		int skyLightValue = ve.level.getBrightness(LightType.SKY, vePos);
 
@@ -903,6 +903,9 @@ public class MoveEntityEvent {
 					if (tempBlock == biomeRoadBlock) {
 						roadBlockCount += 1;
 						if (roadBlockCount > 2) {
+							if (ve.level.getBlockState(ve.blockPosition()).getBlock() instanceof SnowBlock) {
+								ve.level.destroyBlock(vePos, false);
+							}
 							ve.level.setBlockAndUpdate(vePos.below(), biomeRoadBlock.defaultBlockState());
 							return true;
 						}
@@ -975,11 +978,14 @@ public class MoveEntityEvent {
 		int veX = vePos.getX();
 		int veY = vePos.getY();
 		int veZ = vePos.getZ();
-		for (int dy = 1 ; dy < 5 + yAdjust; dy++) {
+		for (int dy = 1; dy < 5 + yAdjust; dy++) {
 			for (int i = 0; i < 4; i++) {
 				Block tempBlock = ve.level.getBlockState(new BlockPos(veX + dx[i], veY + dy, veZ + dz[i])).getBlock();
 				if (tempBlock == smoothingBlock) {
-					ve.level.setBlockAndUpdate(new BlockPos(veX, veY , veZ), smoothingBlockState);
+					if (ve.level.getBlockState(new BlockPos(veX, veY, veZ)).getBlock() instanceof SnowBlock) {
+						ve.level.destroyBlock(vePos, false);
+					}
+					ve.level.setBlockAndUpdate(new BlockPos(veX, veY, veZ), smoothingBlockState);
 					ve.setDeltaMovement(0.0, 0.4, 0.0);
 					return true;
 				}
@@ -993,7 +999,7 @@ public class MoveEntityEvent {
 			BlockPos villageMeetingPlaceBlockPos, Block groundBlock, Block footBlock, Biome localBiome) {
 
 		BlockPos vePos = getAdjustedBlockPos(ve);
-		
+
 		String key = "minecraft:" + localBiome.getBiomeCategory().toString();
 //		ResourceLocation biomeName = ForgeRegistries.BIOMES.getKey(localBiome);
 		key = key.toLowerCase();
@@ -1051,7 +1057,7 @@ public class MoveEntityEvent {
 			}
 
 			if (buildWall) {
-
+				MyConfig.setaDebugLevel(2); // TODO
 				BlockState wallTypeBlockState = currentWallBiomeDataItem.getWallBlockState();
 				if (wallTypeBlockState == null) {
 					wallTypeBlockState = Blocks.COBBLESTONE_WALL.defaultBlockState();
@@ -1060,21 +1066,20 @@ public class MoveEntityEvent {
 				BlockState gateBlockType = helperBiomeRoadBlockType(localBiome);
 
 				int wallTorchSpacing = (wallPerimeter + 1) / 4;
-				boolean buildCenterGate = true;
-
 				if (helperPlaceOneWallPiece(ve, regrowthActions, wallPerimeter, wallTorchSpacing, gateBlockType,
-						buildCenterGate, wallBlock, absvx, absvz, groundBlock, footBlock)) {
+						wallBlock, absvx, absvz, groundBlock, footBlock)) {
 					if (regrowthActions.contains("t")) {
 						if (isValidTorchLocation(wallPerimeter, wallTorchSpacing, absvx, absvz,
 								ve.level.getBlockState(vePos).getBlock())) {
 							ve.level.setBlockAndUpdate(vePos.above(), Blocks.TORCH.defaultBlockState());
 						}
 					}
+					MyConfig.setaDebugLevel(0); // TODO
 					return true;
 				}
 			}
 		}
-
+		MyConfig.setaDebugLevel(0); // TODO
 		return false;
 
 	}
@@ -1149,7 +1154,7 @@ public class MoveEntityEvent {
 
 			boolean buildCenterGate = true;
 			if (helperPlaceOneWallPiece(ve, regrowthActions, homeFenceDiameter, wallTorchSpacing, gateBlockType,
-					buildCenterGate, wallBlock, absvx, absvz, groundBlock, footBlock)) {
+					wallBlock, absvx, absvz, groundBlock, footBlock)) {
 
 				if (regrowthActions.contains("t")) {
 					if (isValidTorchLocation(homeFenceDiameter, wallTorchSpacing, absvx, absvz,
@@ -1167,6 +1172,9 @@ public class MoveEntityEvent {
 	private void vImproveWalls(VillagerEntity ve, Block footBlock, Block groundBlock, String key, String regrowthType,
 			Biome localBiome) {
 
+		if (groundBlock instanceof AirBlock) {
+			return; // ignore edge cases where villager is hanging on the edge of a block.
+		}
 		BlockPos vePos = getAdjustedBlockPos(ve);
 
 		Brain<VillagerEntity> vb = ve.getBrain();
@@ -1195,7 +1203,6 @@ public class MoveEntityEvent {
 					MyConfig.debugMsg(1, vePos, "Meeting Wall Improved.");
 				}
 			}
-
 		}
 	}
 
@@ -1419,45 +1426,52 @@ public class MoveEntityEvent {
 	}
 
 	private boolean helperPlaceOneWallPiece(VillagerEntity ve, String regrowthType, int wallPerimeter,
-			int wallTorchSpacing, BlockState gateBlockType, boolean buildCenterGate, BlockState wallType, int absvx,
-			int absvz, Block groundBlock, Block footBlock) {
+			int wallTorchSpacing, BlockState gateBlockType, BlockState wallType, int absvx, int absvz,
+			Block groundBlock, Block footBlock) {
 
 		// Build North and South Walls (and corners)
 		if (absvx == wallPerimeter) {
 			if (absvz <= wallPerimeter) {
-				return helperPlaceWallPiece(ve, gateBlockType, buildCenterGate, wallType, absvz);
+				return helperPlaceWallPiece(ve, gateBlockType, wallType, absvz);
 			}
 		}
 		// Build East and West Walls (and corners)
 		if (absvz == wallPerimeter) {
 			if (absvx <= wallPerimeter) {
-				return helperPlaceWallPiece(ve, gateBlockType, buildCenterGate, wallType, absvx);
+				return helperPlaceWallPiece(ve, gateBlockType, wallType, absvx);
 			}
 		}
 		return false;
 	}
 
-	private boolean helperPlaceWallPiece(VillagerEntity ve, BlockState gateBlockType, boolean buildCenterGate,
-			BlockState wallType, int absva) {
+	private boolean helperPlaceWallPiece(VillagerEntity ve, BlockState gateBlockType, BlockState wallType, int absva) {
+
 		BlockPos vePos = getAdjustedBlockPos(ve);
+		Block b = ve.level.getBlockState(vePos).getBlock();
+
+		if (b instanceof SnowBlock) {
+			ve.level.destroyBlock(vePos, false);
+		}
+
+		if ((b instanceof SaplingBlock) || (b instanceof TallGrassBlock) || (b instanceof FlowerBlock)
+				|| (b instanceof DoublePlantBlock)) {
+			ve.level.destroyBlock(vePos, true);
+		}
+
 		if (absva == WALL_CENTER) {
-			if (buildCenterGate) {
-				ve.level.setBlockAndUpdate(vePos.below(), gateBlockType);
-				return true;
-			} else {
-				return false;
-			}
-		} else {
-			BlockState b = ve.level.getBlockState(vePos.below());
-			Block block = b.getBlock();
-			if ((block instanceof AirBlock) || (block instanceof TallGrassBlock)
-					|| (block instanceof FlowerBlock || (block instanceof DoublePlantBlock))) {
-				ve.level.setBlockAndUpdate(vePos.below(), wallType);
-			} else {
-				ve.level.setBlockAndUpdate(vePos, wallType);
-			}
+			ve.level.setBlockAndUpdate(vePos.below(), gateBlockType);
 			return true;
 		}
+		
+		if (ve.level.setBlockAndUpdate(vePos, wallType)) {
+			return true;
+		} else {
+			MyConfig.debugMsg(1, ve.blockPosition(),
+					"Building Wall Fail: SetBlockAndUpdate Time End = " + ve.level.getGameTime());
+			return false;
+		}
+
+		
 
 	}
 

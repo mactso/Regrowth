@@ -838,7 +838,7 @@ public class MoveEntityEvent {
 		int blockLightValue = ve.level.getBrightness(LightType.BLOCK, vePos);
 		int skyLightValue = ve.level.getBrightness(LightType.SKY, vePos);
 
-		if (blockLightValue > 8)
+		if (blockLightValue > MyConfig.getTorchLightLevel())
 			return false;
 		if (skyLightValue > 13)
 			return false;

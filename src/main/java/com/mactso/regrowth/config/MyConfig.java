@@ -65,6 +65,10 @@ public class MyConfig {
 		return MyConfig.mushroomMaxTemp;
 	}
 	
+	public static int getTorchLightLevel() {
+		return torchLightLevel;
+	}
+	
 	public static void debugMsg (int level, String dMsg) {
 		if (aDebugLevel > level-1) {
 			System.out.println("L"+level + ":" + dMsg);
@@ -85,6 +89,8 @@ public class MyConfig {
 	public static String defaultWallFoundations6464;
 	public static String[] defaultWallBiomeData;
 	public static String defaultWallBiomeData6464;
+
+	private static int torchLightLevel;
 
 	private static int mushroomDensity;
 	private static int mushroomXDensity;
@@ -116,6 +122,7 @@ public class MyConfig {
 	public static void bakeConfig() {
 		aDebugLevel = COMMON.debugLevel.get();
 		aEatingHeals = COMMON.eatingHeals.get();
+		MyConfig.torchLightLevel = (int) MyConfig.COMMON.torchLightLevel.get();
 		MyConfig.mushroomDensity = (int) MyConfig.COMMON.mushroomDensity.get();
 		MyConfig.mushroomXDensity = (int) MyConfig.COMMON.mushroomXDensity.get();
 		MyConfig.mushroomZDensity = (int) MyConfig.COMMON.mushroomZDensity.get();
@@ -133,6 +140,7 @@ public class MyConfig {
 
 		public final IntValue debugLevel;
 		public final DoubleValue eatingHeals;
+		public final IntValue torchLightLevel;
 		public final ForgeConfigSpec.IntValue mushroomDensity;
 		public final ForgeConfigSpec.IntValue mushroomXDensity;
 		public final ForgeConfigSpec.IntValue mushroomZDensity;
@@ -181,6 +189,10 @@ public class MyConfig {
 					.translation(Main.MODID + ".config." + "eatingHeals")
 					.defineInRange("eatingHeals", () -> .99, 0.0, 1.0);
 
+			this.torchLightLevel = builder.comment("Torch Light Level - Villagers will only place torches on blocks this dark or darker.")
+					.translation("regrowth.config.torchLightLevel ")
+					.defineInRange("torchLightLevel ", () -> 7, 0, 10);
+			
 			this.mushroomDensity = builder.comment("Mushroom density - 3 dense to 11 sparse to 21 very sparse")
 					.translation("regrowth.config.mushroomXDensity ")
 					.defineInRange("mushroomXDensity ", () -> 7, 3, 21);

@@ -5,17 +5,17 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import com.mactso.regrowth.Main;
 
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.Color;
-import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.TextColor;
+import net.minecraft.network.chat.TextComponent;
+import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.common.ForgeConfigSpec.ConfigValue;
 import net.minecraftforge.common.ForgeConfigSpec.DoubleValue;
 import net.minecraftforge.common.ForgeConfigSpec.IntValue;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.fml.event.config.ModConfigEvent;
 
 @Mod.EventBusSubscriber(modid = Main.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public class MyConfig {
@@ -99,7 +99,7 @@ public class MyConfig {
 	private static double mushroomMaxTemp;
 
 	@SubscribeEvent
-	public static void onModConfigEvent(final ModConfig.ModConfigEvent configEvent) {
+	public static void onModConfigEvent(final ModConfigEvent configEvent) {
 		if (configEvent.getConfig().getSpec() == MyConfig.COMMON_SPEC) {
 			bakeConfig();
 			RegrowthEntitiesManager.regrowthMobInit();
@@ -149,11 +149,11 @@ public class MyConfig {
 
 		// mod:mob,type(eat,cut,grow,both,tall,villagerflags),Seconds;
 		public final ConfigValue<String> defaultRegrowthMobsActual;
-		public final String defaultRegrowthMobs6464 = "minecraft:cow,both,600.0;" + "minecraft:horse,eat,360.0;"
-				+ "minecraft:donkey,eat,360.0;" + "minecraft:sheep,eat,240.0;" + "minecraft:pig,reforest,900.0;"
-				+ "minecraft:bee,grow,1000.0;" + "minecraft:chicken,grow,640.0;" + "minecraft:villager,crwvt,5.0;"
-				+ "minecraft:creeper,tall,120.0;" + "minecraft:zombie,stumble, 60.0;" + "minecraft:bat,stumble, 60.0;"
-				+ "minecraft:skeleton,mushroom, 60.0";
+		public final String defaultRegrowthMobs6464 = "minecraft:cow,both,300.0;" + "minecraft:horse,eat,180.0;"
+				+ "minecraft:donkey,eat,180.0;" + "minecraft:sheep,eat,120.0;" + "minecraft:pig,reforest,450.0;"
+				+ "minecraft:bee,grow,500.0;" + "minecraft:chicken,grow,320.0;" + "minecraft:villager,chrwvt,2.0;"
+				+ "minecraft:creeper,tall,90.0;" + "minecraft:zombie,stumble, 30.0;" + "minecraft:bat,stumble, 30.0;"
+				+ "minecraft:skeleton,mushroom, 30.0";
 
 		// blocks walls can be built on
 		public final ConfigValue<String> defaultWallFoundationsActual;
@@ -237,15 +237,15 @@ public class MyConfig {
 	}
 
 	// support for any color chattext
-	public static void sendChat(PlayerEntity p, String chatMessage, Color color) {
-		StringTextComponent component = new StringTextComponent(chatMessage);
+	public static void sendChat(Player p, String chatMessage, TextColor color) {
+		TextComponent component = new TextComponent(chatMessage);
 		component.getStyle().withColor(color);
 		p.sendMessage(component, p.getUUID());
 	}
 
 	// support for any color, optionally bold text.
-	public static void sendBoldChat(PlayerEntity p, String chatMessage, Color color) {
-		StringTextComponent component = new StringTextComponent(chatMessage);
+	public static void sendBoldChat(Player p, String chatMessage, TextColor color) {
+		TextComponent component = new TextComponent(chatMessage);
 
 		component.getStyle().withBold(true);
 		component.getStyle().withColor(color);

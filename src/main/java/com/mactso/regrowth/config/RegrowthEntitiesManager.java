@@ -6,7 +6,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.StringTokenizer;
 
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.registries.ForgeRegistries;
 
 public class RegrowthEntitiesManager {

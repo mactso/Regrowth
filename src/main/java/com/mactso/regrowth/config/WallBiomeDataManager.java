@@ -5,11 +5,11 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.StringTokenizer;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.tags.BlockTags;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.registries.ForgeRegistries;
 
 public class WallBiomeDataManager {
@@ -104,9 +104,9 @@ public class WallBiomeDataManager {
 					wallSize = 80;
 				BlockState wallBlockState = null;
 				for (int v = 0; v < walls.size(); v++) {
-					String wbs = walls.get(v).getBlock().getRegistryName().toString();
+					String wbs = walls.get(v).getRegistryName().toString();
 					if (wbs.equals(wallBlockString)) {
-						wallBlockState = walls.get(v).getBlock().defaultBlockState();
+						wallBlockState = walls.get(v).defaultBlockState();
 						break;
 					}
 				}
@@ -116,9 +116,9 @@ public class WallBiomeDataManager {
 				
 				BlockState fenceBlockState = null;
 				for (int v = 0; v < fences.size(); v++) {
-					String fbs = fences.get(v).getBlock().getRegistryName().toString();
+					String fbs = fences.get(v).getRegistryName().toString();
 					if (fbs.equals(fenceBlockString)) {
-						fenceBlockState = fences.get(v).getBlock().defaultBlockState();
+						fenceBlockState = fences.get(v).defaultBlockState();
 						break;
 					}
 				}

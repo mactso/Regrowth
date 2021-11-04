@@ -7,22 +7,22 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.command.CommandSource;
-import net.minecraft.command.Commands;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.math.EntityRayTraceResult;
-import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.text.Color;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.world.World;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.network.chat.TextColor;
+import net.minecraft.ChatFormatting;
+import net.minecraft.world.level.Level;
 
 public class RegrowthCommands {
 	String subcommand = "";
 	String value = "";
 	
-	public static void register(CommandDispatcher<CommandSource> dispatcher)
+	public static void register(CommandDispatcher<CommandSourceStack> dispatcher)
 	{
 		System.out.println("Enter register");
 		dispatcher.register(Commands.literal("regrowth").requires((source) -> 
@@ -38,16 +38,16 @@ public class RegrowthCommands {
 			)
 			)
 		.then(Commands.literal("info").executes(ctx -> {
-					ServerPlayerEntity p = ctx.getSource().getPlayerOrException();
+					ServerPlayer p = ctx.getSource().getPlayerOrException();
 
-					World worldName = p.level;
+					Level worldName = p.level;
 					String objectInfo = "";
 					MinecraftServer srv = p.getServer();
 					if (!(p.level.isClientSide)) {
 						Minecraft mc = Minecraft.getInstance();
-	                    RayTraceResult object = mc.hitResult;
-	                    if (object instanceof EntityRayTraceResult) {
-	                    	EntityRayTraceResult ertr = (EntityRayTraceResult) object;
+	                    HitResult object = mc.hitResult;
+	                    if (object instanceof EntityHitResult) {
+	                    	EntityHitResult ertr = (EntityHitResult) object;
 	                    	Entity tempEntity = ertr.getEntity();
 	                    	objectInfo = tempEntity.getEncodeId();
 	                     } else {
@@ -60,13 +60,13 @@ public class RegrowthCommands {
 		            //		+ "\n Current Values");
 
 					MyConfig.sendBoldChat(p, worldName.dimension().toString()
-		            		+ "\n Current Values", Color.fromLegacyFormat(TextFormatting.DARK_GREEN));
+		            		+ "\n Current Values", TextColor.fromLegacyFormat(ChatFormatting.DARK_GREEN));
 
 		            String msg = 
 		              		  "\n  Regrowth Version 1.16.1 06/29/2020"  
 		            		+ "\n  Debug Level...........: " + MyConfig.aDebugLevel
 		            		+ "\n  Looking At................:"  + objectInfo;
-		            MyConfig.sendChat(p, msg, Color.fromLegacyFormat(TextFormatting.DARK_GREEN));
+		            MyConfig.sendChat(p, msg, TextColor.fromLegacyFormat(ChatFormatting.DARK_GREEN));
 					return 1;
 			}
 			)

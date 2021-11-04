@@ -4,8 +4,8 @@ buildscript {
         jcenter()
         mavenCentral()
     }
-    dependencies {
-        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '3.+', changing: true
+   dependencies {
+        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '5.1.+', changing: true
     }
 }
 apply plugin: 'net.minecraftforge.gradle'
@@ -13,12 +13,12 @@ apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 
+
 version = "${mc_version}-${mod_version}"
 group = 'com.mactso.regrowth' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
-archivesBaseName = 'Regrowth-1.16.4'
+archivesBaseName = 'Regrowth-'
 
-sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
-
+   java.toolchain.languageVersion = JavaLanguageVersion.of(16)
 minecraft {
     // The mappings can be changed at any time, and must be in the following format.
     // snapshot_YYYYMMDD   Snapshot are built nightly.

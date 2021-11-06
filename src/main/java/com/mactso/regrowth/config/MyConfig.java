@@ -149,11 +149,11 @@ public class MyConfig {
 
 		// mod:mob,type(eat,cut,grow,both,tall,villagerflags),Seconds;
 		public final ConfigValue<String> defaultRegrowthMobsActual;
-		public final String defaultRegrowthMobs6464 = "minecraft:cow,both,600.0;" + "minecraft:horse,eat,360.0;"
-				+ "minecraft:donkey,eat,360.0;" + "minecraft:sheep,eat,240.0;" + "minecraft:pig,reforest,900.0;"
-				+ "minecraft:bee,grow,1000.0;" + "minecraft:chicken,grow,640.0;" + "minecraft:villager,crwvt,5.0;"
-				+ "minecraft:creeper,tall,120.0;" + "minecraft:zombie,stumble, 60.0;" + "minecraft:bat,stumble, 60.0;"
-				+ "minecraft:skeleton,mushroom, 60.0";
+		public final String defaultRegrowthMobs6464 = "minecraft:cow,both,300.0;" + "minecraft:horse,eat,180.0;"
+				+ "minecraft:donkey,eat,180.0;" + "minecraft:sheep,eat,120.0;" + "minecraft:pig,reforest,450.0;"
+				+ "minecraft:bee,grow,500.0;" + "minecraft:chicken,grow,320.0;" + "minecraft:villager,chrwvt,2.0;"
+				+ "minecraft:creeper,tall,90.0;" + "minecraft:zombie,stumble, 30.0;" + "minecraft:bat,stumble, 30.0;"
+				+ "minecraft:skeleton,mushroom, 30.0";
 
 		// blocks walls can be built on
 		public final ConfigValue<String> defaultWallFoundationsActual;

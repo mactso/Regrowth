@@ -44,6 +44,7 @@ import net.minecraft.entity.merchant.villager.VillagerEntity;
 import net.minecraft.entity.merchant.villager.VillagerProfession;
 import net.minecraft.entity.passive.horse.AbstractHorseEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.potion.EffectInstance;
 import net.minecraft.potion.Effects;
 import net.minecraft.tags.BlockTags;
@@ -62,13 +63,12 @@ import net.minecraft.village.PointOfInterestType;
 import net.minecraft.world.LightType;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
-import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.common.util.Constants.BlockFlags;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
+import net.minecraftforge.event.world.BlockEvent.FarmlandTrampleEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.registries.RegistryManager;
 
 @Mod.EventBusSubscriber()
 public class MoveEntityEvent {
@@ -86,6 +86,34 @@ public class MoveEntityEvent {
 	static final int WALL_TYPE_WALL = -1;
 	static final int WALL_TYPE_FENCE = -2;
 
+	@SubscribeEvent 
+	public void handleTrampleEvents (FarmlandTrampleEvent event) {
+		BlockPos pos = event.getEntity().blockPosition();
+		MyConfig.debugMsg(1, pos, "Enter FarmlandTrampleEvent");
+		if (event.isCancelable()) {
+			if (event.getEntity() instanceof VillagerEntity) {
+				VillagerEntity ve = (VillagerEntity) event.getEntity();
+				if (ve.getVillagerData().getProfession() != VillagerProfession.FARMER) {
+					MyConfig.debugMsg(2, pos, "Villager Not A Farmer");
+					return;
+				}
+				if (ve.getVillagerData().getLevel() >=3 ) {
+					event.setCanceled(true);
+					MyConfig.debugMsg(2, pos, "Farmer under level 3.");
+					return;
+				}
+			}
+			if ((event.getEntity() instanceof ServerPlayerEntity)) {
+				ServerPlayerEntity spe = (ServerPlayerEntity) event.getEntity();
+				if (!spe.isCreative() ) {
+					return;
+				}
+				MyConfig.debugMsg(2, pos, "FarmlandTrampleCancelled");
+				event.setCanceled(true);
+			}			
+		}
+	}
+	
 	@SubscribeEvent
 	public void handleEntityMoveEvents(LivingUpdateEvent event) {
 
@@ -134,11 +162,11 @@ public class MoveEntityEvent {
 			return;
 		}
 
-		double regrowthEventOdds = 1 / currentRegrowthMobItem.getRegrowthEventSeconds() * TICKS_PER_SECOND;
+		double regrowthEventOdds = 1 / (currentRegrowthMobItem.getRegrowthEventSeconds() * TICKS_PER_SECOND);
 		if (isHorseTypeEatingNow(entity)) {
 			regrowthEventOdds *= 20;
 		}
-		double randomD100Roll = entity.level.random.nextDouble() * 100;
+		double randomD100Roll = entity.level.random.nextDouble();
 		int debugvalue = 0; // TODO make sure value 0 after debugging.
 		if (randomD100Roll <= regrowthEventOdds + debugvalue) {
 			if (entity instanceof VillagerEntity) {
@@ -613,6 +641,12 @@ public class MoveEntityEvent {
 		}
 		;
 
+		// 'h'eal villagers and players
+		if (regrowthType.contains("h")) {
+			System.out.println ("entering Healing Routine.");
+			vClericalHealing(ve);
+		}
+		
 		// cut lea'v'es.
 		// remove leaves if facing head height leaves
 
@@ -744,6 +778,61 @@ public class MoveEntityEvent {
 		return gateBlockType;
 	}
 
+	private void vClericalHealing (VillagerEntity ve) {
+
+		if (ve.getVillagerData().getProfession() != VillagerProfession.CLERIC) {
+			return;
+		}
+		
+		long daytime = ve.level.getDayTime()%24000;
+		System.out.println("Villager is a cleric. daytime is " + daytime);
+
+		if (daytime < 9000 || daytime > 11000) {
+			return;
+		}
+//		System.out.println ("Villager is a Cleric.  Daytime:" + ve.level.getDayTime());
+
+		if (!ve.level.isClientSide()) {
+			ServerWorld varW = (ServerWorld) ve.level;
+			int clericalLevel = ve.getVillagerData().getLevel();
+			System.out.println ("Not ClientSide, Level="+clericalLevel);
+
+			BlockPos vePos = new BlockPos(ve.getX(), (ve.getY() + 0.99d), (ve.getZ()));
+
+			AxisAlignedBB aabb = new AxisAlignedBB(vePos.east(4).above(2).north(4), vePos.west(4).below(2).south(4));
+			List<Entity> l  = varW.getEntities((Entity)null, aabb, (entity)->{
+						if (entity instanceof VillagerEntity  || entity instanceof PlayerEntity) {
+							return true;
+						} 
+						return false;
+						});
+			System.out.println ("List Size: " + l.size());
+
+			for (Entity e : l) {
+				boolean heal = true;
+	        	LivingEntity le = (LivingEntity) e;
+	    		System.out.println ("Entity: " + le.getName().toString() + " health:" + le.getHealth() + " maxhealth:" + le.getMaxHealth());
+
+	        	if (le.getHealth() < le.getMaxHealth()) {
+	        		if (e instanceof ServerPlayerEntity) {
+	        			ServerPlayerEntity pe = (ServerPlayerEntity) e;
+	        			int rep = ve.getPlayerReputation(pe);
+	        			if (rep < 0) {  // I was a bad bad boy.
+	        				heal = false;
+	        			}
+	        		}
+	        		if (heal) {
+	    	    		System.out.println (le.blockPosition() + "Cleric healing Entity:");
+
+	        			le.addEffect(new EffectInstance(Effects.REGENERATION, clericalLevel*51, 0));
+	        			// ve.getLevel(). playLocalSound( ve.getX(), ve.getY(), ve.getZ(), SoundEvents.NOTE_BLOCK_HARP , SoundSource.NEUTRAL, 0.6f, 0.6f, true); 
+	        			return;
+	        		}
+	        	}
+	        }
+		}
+	}
+	
 	// if a grassblock in village has farmland next to it on the same level- retill
 	// it.
 	// todo add hydration check before tilling land.

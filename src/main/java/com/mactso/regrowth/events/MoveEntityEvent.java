@@ -76,6 +76,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraftforge.common.FarmlandWaterManager;
 import net.minecraftforge.common.util.Constants.BlockFlags;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
+import net.minecraftforge.event.world.BlockEvent.FarmlandTrampleEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.registries.RegistryManager;
@@ -96,6 +97,35 @@ public class MoveEntityEvent {
 	static final int WALL_TYPE_WALL = -1;
 	static final int WALL_TYPE_FENCE = -2;
 
+	
+	
+	@SubscribeEvent 
+	public void handleTrampleEvents (FarmlandTrampleEvent event) {
+		BlockPos pos = event.getEntity().blockPosition();
+		MyConfig.debugMsg(1, pos, "Enter FarmlandTrampleEvent");
+		if (event.isCancelable()) {
+			if (event.getEntity() instanceof Villager ve) {
+				if (ve.getVillagerData().getProfession() != VillagerProfession.FARMER) {
+					MyConfig.debugMsg(2, pos, "Villager Not A Farmer");
+					return;
+				}
+				if (ve.getVillagerData().getLevel() >=3 ) {
+					event.setCanceled(true);
+					MyConfig.debugMsg(2, pos, "Farmer under level 3.");
+					return;
+				}
+			}
+			if ((event.getEntity() instanceof ServerPlayer spe)) {
+				if (!spe.isCreative() ) {
+					return;
+				}
+				MyConfig.debugMsg(2, pos, "FarmlandTrampleCancelled");
+				event.setCanceled(true);
+			}			
+		}
+	}
+	
+	
 	@SubscribeEvent
 	public void handleEntityMoveEvents(LivingUpdateEvent event) {
 
@@ -835,7 +865,9 @@ public class MoveEntityEvent {
 		if (ve.getVillagerData().getProfession() != VillagerProfession.CLERIC) {
 			return;
 		}
-		if (ve.level.getDayTime() < 9000 || ve.level.getDayTime() > 11000) {
+		long daytime = ve.level.getDayTime()%24000;
+		
+		if (daytime < 9000 || daytime > 11000) {
 			return;
 		}
 		if (ve.level instanceof ServerLevel varW ) {

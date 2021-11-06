@@ -643,7 +643,6 @@ public class MoveEntityEvent {
 
 		// 'h'eal villagers and players
 		if (regrowthType.contains("h")) {
-			System.out.println ("entering Healing Routine.");
 			vClericalHealing(ve);
 		}
 		

@@ -792,7 +792,6 @@ public class MoveEntityEvent {
 		if (!ve.level.isClientSide()) {
 			ServerWorld varW = (ServerWorld) ve.level;
 			int clericalLevel = ve.getVillagerData().getLevel();
-			System.out.println ("Not ClientSide, Level="+clericalLevel);
 
 			BlockPos vePos = new BlockPos(ve.getX(), (ve.getY() + 0.99d), (ve.getZ()));
 
@@ -807,7 +806,7 @@ public class MoveEntityEvent {
 			for (Entity e : l) {
 				boolean heal = true;
 	        	LivingEntity le = (LivingEntity) e;
-	    		System.out.println ("Entity: " + le.getName().toString() + " health:" + le.getHealth() + " maxhealth:" + le.getMaxHealth());
+//	    		System.out.println ("Entity: " + le.getName().toString() + " health:" + le.getHealth() + " maxhealth:" + le.getMaxHealth());
 
 	        	if (le.getHealth() < le.getMaxHealth()) {
 	        		if (e instanceof ServerPlayerEntity) {

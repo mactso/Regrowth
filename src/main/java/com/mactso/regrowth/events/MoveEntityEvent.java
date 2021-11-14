@@ -784,12 +784,10 @@ public class MoveEntityEvent {
 		}
 		
 		long daytime = ve.level.getDayTime()%24000;
-		System.out.println("Villager is a cleric. daytime is " + daytime);
 
 		if (daytime < 9000 || daytime > 11000) {
 			return;
 		}
-//		System.out.println ("Villager is a Cleric.  Daytime:" + ve.level.getDayTime());
 
 		if (!ve.level.isClientSide()) {
 			ServerWorld varW = (ServerWorld) ve.level;
@@ -805,7 +803,6 @@ public class MoveEntityEvent {
 						} 
 						return false;
 						});
-			System.out.println ("List Size: " + l.size());
 
 			for (Entity e : l) {
 				boolean heal = true;
@@ -821,7 +818,6 @@ public class MoveEntityEvent {
 	        			}
 	        		}
 	        		if (heal) {
-	    	    		System.out.println (le.blockPosition() + "Cleric healing Entity:");
 
 	        			le.addEffect(new EffectInstance(Effects.REGENERATION, clericalLevel*51, 0));
 	        			// ve.getLevel(). playLocalSound( ve.getX(), ve.getY(), ve.getZ(), SoundEvents.NOTE_BLOCK_HARP , SoundSource.NEUTRAL, 0.6f, 0.6f, true); 

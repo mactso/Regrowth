@@ -8,8 +8,6 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
-
 import com.mactso.regrowth.config.MyConfig;
 import com.mactso.regrowth.config.RegrowthEntitiesManager;
 import com.mactso.regrowth.config.WallBiomeDataManager;
@@ -42,7 +40,6 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
-import net.minecraft.world.entity.npc.AbstractVillager;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.npc.VillagerProfession;
 import net.minecraft.world.entity.animal.horse.AbstractHorse;
@@ -70,16 +67,13 @@ import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraftforge.common.FarmlandWaterManager;
-import net.minecraftforge.common.util.Constants.BlockFlags;
+//import net.minecraftforge.common.util.Constants.BlockFlags;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
 import net.minecraftforge.event.world.BlockEvent.FarmlandTrampleEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.registries.RegistryManager;
+
 
 @Mod.EventBusSubscriber()
 public class MoveEntityEvent {
@@ -399,7 +393,7 @@ public class MoveEntityEvent {
 		}
 
 		Random mushRand = new Random(helperLongRandomSeed(ePos));
-
+		
 		double fertilityDouble = mushRand.nextDouble();
 		fertilityDouble = mushRand.nextDouble();
 
@@ -452,10 +446,10 @@ public class MoveEntityEvent {
 			growMushroom = true;
 		}
 
-		// TODO put this back in after testing.
-//		if (sWorld.isPlayerWithin((double) eX, (double) eY, (double) eZ, 12.0)) {
-//			growMushroom = false;
-//		}
+
+		if (sWorld.hasNearbyAlivePlayer((double) ePos.getX(), (double) ePos.getY(), (double) ePos.getZ(), 12.0)) {
+			growMushroom = false;
+		}
 
 		if (growMushroom) {
 
@@ -600,7 +594,7 @@ public class MoveEntityEvent {
 
 	private boolean isGoodMushroomTemperature(Entity entity) {
 		BlockPos ePos = getAdjustedBlockPos(entity);
-		float biomeTemp = entity.level.getBiome(ePos).getTemperature(ePos);
+		float biomeTemp = entity.level.getBiome(ePos).getBaseTemperature();
 		MyConfig.debugMsg(1, ePos, "Mushroom Biome temp: " + biomeTemp + ".");
 		if (biomeTemp < MyConfig.getMushroomMinTemp())
 			return false;
@@ -976,7 +970,7 @@ public class MoveEntityEvent {
 		}
 
 		if (isValidGroundBlockToPlaceTorchOn(ve, groundBlock) && (footBlock instanceof AirBlock)) {
-			ve.level.setBlock(vePos, Blocks.TORCH.defaultBlockState(), BlockFlags.DEFAULT);
+			ve.level.setBlock(vePos, Blocks.TORCH.defaultBlockState(), Block.UPDATE_ALL);
 		}
 
 		return true;
@@ -1182,7 +1176,6 @@ public class MoveEntityEvent {
 			}
 
 			if (buildWall) {
-				MyConfig.setaDebugLevel(2); // TODO
 				BlockState wallTypeBlockState = currentWallBiomeDataItem.getWallBlockState();
 				if (wallTypeBlockState == null) {
 					wallTypeBlockState = Blocks.COBBLESTONE_WALL.defaultBlockState();
@@ -1199,12 +1192,11 @@ public class MoveEntityEvent {
 							ve.level.setBlockAndUpdate(vePos.above(), Blocks.TORCH.defaultBlockState());
 						}
 					}
-					MyConfig.setaDebugLevel(0); // TODO
 					return true;
 				}
 			}
 		}
-		MyConfig.setaDebugLevel(0); // TODO
+
 		return false;
 
 	}

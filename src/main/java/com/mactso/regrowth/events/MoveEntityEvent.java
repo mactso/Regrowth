@@ -8,15 +8,23 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Lists;
 import com.mactso.regrowth.config.MyConfig;
 import com.mactso.regrowth.config.RegrowthEntitiesManager;
 import com.mactso.regrowth.config.WallBiomeDataManager;
 import com.mactso.regrowth.config.WallFoundationDataManager;
 
+import it.unimi.dsi.fastutil.longs.LongIterator;
+import it.unimi.dsi.fastutil.longs.LongSet;
 import net.minecraft.world.level.block.AirBlock;
 import net.minecraft.world.level.block.BedBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.ChunkStatus;
+import net.minecraft.world.level.chunk.FeatureAccess;
+import net.minecraft.world.level.levelgen.feature.StructureFeature;
+import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CactusBlock;
 import net.minecraft.world.level.block.WoolCarpetBlock;
@@ -28,6 +36,7 @@ import net.minecraft.world.level.block.HugeMushroomBlock;
 import net.minecraft.world.level.block.BonemealableBlock;
 import net.minecraft.world.level.block.LeavesBlock;
 import net.minecraft.world.level.block.MushroomBlock;
+import net.minecraft.world.level.block.PowderSnowBlock;
 import net.minecraft.world.level.block.SaplingBlock;
 import net.minecraft.world.level.block.SnowLayerBlock;
 import net.minecraft.world.level.block.TallGrassBlock;
@@ -62,7 +71,9 @@ import net.minecraft.world.entity.ai.village.poi.PoiRecord;
 import net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy;
 import net.minecraft.world.entity.ai.village.poi.PoiType;
 import net.minecraft.world.level.LightLayer;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.server.level.ServerLevel;
@@ -173,12 +184,33 @@ public class MoveEntityEvent {
 			regrowthEventOdds *= 20;
 		}
 		double randomD100Roll = entity.level.random.nextDouble() ;
-		int debugvalue = 0; // TODO make sure value 0 after debugging.
+		int debugvalue = 0	; // TODO make sure value 0 after debugging.
 
 		if (randomD100Roll <= regrowthEventOdds + debugvalue) {
 			if (entity instanceof Villager) {
 //				System.out.println("GameTime:"+((AbstractVillager) entity).getLevel().getGameTime() + " : Roll:" + randomD100Roll + " < " + regrowthEventOdds);
 				Villager ve = (Villager) entity;
+				if (ve.isInPowderSnow) {
+					Block a = sWorld.getBlockState(ve.blockPosition().above(2)).getBlock();
+					Block b = sWorld.getBlockState(ve.blockPosition().above()).getBlock();
+					Block c = sWorld.getBlockState(ve.blockPosition()).getBlock();
+					if (b != Blocks.AIR) {
+						int x = 1;
+					}
+					int hp = 0;
+					if (sWorld.getBlockState(ve.blockPosition().above(2)).getBlock() == Blocks.POWDER_SNOW) {
+						entity.level.destroyBlock(entity.blockPosition().above(2), false);
+						hp = 2;
+					}
+					if (sWorld.getBlockState(ve.blockPosition().above()).getBlock() == Blocks.POWDER_SNOW) {
+						entity.level.destroyBlock(entity.blockPosition().above(), false);
+						hp += 2;
+					}
+					if (sWorld.getBlockState(ve.blockPosition()).getBlock() == Blocks.POWDER_SNOW) {
+						BlockState SnowLayer = Blocks.SNOW.defaultBlockState().setValue(SnowLayerBlock.LAYERS, 2 + hp);
+						entity.level.setBlockAndUpdate(ve.blockPosition(), SnowLayer);
+					}
+				}
 				// if onGround
 				if ((ve.isOnGround()) && (!(footBlock instanceof BedBlock))) {
 					doVillagerRegrowthEvents(ve, footBlock, groundBlock, registryNameAsString, regrowthActions,
@@ -979,6 +1011,12 @@ public class MoveEntityEvent {
 
 	private void vImproveRoads(Villager ve, Block footBlock, Block groundBlock, String key, Biome localBiome) {
 
+		boolean test = false;
+		if (test) {
+			ChunkPos c = new ChunkPos(ve.blockPosition());
+			List<StructureStart<?>> sList = getStarts(ve.level, StructureFeature.VILLAGE, c.x, c.z);
+			int z = 3;
+		}
 		if (vImproveRoadsFixUnfinished(ve, groundBlock, localBiome)) {
 			MyConfig.debugMsg(1, ve.blockPosition(), key + " fix road.");
 		}
@@ -1591,5 +1629,28 @@ public class MoveEntityEvent {
 		
 
 	}
+	
+	  private static List<StructureStart<?>> getStarts(LevelAccessor worldIn, StructureFeature<?> struct, int x, int z)
+	    {
+	        List<StructureStart<?>> list = Lists.newArrayList();
+	        ChunkAccess ichunk = worldIn.getChunk(x, z, ChunkStatus.STRUCTURE_REFERENCES);
+	        LongSet set = ichunk.getAllReferences().get(struct);
+
+	        if (set != null)
+	        {
+	            LongIterator longiterator = set.iterator();
+	            while (longiterator.hasNext())
+	            {
+	                long i = longiterator.nextLong();
+	                FeatureAccess istructurereader = worldIn.getChunk(ChunkPos.getX(i), ChunkPos.getZ(i),
+	                        ChunkStatus.STRUCTURE_STARTS);
+	                StructureStart<?> structurestart = istructurereader.getStartForFeature(struct);
+	                if (structurestart != null)
+	                    list.add(structurestart);
+	            }
+	        }
+
+	        return list;
+	    }
 
 }

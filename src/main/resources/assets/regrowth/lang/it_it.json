@@ -1,10 +1,10 @@
 {
 	"advancements.rgroot.title": "Regrowth",
 	"advancements.rgroot.description": "",
-	"advancements.offlimits.title": "Off Limits!",
-	"advancements.offlimits.description": "Villagers won't build walls on village roads (like grass paths)!",
-	"advancements.saferhedges.title": "Safer Hedges!",
-	"advancements.saferhedges.description": "Villagers will not cut leaf blocks you place.  Your hedge mazes are safe!",
-	"advancements.teardown.title": "Tear Down Those Walls!",
-	"advancements.teardown.description": "I villici non costruiranno mura se rimuovi il blocco mura Villagers will not build walls if you remove the wall block over village bells!"
+	"advancements.offlimits.title": "Vietato!",
+	"advancements.offlimits.description": "I villici non costruiranno muri sulle strade del villaggio (come i sentieri sterrati)!",
+	"advancements.saferhedges.title": "Siepi più sicure!",
+	"advancements.saferhedges.description": "I villici non taglieranno i blocchi di foglie che piazzi. I tuoi labirinti di siepi sono al sicuro!",
+	"advancements.teardown.title": "Abbatti quei muri!",
+	"advancements.teardown.description": "I villici non costruiranno muri se rimuovi il muretto sopra le campane del villaggio!"
 }

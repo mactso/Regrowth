@@ -24,14 +24,16 @@ public class WallBiomeDataManager {
 			wallBiomeDataInit();
 		}
 		WallBiomeDataItem r = wallBiomeDataHashtable.get(iKey);
-		if (MyConfig.aDebugLevel > 1) {
-			System.out.println("222 WallBiomeDataItem: "+ iKey +" wall=" + r.getWallBlockState().getBlock().toString() + "fence=" + r.getFenceBlockState().getBlock().toString() + ".");
-		}
+
 		if (r == null) {
 			if (MyConfig.aDebugLevel > 0) {
 				System.out.println("Error!  Villager in unknown Biome:" + key + ".");
 			}
 			r = wallBiomeDataHashtable.get("minecraft:plains");
+		}
+		
+		if (MyConfig.aDebugLevel > 1) {
+			System.out.println("222 WallBiomeDataItem: "+ iKey +" wall=" + r.getWallBlockState().getBlock().toString() + "fence=" + r.getFenceBlockState().getBlock().toString() + ".");
 		}
 		return r;
 	}

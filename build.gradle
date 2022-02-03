@@ -16,7 +16,7 @@ apply plugin: 'maven-publish'
 
 version = "${mc_version}-${mod_version}"
 group = 'com.mactso.regrowth' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
-archivesBaseName = 'Regrowth-'
+archivesBaseName = 'Regrowth'
 
    java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 minecraft {

@@ -380,6 +380,7 @@ public class MoveEntityEvent {
            sapling = Block.updateFromNeighbourShapes(sapling, level, ePos);
      	  level.setBlockAndUpdate(ePos, sapling);
            if (!net.minecraftforge.event.ForgeEventFactory.onBlockPlace(entity, net.minecraftforge.common.util.BlockSnapshot.create(level.dimension(), level, ePos), Direction.UP)) {
+        	   MyConfig.debugMsg(1, ePos, key + "blockplace event not raised when planted sapling.");
            }
 
         }

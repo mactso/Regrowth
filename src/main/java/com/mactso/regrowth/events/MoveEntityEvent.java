@@ -28,6 +28,7 @@ import net.minecraft.block.HugeMushroomBlock;
 import net.minecraft.block.IGrowable;
 import net.minecraft.block.LeavesBlock;
 import net.minecraft.block.MushroomBlock;
+import net.minecraft.block.RedstoneBlock;
 import net.minecraft.block.SaplingBlock;
 import net.minecraft.block.SnowBlock;
 import net.minecraft.block.TallGrassBlock;
@@ -48,6 +49,7 @@ import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.potion.EffectInstance;
 import net.minecraft.potion.Effects;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.util.Direction;
 import net.minecraft.util.RegistryKey;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
@@ -65,7 +67,9 @@ import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.common.util.Constants.BlockFlags;
+import net.minecraftforge.common.util.FakePlayer;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
+import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.event.world.BlockEvent.FarmlandTrampleEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -85,7 +89,24 @@ public class MoveEntityEvent {
 	static final int FENCE_CENTER = 0;
 	static final int WALL_TYPE_WALL = -1;
 	static final int WALL_TYPE_FENCE = -2;
-
+	
+//	@SubscribeEvent
+//    public void onPlayerPlaceBlock(BlockEvent.EntityPlaceEvent event) {
+//        final BlockState state = event.getPlacedBlock();
+//
+//        if (!(event.getWorld() instanceof World) ) {
+//            return;
+//        }
+//
+//        final World world = (World) event.getWorld();
+//        final BlockPos pos = event.getPos();
+//
+//        world.setBlock(pos, Blocks.REDSTONE_BLOCK.defaultBlockState() , 3);
+////       world.removeBlock(pos, false); // Remove the block so the plantTree function won't automatically fail.
+//
+//        
+//    }
+	
 	@SubscribeEvent 
 	public void handleTrampleEvents (FarmlandTrampleEvent event) {
 		BlockPos pos = event.getEntity().blockPosition();
@@ -318,7 +339,8 @@ public class MoveEntityEvent {
 		int eY = ePos.getY();
 		int eZ = ePos.getZ();
 		// only try to plant saplings in about 1/4th of blocks.
-
+        ServerWorld level = (ServerWorld) entity.level;
+		
 		double sinY = Math.sin((double) ((eY + 64) % 256) / 256);
 
 		if (entity.level.random.nextDouble() > Math.abs(sinY))
@@ -354,7 +376,16 @@ public class MoveEntityEvent {
 		if (leafCount > 0)
 			return;
 
-		entity.level.setBlockAndUpdate(ePos, sapling);
+        if (sapling!= null) {
+           sapling = Block.updateFromNeighbourShapes(sapling, level, ePos);
+     	  level.setBlockAndUpdate(ePos, sapling);
+           if (!net.minecraftforge.event.ForgeEventFactory.onBlockPlace(entity, net.minecraftforge.common.util.BlockSnapshot.create(level.dimension(), level, ePos), Direction.UP)) {
+           }
+
+        }
+
+		
+		// entity.level.setBlockAndUpdate(ePos, sapling);
 		MyConfig.debugMsg(1, ePos, key + " planted sapling.");
 	}
 

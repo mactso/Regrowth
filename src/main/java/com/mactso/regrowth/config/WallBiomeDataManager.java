@@ -2,13 +2,18 @@ package com.mactso.regrowth.config;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.StringTokenizer;
 
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.registries.ForgeRegistries;
 
@@ -16,6 +21,11 @@ public class WallBiomeDataManager {
 	private static Hashtable<String, WallBiomeDataItem> wallBiomeDataHashtable = new Hashtable<>();
 	private static String defaultRegrowthMobString = "regrowth:default";
 	private static String defaultRegrowthMobKey = defaultRegrowthMobString;
+	private static BlockState DEFAULT_WALL_BLOCKSTATE = Blocks.COBBLESTONE.defaultBlockState();
+	private static BlockState DEFAULT_FENCE_BLOCKSTATE = Blocks.OAK_FENCE.defaultBlockState();
+
+	private static WallBiomeDataItem DEFAULT_WALL_ITEM= 
+			new WallBiomeDataItem(36, DEFAULT_WALL_BLOCKSTATE, DEFAULT_FENCE_BLOCKSTATE);
 
 	public static WallBiomeDataItem getWallBiomeDataItem(String key) {
 		String iKey = key;
@@ -29,7 +39,7 @@ public class WallBiomeDataManager {
 			if (MyConfig.aDebugLevel > 0) {
 				System.out.println("Error!  Villager in unknown Biome:" + key + ".");
 			}
-			r = wallBiomeDataHashtable.get("minecraft:plains");
+			r = DEFAULT_WALL_ITEM;
 		}
 		
 		if (MyConfig.aDebugLevel > 1) {
@@ -40,12 +50,12 @@ public class WallBiomeDataManager {
 
 	public static String getWallBiomeDataHashAsString() {
 		String returnString = "";
-		int wallSize;
+		int wallDiameter;
 		BlockState wallTypeBlockState;
 		for (String key : wallBiomeDataHashtable.keySet()) {
-			wallSize = wallBiomeDataHashtable.get(key).wallSize;
+			wallDiameter = wallBiomeDataHashtable.get(key).wallDiameter;
 			wallTypeBlockState = wallBiomeDataHashtable.get(key).getWallBlockState();
-			String tempString = key + "," + wallSize + "," + wallTypeBlockState.toString() + ";";
+			String tempString = key + "," + wallDiameter + "," + wallTypeBlockState.toString() + ";";
 			returnString += tempString;
 		}
 		return returnString;
@@ -56,26 +66,27 @@ public class WallBiomeDataManager {
 
 		List<String> dTL6464 = new ArrayList<>();
 
-		List<Block> walls = new ArrayList<>();
-        List<Block> fences = new ArrayList<>();
-        try {
-            walls = BlockTags.WALLS.getValues();
-        	System.out.println("succeeded in loading walls all tags");
-        }
-        catch (Exception e) {
+//		List<Block> walls = new ArrayList<>();
+//        List<Block> fences = new ArrayList<>();
+        
+
+        Iterable<Holder<Block>> walls;
+    	walls = Registry.BLOCK.getTagOrEmpty(BlockTags.WALLS);
+    	if (!walls.iterator().hasNext()) {
         	System.out.println("failed to get walls all tags ");
         	return;
-        }
-        try {
-            fences = BlockTags.FENCES.getValues();
-        	System.out.println("succeeded in loading fences all tags");
-        }
-        catch (Exception e) {
-        	System.out.println("failed to load fences all tags");
+    	}
+    	System.out.println("succeeded in loading walls all tags");
+
+		Iterable<Holder<Block>> fences;
+        	fences = Registry.BLOCK.getTagOrEmpty(BlockTags.FENCES);
+    	if (!walls.iterator().hasNext()) {
+        	System.out.println("failed to get walls all tags ");
         	return;
-        }
-        
-		int i = 0;
+    	}        
+    	System.out.println("succeeded in loading fences all tags");
+
+    	int i = 0;
 		String wallBiomeDataLine6464 = "";
 		// Forge Issue 6464 patch.
 		StringTokenizer st6464 = new StringTokenizer(MyConfig.defaultWallBiomeData6464, ";");
@@ -96,46 +107,37 @@ public class WallBiomeDataManager {
 				StringTokenizer st = new StringTokenizer(MyConfig.defaultWallBiomeData[i], ",");
 				String modAndBiome = st.nextToken();
 				String key = modAndBiome;
-				String wallSizeString = st.nextToken();
+				String wallDiameterString = st.nextToken();
 				String wallBlockString = st.nextToken();
 				String fenceBlockString = st.nextToken();
-				int wallSize = Integer.parseInt(wallSizeString.trim());
-				if (wallSize <= 32)
-					wallSize = 32;
-				if (wallSize > 80)
-					wallSize = 80;
-				BlockState wallBlockState = null;
-				for (int v = 0; v < walls.size(); v++) {
-					String wbs = walls.get(v).getRegistryName().toString();
+				int wallDiameter = validatedWallDiameter(Integer.parseInt(wallDiameterString.trim()));
+				BlockState wallBlockState = DEFAULT_WALL_BLOCKSTATE;
+				for (Holder<Block> w : walls) {
+				    String wbs = w.value().getRegistryName().toString();
 					if (wbs.equals(wallBlockString)) {
-						wallBlockState = walls.get(v).defaultBlockState();
-						break;
+						wallBlockState = w.value().defaultBlockState();
+						break; // TODO debug this.
 					}
-				}
-				if (wallBlockState == null) {
-					wallBlockState = Blocks.COBBLESTONE_WALL.defaultBlockState();
 				}
 				
-				BlockState fenceBlockState = null;
-				for (int v = 0; v < fences.size(); v++) {
-					String fbs = fences.get(v).getRegistryName().toString();
+				BlockState fenceBlockState = DEFAULT_FENCE_BLOCKSTATE;
+				for (Holder<Block> f : fences) {
+				    String fbs = f.value().getRegistryName().toString();
 					if (fbs.equals(fenceBlockString)) {
-						fenceBlockState = fences.get(v).defaultBlockState();
-						break;
+						fenceBlockState = f.value().defaultBlockState();
+						break; // TODO debug this.
 					}
 				}
-				if (fenceBlockState == null)
-					fenceBlockState = Blocks.OAK_FENCE.defaultBlockState();
 
-				wallBiomeDataHashtable.put(key, new WallBiomeDataItem(wallSize, wallBlockState, fenceBlockState));
+				wallBiomeDataHashtable.put(key, new WallBiomeDataItem(wallDiameter, wallBlockState, fenceBlockState));
 
 				// odd bug: can't see extreme hills, mesa, or nether here but can elsewhere.
 				if (!modAndBiome.contentEquals("Regrowth:default") 
 						&& !modAndBiome.contentEquals("Regrowth:minimum")
 						&& !modAndBiome.contentEquals("minecraft:icy") // TODO: Hack...
 						&& !modAndBiome.contentEquals("minecraft:extreme_hills") // TODO: Hack...
-						&& !modAndBiome.contentEquals("minecraft:mesa") // TODO: Hack...
-						&& !modAndBiome.contentEquals("minecraft:nether")  // TODO: Hack...
+						&& !modAndBiome.contentEquals("minecraft:mesa") // TODO: Hack... aka badlands
+						&& !modAndBiome.contentEquals("minecraft:nether")  // TODO: Hack... aks the_nether
 						&& !ForgeRegistries.BIOMES.containsKey(new ResourceLocation(modAndBiome))) {
 					System.out.println("Regrowth Debug: Wall Biome Data: " + key
 							+ " not in Forge Entity Type Registry.  Mispelled?");
@@ -145,30 +147,41 @@ public class WallBiomeDataManager {
 			}
 			i++;
 		}
+		int x= 3;
+	}
 
+	private static int validatedWallDiameter(int wallDiameter) {
+		if (wallDiameter <= 24)
+			wallDiameter = 24;
+		if (wallDiameter > 80)
+			wallDiameter = 80;
+		return wallDiameter;
 	}
 
 	public static class WallBiomeDataItem {
-		int wallSize;
+		int wallDiameter;
 		BlockState wallBlockState;
 		BlockState fenceBlockState;
 
-		public WallBiomeDataItem(int wallSize, BlockState wallBlockState, BlockState fenceBlockState) {
-			this.wallSize = wallSize;
+		public WallBiomeDataItem(int wallRadius, BlockState wallBlockState, BlockState fenceBlockState) {
+			this.wallDiameter = wallRadius;
 			this.wallBlockState = wallBlockState;
 			this.fenceBlockState = fenceBlockState;
 		}
 
 		public int getWallDiameter() {
-			return wallSize;
+			return wallDiameter;
 		}
 
+		public int getWallRadius() {
+			return (wallDiameter/2)+1;
+		}
+		
 		public BlockState getWallBlockState() {
 			return wallBlockState;
 		}
 
 		public BlockState getFenceBlockState() {
-//			Block b= fenceBlockState.getBlock();
 			return fenceBlockState;
 		}
 	}

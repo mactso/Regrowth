@@ -1,17 +1,14 @@
 package com.mactso.regrowth.config;
 
-import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.List;
-import java.util.StringTokenizer;
+
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.registries.ForgeRegistries;
 
 public class WallFoundationDataManager {
 
 	public static Hashtable<String, wallFoundationItem> wallFoundationsHashtable = new Hashtable<>();
-	private static String defaultWallFoundationString = "hbm:default";
-	private static String defaultWallFoundationKey = defaultWallFoundationString;
+
 
 	public static wallFoundationItem getWallFoundationInfo(String key) {
 		String iKey = key;
@@ -39,37 +36,24 @@ public class WallFoundationDataManager {
 
 	public static void wallFoundationsInit() {
 		
-		List <String> dTL6464 = new ArrayList<>();
-		
 		int i = 0;
-		String wallFoundationsLine6464 = "";
-		// Forge Issue 6464 patch.
-		StringTokenizer st6464 = new StringTokenizer(MyConfig.defaultWallFoundations6464, ";");
 
-		while (st6464.hasMoreElements()) {
-			wallFoundationsLine6464 = st6464.nextToken().trim();
-			if (wallFoundationsLine6464.isEmpty()) continue;
-			dTL6464.add(wallFoundationsLine6464);  
-			i++;
-		}
-
-		MyConfig.defaultWallFoundations = dTL6464.toArray(new String[i]);
 
 		i = 0;
 		wallFoundationsHashtable.clear();
-		while (i < MyConfig.defaultWallFoundations.length) {
+		while (i < MyConfig.defaultWallFoundationsArray.length) {
 			try {
-				StringTokenizer st = new StringTokenizer(MyConfig.defaultWallFoundations[i], ",");
-				String wallFoundationBlockKey = st.nextToken();
+
+				String wallFoundationBlockKey = MyConfig.defaultWallFoundationsArray[i];
 				String key = wallFoundationBlockKey;				
-				wallFoundationsHashtable.put(key, new wallFoundationItem(wallFoundationBlockKey));
-				if (!wallFoundationBlockKey.contentEquals("hbm:default") &&
-				    !ForgeRegistries.BLOCKS.containsKey(new ResourceLocation(wallFoundationBlockKey))
-				   )  {
+				if (ForgeRegistries.BLOCKS.containsKey(new ResourceLocation(wallFoundationBlockKey))) {
+					wallFoundationsHashtable.put(key, new wallFoundationItem(wallFoundationBlockKey));
+				} else {
 					System.out.println("Regrowth Debug: Wall Foundation Block: " + wallFoundationBlockKey + " not in Forge Entity Type Registry.  Mispelled?  Missing semicolon? ");
 				}
+				
 			} catch (Exception e) {
-				System.out.println("Regrowth Debug:  Bad Wall Foundation Config : " + MyConfig.defaultWallFoundations[i]);
+				System.out.println("Regrowth Debug:  Bad Wall Foundation Config (illegal characters, Upper Case or not [a-z0-9_.-] ?): " + MyConfig.defaultWallFoundationsArray[i]);
 			}
 			i++;
 		}

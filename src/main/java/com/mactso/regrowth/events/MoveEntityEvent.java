@@ -9,6 +9,8 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.stream.Collectors;
 
+import org.antlr.v4.runtime.atn.BlockStartState;
+
 import com.google.common.collect.Lists;
 import com.mactso.regrowth.config.MyConfig;
 import com.mactso.regrowth.config.RegrowthEntitiesManager;
@@ -69,7 +71,6 @@ import net.minecraft.world.level.block.GrassBlock;
 import net.minecraft.world.level.block.HugeMushroomBlock;
 import net.minecraft.world.level.block.LeavesBlock;
 import net.minecraft.world.level.block.MushroomBlock;
-import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.SaplingBlock;
 import net.minecraft.world.level.block.SnowLayerBlock;
 import net.minecraft.world.level.block.TallGrassBlock;
@@ -92,10 +93,12 @@ import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
 import net.minecraftforge.event.world.BlockEvent.FarmlandTrampleEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.registries.ForgeRegistries;
 
 @Mod.EventBusSubscriber()
 public class MoveEntityEvent {
 
+	
 	private int[] dx = { 1, 0, -1, 0 };
 	private int[] dz = { 0, 1, 0, -1 };
 	private int TICKS_PER_SECOND = 20;
@@ -115,7 +118,7 @@ public class MoveEntityEvent {
 	private Block groundBlock;
 	private Biome localBiome;
 	private boolean isRoadPiece = false;
-	private boolean isRoadFullBlock = false;
+
 
 	private BiomeCategory biomeCategory;
 	BlockPos adjustedPos;
@@ -1104,7 +1107,7 @@ public class MoveEntityEvent {
 //		ve.setCustomName(tName);
 
 		isRoadPiece = false;
-		isRoadFullBlock = false;
+
 		boolean isInsideStructurePiece = false;
 		boolean test = true;
 		BlockPos piecePos = null;
@@ -1205,7 +1208,7 @@ public class MoveEntityEvent {
 
 		if (groundBlock == biomeRoadBlock)
 			return false;
-		int x = 3;
+
 		int roadY = 0;
 		int roadBlocks = 0;
 		BlockPos vePos = getAdjustedBlockPos(e);
@@ -1365,16 +1368,22 @@ public class MoveEntityEvent {
 		
 		BlockPos gVMPPos = ve.getBrain().getMemory(MemoryModuleType.MEETING_POINT).get().pos();
 
-		if (ve.level.getChunkAt(gVMPPos).getInhabitedTime() < 1200)
-			ve.level.setBlock(gVMPPos.above(1), Blocks.COBBLESTONE_WALL.defaultBlockState(), 3);
-
+		if (MyConfig.playerWallControlBlock != Blocks.AIR) {
+			if (ve.level.getChunkAt(gVMPPos).getInhabitedTime() < 200)  // Bell
+				ve.level.setBlock(gVMPPos.above(1), MyConfig.playerWallControlBlock.defaultBlockState(), 3);
+	
+			if (ve.level.getBlockState(gVMPPos.above(1)).getBlock() != MyConfig.playerWallControlBlock) {
+				return false;
+			}
+		}
+		
 		BlockPos vePos = getAdjustedBlockPos(ve);
 
 		String key = "minecraft:" + biomeCategory.toString();
 //		ResourceLocation biomeName = ForgeRegistries.BIOMES.getKey(localBiome);
 		key = key.toLowerCase();
 		MyConfig.debugMsg(2, vePos, key + " wall improvement.");
-		int dbg = 3;
+
 		WallBiomeDataManager.WallBiomeDataItem currentWallBiomeDataItem = WallBiomeDataManager
 				.getWallBiomeDataItem(key);
 		MyConfig.debugMsg(1, vePos, key + " biome for wall improvement. ");

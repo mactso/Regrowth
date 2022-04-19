@@ -5,9 +5,15 @@ import java.lang.reflect.Field;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.biome.Biome.BiomeCategory;
-import net.minecraftforge.coremod.api.ASMAPI;
+import com.mactso.regrowth.config.ModConfigs;
+
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.text.LiteralText;
+import net.minecraft.text.Text;
+import net.minecraft.text.TextColor;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.biome.Biome;
+import net.minecraft.world.biome.Biome.Category;
 
 public class Utility {
 	private static Field fieldBiomeCategory = null;
@@ -21,10 +27,11 @@ public class Utility {
 			LOGGER.error("Unexpected Reflection Failure set Biome.biomeCategory accessible");
 		}
 	}
-	public static BiomeCategory getBiomeCategory(Biome b) {
-		BiomeCategory bc = BiomeCategory.PLAINS;
+
+	public static Category getBiomeCategory(Biome b) {
+		Category bc = Category.PLAINS;
 		try {
-			bc = (BiomeCategory) fieldBiomeCategory.get(b);
+			bc = (Category) fieldBiomeCategory.get(b);
 		} catch (IllegalArgumentException e) {
 			e.printStackTrace();
 		} catch (IllegalAccessException e) {
@@ -32,4 +39,32 @@ public class Utility {
 		}
 		return bc;
 	}
+
+	// support for any color chattext
+	public static void sendChat(PlayerEntity p, String chatMessage, TextColor color) {
+		Text component = new LiteralText(chatMessage);
+		component.getStyle().withColor(color);
+		p.sendSystemMessage(component, p.getUuid());
+	}
+
+	// support for any color, optionally bold text.
+	public static void sendBoldChat(PlayerEntity p, String chatMessage, TextColor color) {
+		Text component = new LiteralText(chatMessage);
+
+		component.getStyle().withBold(true);
+		component.getStyle().withColor(color);
+
+		p.sendSystemMessage(component, p.getUuid());
+	}
+
+	public static void debugMsg (int level, BlockPos pos, String dMsg) {
+	debugMsg(level, " ("+pos.getX()+","+pos.getY()+","+pos.getZ()+"): " + dMsg);
+	}
+	
+	public static void debugMsg(int level, String dMsg) {
+		if (ModConfigs.getDebugLevel() > level - 1) {
+			LOGGER.warn("L" + level + ":" + dMsg);
+		}
+	}
+
 }

@@ -2,8 +2,6 @@ package com.mactso.regrowth.config;
 
 import java.util.Hashtable;
 
-import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.registries.ForgeRegistries;
 
 public class WallFoundationDataManager {
 

@@ -6,8 +6,6 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.StringTokenizer;
 
-import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.registries.ForgeRegistries;
 
 public class RegrowthEntitiesManager {
 	public static Hashtable<String, RegrowthMobItem> regrowthMobHashtable = new Hashtable<>();
@@ -47,7 +45,7 @@ public class RegrowthEntitiesManager {
 		int i = 0;
 		String regrowthMobLine6464 = "";
 		// Forge Issue 6464 patch.
-		StringTokenizer st6464 = new StringTokenizer(MyConfig.defaultRegrowthMobs6464, ";");
+		StringTokenizer st6464 = new StringTokenizer(ModConfigs.defaultRegrowthMobs6464, ";");
 		while (st6464.hasMoreElements()) {
 			regrowthMobLine6464 = st6464.nextToken().trim();
 			if (regrowthMobLine6464.isEmpty()) continue;
@@ -55,13 +53,13 @@ public class RegrowthEntitiesManager {
 			i++;
 		}
 
-		MyConfig.defaultRegrowthMobs = dTL6464.toArray(new String[i]);
+		ModConfigs.defaultRegrowthMobs = dTL6464.toArray(new String[i]);
 
 		i = 0;
 		regrowthMobHashtable.clear();
-		while (i < MyConfig.defaultRegrowthMobs.length) {
+		while (i < ModConfigs.defaultRegrowthMobs.length) {
 			try {
-				StringTokenizer st = new StringTokenizer(MyConfig.defaultRegrowthMobs[i], ",");
+				StringTokenizer st = new StringTokenizer(ModConfigs.defaultRegrowthMobs[i], ",");
 				String modAndEntity = st.nextToken();
 				String key = modAndEntity;
 				String regrowthType = st.nextToken();
@@ -72,13 +70,15 @@ public class RegrowthEntitiesManager {
 				}
 
 				regrowthMobHashtable.put(key, new RegrowthMobItem(regrowthType, seconds));
+
+				// TODO what replaces this registry in Fabric?
 				if (!modAndEntity.contentEquals("hbm:default") &&
 				    !ForgeRegistries.ENTITIES.containsKey(new ResourceLocation(modAndEntity))
 				   )  {
 					System.out.println("Regrowth Debug: Mob: " + modAndEntity + " not in Forge Entity Type Registry.  Mispelled?");
 				}
 			} catch (Exception e) {
-				System.out.println("Regrowth Debug:  Bad Mob Config : " + MyConfig.defaultRegrowthMobs[i]);
+				System.out.println("Regrowth Debug:  Bad Mob Config : " + ModConfigs.defaultRegrowthMobs[i]);
 			}
 			i++;
 		}

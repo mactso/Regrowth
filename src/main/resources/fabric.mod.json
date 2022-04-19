@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "regrowth",
+  "version": "${version}",
+
+  "name": "Regrowth",
+  "description": "Creatures eat and regrow plants.  Villagers improve their villages.",
+  "authors": [
+    "Mactso, Lupicus"
+  ],
+  "contact": {
+    "homepage": "https://www.curseforge.com/minecraft/mc-mods/villagers-respawn"
+  },
+
+  "license": "MIT License",
+  "icon": "Regrowth.png",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.mactso.regrowth.Main"
+    ]
+  },
+  "mixins": [
+    "regrowth.mixins.json"
+  ],
+
+  "depends": {
+    "fabricloader": ">=0.7.4",
+    "fabric": "*",
+    "minecraft": "1.18.x"
+  },
+  "suggests": {
+    "another-mod": "*"
+  }
+}

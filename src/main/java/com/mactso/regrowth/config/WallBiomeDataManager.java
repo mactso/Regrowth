@@ -5,21 +5,20 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.StringTokenizer;
 
-import net.minecraft.core.Holder;
-import net.minecraft.core.Registry;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.tags.BlockTags;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.tag.BlockTags;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.util.registry.RegistryEntry;
+import net.minecraft.util.registry.RegistryEntryList.Named;
 
 public class WallBiomeDataManager {
 	private static Hashtable<String, WallBiomeDataItem> wallBiomeDataHashtable = new Hashtable<>();
 	private static String defaultRegrowthMobString = "regrowth:default";
 	private static String defaultRegrowthMobKey = defaultRegrowthMobString;
-	private static BlockState DEFAULT_WALL_BLOCKSTATE = Blocks.COBBLESTONE.defaultBlockState();
-	private static BlockState DEFAULT_FENCE_BLOCKSTATE = Blocks.OAK_FENCE.defaultBlockState();
+	private static BlockState DEFAULT_WALL_BLOCKSTATE = Blocks.COBBLESTONE.getDefaultState();
+	private static BlockState DEFAULT_FENCE_BLOCKSTATE = Blocks.OAK_FENCE.getDefaultState();
 
 	private static WallBiomeDataItem DEFAULT_WALL_ITEM= 
 			new WallBiomeDataItem(36, DEFAULT_WALL_BLOCKSTATE, DEFAULT_FENCE_BLOCKSTATE);
@@ -33,13 +32,13 @@ public class WallBiomeDataManager {
 		WallBiomeDataItem r = wallBiomeDataHashtable.get(iKey);
 
 		if (r == null) {
-			if (MyConfig.aDebugLevel > 0) {
+			if (ModConfigs.getDebugLevel() > 0) {
 				System.out.println("Error!  Villager in unknown Biome:" + key + ".");
 			}
 			r = DEFAULT_WALL_ITEM;
 		}
 		
-		if (MyConfig.aDebugLevel > 1) {
+		if (ModConfigs.getDebugLevel() > 1) {
 			System.out.println("222 WallBiomeDataItem: "+ iKey +" wall=" + r.getWallBlockState().getBlock().toString() + "fence=" + r.getFenceBlockState().getBlock().toString() + ".");
 		}
 		return r;
@@ -66,19 +65,20 @@ public class WallBiomeDataManager {
 //		List<Block> walls = new ArrayList<>();
 //        List<Block> fences = new ArrayList<>();
         
-
-        Iterable<Holder<Block>> walls;
-    	walls = Registry.BLOCK.getTagOrEmpty(BlockTags.WALLS);
+//        Iterable<Holder<Block>> walls;
+        // TODO: line 69 might be wrong method
+    	Named<Block> walls = Registry.BLOCK.getOrCreateEntryList(BlockTags.WALLS);
     	if (!walls.iterator().hasNext()) {
         	System.out.println("failed to get walls all tags ");
         	return;
     	}
     	System.out.println("succeeded in loading walls all tags");
 
-		Iterable<Holder<Block>> fences;
-        	fences = Registry.BLOCK.getTagOrEmpty(BlockTags.FENCES);
-    	if (!walls.iterator().hasNext()) {
-        	System.out.println("failed to get walls all tags ");
+//		Iterable<Holder<Block>> fences;
+        // TODO: line 69 might be wrong method
+        Named<Block> fences = Registry.BLOCK.getOrCreateEntryList(BlockTags.FENCES);
+    	if (!fences.iterator().hasNext()) {
+        	System.out.println("failed to get fences all tags ");
         	return;
     	}        
     	System.out.println("succeeded in loading fences all tags");
@@ -86,7 +86,7 @@ public class WallBiomeDataManager {
     	int i = 0;
 		String wallBiomeDataLine6464 = "";
 		// Forge Issue 6464 patch.
-		StringTokenizer st6464 = new StringTokenizer(MyConfig.defaultWallBiomeData6464, ";");
+		StringTokenizer st6464 = new StringTokenizer(ModConfigs.defaultWallBiomeData6464, ";");
 		while (st6464.hasMoreElements()) {
 			wallBiomeDataLine6464 = st6464.nextToken().trim();
 			if (wallBiomeDataLine6464.isEmpty())
@@ -95,13 +95,13 @@ public class WallBiomeDataManager {
 			i++;
 		}
 
-		MyConfig.defaultWallBiomeData = dTL6464.toArray(new String[i]);
+		ModConfigs.defaultWallBiomeData = dTL6464.toArray(new String[i]);
 
 		i = 0;
 		wallBiomeDataHashtable.clear();
-		while (i < MyConfig.defaultWallBiomeData.length) {
+		while (i < ModConfigs.defaultWallBiomeData.length) {
 			try {
-				StringTokenizer st = new StringTokenizer(MyConfig.defaultWallBiomeData[i], ",");
+				StringTokenizer st = new StringTokenizer(ModConfigs.defaultWallBiomeData[i], ",");
 				String modAndBiome = st.nextToken();
 				String key = modAndBiome;
 				String wallDiameterString = st.nextToken();
@@ -109,19 +109,19 @@ public class WallBiomeDataManager {
 				String fenceBlockString = st.nextToken();
 				int wallDiameter = validatedWallDiameter(Integer.parseInt(wallDiameterString.trim()));
 				BlockState wallBlockState = DEFAULT_WALL_BLOCKSTATE;
-				for (Holder<Block> w : walls) {
-				    String wbs = w.value().getRegistryName().toString();
+				for (RegistryEntry<Block> w : walls) {
+				    String wbs = w.value().getRegistryEntry().toString();
 					if (wbs.equals(wallBlockString)) {
-						wallBlockState = w.value().defaultBlockState();
+						wallBlockState = w.value().getDefaultState();
 						break; // TODO debug this.
 					}
 				}
 				
 				BlockState fenceBlockState = DEFAULT_FENCE_BLOCKSTATE;
-				for (Holder<Block> f : fences) {
-				    String fbs = f.value().getRegistryName().toString();
+				for (RegistryEntry<Block> f : fences) {
+				    String fbs = f.value().getRegistryEntry().toString();
 					if (fbs.equals(fenceBlockString)) {
-						fenceBlockState = f.value().defaultBlockState();
+						fenceBlockState = f.value().getDefaultState();
 						break; // TODO debug this.
 					}
 				}
@@ -134,13 +134,14 @@ public class WallBiomeDataManager {
 						&& !modAndBiome.contentEquals("minecraft:icy") // TODO: Hack...
 						&& !modAndBiome.contentEquals("minecraft:extreme_hills") // TODO: Hack...
 						&& !modAndBiome.contentEquals("minecraft:mesa") // TODO: Hack... aka badlands
-						&& !modAndBiome.contentEquals("minecraft:nether")  // TODO: Hack... aks the_nether
-						&& !ForgeRegistries.BIOMES.containsKey(new ResourceLocation(modAndBiome))) {
+						&& !modAndBiome.contentEquals("minecraft:nether")) { // TODO: Hack... aks the_nether
+						
+						// TODO:						&& !ForgeRegistries.BIOMES.containsKey(new ResourceLocation(modAndBiome))) {
 					System.out.println("Regrowth Debug: Wall Biome Data: " + key
 							+ " not in Forge Entity Type Registry.  Mispelled?");
 				}
 			} catch (Exception e) {
-				System.out.println("Regrowth Debug:  Bad Wall Biome Data Config : " + MyConfig.defaultWallBiomeData[i]);
+				System.out.println("Regrowth Debug:  Bad Wall Biome Data Config : " + ModConfigs.defaultWallBiomeData[i]);
 			}
 			i++;
 		}

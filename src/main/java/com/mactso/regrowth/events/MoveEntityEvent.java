@@ -146,9 +146,7 @@ public class MoveEntityEvent {
 
 	// TODO Mixin for Living Update Event
 	@SuppressWarnings("deprecation")
-	public void handleEntityMoveEvents(LivingUpdateEvent event) {
-
-		Entity entity = event.getEntity();
+	public static void handleEntityMoveEvents(LivingEntity entity) {
 
 		if (entity instanceof PlayerEntity)
 			return;
@@ -225,7 +223,7 @@ public class MoveEntityEvent {
 
 	}
 
-	private String helperGetRegistryNameAsString(Entity entity) {
+	private static String helperGetRegistryNameAsString(Entity entity) {
 		EntityType<?> tempType = entity.getType();
 		Reference<EntityType<?>> registryName = tempType.getRegistryEntry();
 		String registryNameAsString = registryName.toString();

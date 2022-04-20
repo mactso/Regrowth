@@ -11,6 +11,7 @@ public class RegrowthEntitiesManager {
 	public static Hashtable<String, RegrowthMobItem> regrowthMobHashtable = new Hashtable<>();
 	private static String defaultRegrowthMobString = "hbm:default";
 	private static String defaultRegrowthMobKey = defaultRegrowthMobString;
+	public static String[] defaultRegrowthMobs;
 
 	public static RegrowthMobItem getRegrowthMobInfo(String key) {
 		String iKey = key;
@@ -40,26 +41,16 @@ public class RegrowthEntitiesManager {
 
 	public static void regrowthMobInit() {
 		
-		List <String> dTL6464 = new ArrayList<>();
-		
-		int i = 0;
-		String regrowthMobLine6464 = "";
-		// Forge Issue 6464 patch.
-		StringTokenizer st6464 = new StringTokenizer(ModConfigs.defaultRegrowthMobs6464, ";");
-		while (st6464.hasMoreElements()) {
-			regrowthMobLine6464 = st6464.nextToken().trim();
-			if (regrowthMobLine6464.isEmpty()) continue;
-			dTL6464.add(regrowthMobLine6464);  
-			i++;
-		}
 
-		ModConfigs.defaultRegrowthMobs = dTL6464.toArray(new String[i]);
-
-		i = 0;
 		regrowthMobHashtable.clear();
-		while (i < ModConfigs.defaultRegrowthMobs.length) {
+
+		String oneMob = "";
+		StringTokenizer tokenizedMobString = new StringTokenizer(ModConfigs.getDefaultRegrowthMobs(), ";");
+		while (tokenizedMobString.hasMoreElements()) {
+			oneMob = tokenizedMobString.nextToken().trim();
+			if (oneMob.isEmpty()) continue;
 			try {
-				StringTokenizer st = new StringTokenizer(ModConfigs.defaultRegrowthMobs[i], ",");
+				StringTokenizer st = new StringTokenizer(oneMob, ",");
 				String modAndEntity = st.nextToken();
 				String key = modAndEntity;
 				String regrowthType = st.nextToken();
@@ -68,19 +59,11 @@ public class RegrowthEntitiesManager {
 				if (seconds <= 1.0) {
 					seconds = 1.0;
 				}
-
 				regrowthMobHashtable.put(key, new RegrowthMobItem(regrowthType, seconds));
-
-				// TODO what replaces this registry in Fabric?
-				if (!modAndEntity.contentEquals("hbm:default") &&
-				    !ForgeRegistries.ENTITIES.containsKey(new ResourceLocation(modAndEntity))
-				   )  {
-					System.out.println("Regrowth Debug: Mob: " + modAndEntity + " not in Forge Entity Type Registry.  Mispelled?");
-				}
-			} catch (Exception e) {
-				System.out.println("Regrowth Debug:  Bad Mob Config : " + ModConfigs.defaultRegrowthMobs[i]);
 			}
-			i++;
+			catch (Exception e) {
+				System.out.println("Regrowth Debug:  Bad Mob Config : " + oneMob);
+			}
 		}
 
 	}

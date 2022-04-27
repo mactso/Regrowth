@@ -1,16 +1,12 @@
 // 15.2 - 1.0.0.0 regrowth
 package com.mactso.regrowth.config;
 
-import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.List;
 import java.util.StringTokenizer;
 
 
 public class RegrowthEntitiesManager {
 	public static Hashtable<String, RegrowthMobItem> regrowthMobHashtable = new Hashtable<>();
-	private static String defaultRegrowthMobString = "hbm:default";
-	private static String defaultRegrowthMobKey = defaultRegrowthMobString;
 	public static String[] defaultRegrowthMobs;
 
 	public static RegrowthMobItem getRegrowthMobInfo(String key) {
@@ -45,7 +41,7 @@ public class RegrowthEntitiesManager {
 		regrowthMobHashtable.clear();
 
 		String oneMob = "";
-		StringTokenizer tokenizedMobString = new StringTokenizer(ModConfigs.getDefaultRegrowthMobs(), ";");
+		StringTokenizer tokenizedMobString = new StringTokenizer(ModConfigs.getActionMobList(), ";");
 		while (tokenizedMobString.hasMoreElements()) {
 			oneMob = tokenizedMobString.nextToken().trim();
 			if (oneMob.isEmpty()) continue;

@@ -1,10 +1,11 @@
 {
   "required": true,
   "minVersion": "0.8",
-  "package": "com.mactso.villagersrespawn.mixin",
+  "package": "com.mactso.regrowth.mixin",
   "compatibilityLevel": "JAVA_16",
   "mixins": [
-	"LivingEntityMixin"
+	"LivingEntityMixin",
+	"FarmlandBlockMixin"
   ],
   "client": [
   ],

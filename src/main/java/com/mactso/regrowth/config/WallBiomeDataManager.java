@@ -1,11 +1,9 @@
 package com.mactso.regrowth.config;
 
-import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.List;
 import java.util.StringTokenizer;
 
-import com.mactso.regrowth.config.RegrowthEntitiesManager.RegrowthMobItem;
+import com.mactso.regrowth.utility.Utility;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -17,7 +15,7 @@ import net.minecraft.util.registry.RegistryEntryList.Named;
 
 public class WallBiomeDataManager {
 	private static Hashtable<String, WallBiomeDataItem> wallBiomeDataHashtable = new Hashtable<>();
-	private static BlockState DEFAULT_WALL_BLOCKSTATE = Blocks.COBBLESTONE.getDefaultState();
+	private static BlockState DEFAULT_WALL_BLOCKSTATE = Blocks.COBBLESTONE_WALL.getDefaultState();
 	private static BlockState DEFAULT_FENCE_BLOCKSTATE = Blocks.OAK_FENCE.getDefaultState();
 
 	private static WallBiomeDataItem DEFAULT_WALL_ITEM= 
@@ -79,7 +77,7 @@ public class WallBiomeDataManager {
 		wallBiomeDataHashtable.clear();
 
 		String oneLine = "";
-		StringTokenizer tokenizedMobString = new StringTokenizer(ModConfigs.getDefaultRegrowthMobs(), ";");
+		StringTokenizer tokenizedMobString = new StringTokenizer(ModConfigs.getWallblockList(), ";");
 		while (tokenizedMobString.hasMoreElements()) {
 			oneLine = tokenizedMobString.nextToken().trim();
 			if (oneLine.isEmpty()) continue;
@@ -94,16 +92,16 @@ public class WallBiomeDataManager {
 				
 				BlockState wallBlockState = DEFAULT_WALL_BLOCKSTATE;
 				for (RegistryEntry<Block> w : walls) {
-				    String wbs = w.value().getRegistryEntry().toString();
+				    String wbs = Utility.getResourceLocationString(w.value());
 					if (wbs.equals(wallBlockString)) {
 						wallBlockState = w.value().getDefaultState();
-						break; // TODO debug this.
+						break;
 					}
 				}
 				
 				BlockState fenceBlockState = DEFAULT_FENCE_BLOCKSTATE;
 				for (RegistryEntry<Block> f : fences) {
-				    String fbs = f.value().getRegistryEntry().toString();
+				    String fbs = Utility.getResourceLocationString(f.value());
 					if (fbs.equals(fenceBlockString)) {
 						fenceBlockState = f.value().getDefaultState();
 						break; 
@@ -119,10 +117,7 @@ public class WallBiomeDataManager {
 						&& !modAndBiome.contentEquals("minecraft:extreme_hills") // TODO: Hack...
 						&& !modAndBiome.contentEquals("minecraft:mesa") // TODO: Hack... aka badlands
 						&& !modAndBiome.contentEquals("minecraft:nether")) { // TODO: Hack... aks the_nether
-						
-						// TODO:						&& !ForgeRegistries.BIOMES.containsKey(new ResourceLocation(modAndBiome))) {
-					System.out.println("Regrowth Debug: Wall Biome Data: " + key
-							+ " not in Forge Entity Type Registry.  Mispelled?");
+						// TODO: Check Dynamic Registries.
 				}
 			} catch (Exception e) {
 				System.out.println("Regrowth Debug:  Bad Wall Biome Data Config : " + oneLine);

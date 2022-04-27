@@ -1,5 +1,6 @@
 package com.mactso.regrowth.utility;
 
+
 import java.lang.reflect.Field;
 
 import org.apache.logging.log4j.LogManager;
@@ -7,11 +8,16 @@ import org.apache.logging.log4j.Logger;
 
 import com.mactso.regrowth.config.ModConfigs;
 
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.Item;
 import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextColor;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.Biome.Category;
 
@@ -20,11 +26,21 @@ public class Utility {
 	private static final Logger LOGGER = LogManager.getLogger();
 	static {
 		try {
-			String name = ASMAPI.mapField("f_47442_");
+			String name = "field_9329";  // see mappings.jar
 			fieldBiomeCategory = Biome.class.getDeclaredField(name);
 			fieldBiomeCategory.setAccessible(true);
 		} catch (Exception e) {
-			LOGGER.error("Unexpected Reflection Failure set Biome.biomeCategory accessible");
+			LOGGER.error("Unexpected Reflection Failure set Biome.category accessible");
+		}
+		if (fieldBiomeCategory == null) {
+			try {
+				String name = "category";  // see mappings.jar
+				fieldBiomeCategory = Biome.class.getDeclaredField(name);
+				fieldBiomeCategory.setAccessible(true);
+			} catch (Exception e) {
+				LOGGER.error("Development Biome field 'category' not found.");
+			}
+			
 		}
 	}
 
@@ -67,5 +83,27 @@ public class Utility {
 		}
 	}
 	
+	public static String getResourceLocationString(BlockState blockState) {
+		return getResourceLocationString(blockState.getBlock());
+	}
+	
+	@SuppressWarnings("deprecation")
+	public static String getResourceLocationString(Block block) {
+		return block.getRegistryEntry().registryKey().getValue().toString();
+	}
+
+	@SuppressWarnings("deprecation")
+	public static String getResourceLocationString(Item item) {
+		return item.getRegistryEntry().registryKey().getValue().toString();
+	}
+
+	@SuppressWarnings("deprecation")
+	public static String getResourceLocationString(Entity entity) {
+		return entity.getType().getRegistryEntry().registryKey().getValue().toString();
+	}
+
+	public static String getResourceLocationString(World world) {
+		return world.getRegistryKey().getValue().toString();
+	}
 
 }

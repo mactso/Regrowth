@@ -1,6 +1,10 @@
 package com.mactso.regrowth.config;
 
 import java.util.Hashtable;
+import java.util.StringTokenizer;
+
+import net.minecraft.util.Identifier;
+import net.minecraft.util.registry.Registry;
 
 
 public class WallFoundationDataManager {
@@ -34,26 +38,27 @@ public class WallFoundationDataManager {
 
 	public static void wallFoundationsInit() {
 		
-		int i = 0;
 
-
-		i = 0;
+		
 		wallFoundationsHashtable.clear();
-		while (i < MyConfig.defaultWallFoundationsArray.length) {
-			try {
 
-				String wallFoundationBlockKey = MyConfig.defaultWallFoundationsArray[i];
-				String key = wallFoundationBlockKey;				
-				if (ForgeRegistries.BLOCKS.containsKey(new ResourceLocation(wallFoundationBlockKey))) {
-					wallFoundationsHashtable.put(key, new wallFoundationItem(wallFoundationBlockKey));
+		String oneLine = "";
+		StringTokenizer tokenizedWallFoundationString = new StringTokenizer(ModConfigs.getWallFoundationsList(), ";");
+
+		while (tokenizedWallFoundationString.hasMoreElements()) {
+			oneLine = tokenizedWallFoundationString.nextToken().trim();
+			if (oneLine.isEmpty()) continue;
+			try {
+				String key = oneLine;
+		        if (Registry.BLOCK.containsId(new Identifier(key))) {
+					wallFoundationsHashtable.put(key, new wallFoundationItem(key));		
 				} else {
-					System.out.println("Regrowth Debug: Wall Foundation Block: " + wallFoundationBlockKey + " not in Forge Entity Type Registry.  Mispelled?  Missing semicolon? ");
+					System.out.println("Regrowth Debug: Wall Foundation Block: " + key + " not in Block Registry.  Mispelled?  Missing semicolon? ");
 				}
 				
 			} catch (Exception e) {
-				System.out.println("Regrowth Debug:  Bad Wall Foundation Config (illegal characters, Upper Case or not [a-z0-9_.-] ?): " + MyConfig.defaultWallFoundationsArray[i]);
+				System.out.println("Regrowth Debug:  Bad Wall Foundation Config (illegal characters, Upper Case or not [a-z0-9_.-] ?): " + oneLine);
 			}
-			i++;
 		}
 
 	}

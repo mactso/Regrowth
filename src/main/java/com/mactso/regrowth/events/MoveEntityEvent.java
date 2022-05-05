@@ -168,7 +168,7 @@ public class MoveEntityEvent {
 		if (entity instanceof Player)
 			return;
 
-		if (entity.getId()%2 == 1) 
+		if (entity.getId()%2 == entity.level.getGameTime()%2) 
 			return;
 		
 		if (entity.blockPosition() == null) 

@@ -23,6 +23,7 @@ import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.BlockPos.MutableBlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.core.Registry;
 import net.minecraft.network.chat.Component;
@@ -31,6 +32,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
@@ -64,6 +66,8 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.BonemealableBlock;
 import net.minecraft.world.level.block.CactusBlock;
+import net.minecraft.world.level.block.CoralBlock;
+import net.minecraft.world.level.block.CoralWallFanBlock;
 import net.minecraft.world.level.block.DoublePlantBlock;
 import net.minecraft.world.level.block.FenceBlock;
 import net.minecraft.world.level.block.FlowerBlock;
@@ -71,6 +75,7 @@ import net.minecraft.world.level.block.GrassBlock;
 import net.minecraft.world.level.block.HugeMushroomBlock;
 import net.minecraft.world.level.block.LeavesBlock;
 import net.minecraft.world.level.block.MushroomBlock;
+import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.SaplingBlock;
 import net.minecraft.world.level.block.SnowLayerBlock;
 import net.minecraft.world.level.block.TallGrassBlock;
@@ -83,6 +88,7 @@ import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.levelgen.Heightmap.Types;
 import net.minecraft.world.level.levelgen.feature.ConfiguredStructureFeature;
+import net.minecraft.world.level.levelgen.feature.CoralTreeFeature;
 import net.minecraft.world.level.levelgen.feature.StructureFeature;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
@@ -98,10 +104,14 @@ import net.minecraftforge.registries.ForgeRegistries;
 @Mod.EventBusSubscriber()
 public class MoveEntityEvent {
 
-	
+	private Random moveRand = new Random();
+	private final Block[] coralPlants = {Blocks.TALL_SEAGRASS,Blocks.SEAGRASS,Blocks.SEA_PICKLE, Blocks.BRAIN_CORAL_FAN,Blocks.BUBBLE_CORAL_FAN,Blocks.FIRE_CORAL_FAN, Blocks.HORN_CORAL_FAN,Blocks.TUBE_CORAL_FAN,Blocks.BRAIN_CORAL_FAN,Blocks.BUBBLE_CORAL_FAN,Blocks.FIRE_CORAL_FAN, Blocks.HORN_CORAL_FAN,Blocks.TUBE_CORAL_FAN};
+	private final Block[] coralfans = { Blocks.BRAIN_CORAL_WALL_FAN,Blocks.BUBBLE_CORAL_WALL_FAN,Blocks.FIRE_CORAL_WALL_FAN, Blocks.HORN_CORAL_WALL_FAN,Blocks.TUBE_CORAL_WALL_FAN };
+	private final Rotation[] coralfanrotations = {Rotation.CLOCKWISE_180, Rotation.COUNTERCLOCKWISE_90, Rotation.CLOCKWISE_90, Rotation.NONE};
+
 	private int[] dx = { 1, 0, -1, 0 };
 	private int[] dz = { 0, 1, 0, -1 };
-	private int TICKS_PER_SECOND = 20;
+	private int CHECKS_PER_SECOND = 10;
 	private int[][] facingArray = { { 0, 1 }, { -1, 1 }, { -1, 0 }, { -1, -1 }, { 0, -1 }, { 1, -1 }, { 1, 0 },
 			{ 1, 1 } };
 	private int lastTorchX = 0;
@@ -111,6 +121,7 @@ public class MoveEntityEvent {
 	static final int FENCE_CENTER = 0;
 	static final int WALL_TYPE_WALL = -1;
 	static final int WALL_TYPE_FENCE = -2;
+
 
 	private BlockState footBlockState;
 	private BlockState groundBlockState;
@@ -157,9 +168,12 @@ public class MoveEntityEvent {
 		if (entity instanceof Player)
 			return;
 
-		if (entity.blockPosition() == null) {
+		if (entity.getId()%2 == 1) 
 			return;
-		}
+		
+		if (entity.blockPosition() == null) 
+			return;
+		
 		String registryNameAsString = helperGetRegistryNameAsString(entity);
 		RegrowthMobItem currentRegrowthMobItem = RegrowthEntitiesManager.getRegrowthMobInfo(registryNameAsString);
 		if (currentRegrowthMobItem == null)
@@ -187,7 +201,7 @@ public class MoveEntityEvent {
 			if (isImpossibleRegrowthEvent(regrowthActions))
 				return;
 
-			double regrowthEventOdds = 1 / (currentRegrowthMobItem.getRegrowthEventSeconds() * TICKS_PER_SECOND);
+			double regrowthEventOdds = 1 / (currentRegrowthMobItem.getRegrowthEventSeconds() * CHECKS_PER_SECOND);
 			if (isHorseTypeEatingNow(entity)) {
 				regrowthEventOdds *= 20;
 			}
@@ -279,6 +293,7 @@ public class MoveEntityEvent {
 	}
 
 	private void doMobRegrowthEvents(Entity entity, String key, String regrowthType) {
+		
 
 		if (regrowthType.equals("stumble")) {
 			if ((footBlock instanceof TorchBlock) || (footBlock instanceof WallTorchBlock)) {
@@ -296,7 +311,13 @@ public class MoveEntityEvent {
 			mobGrowMushroomAction(entity, key);
 			return;
 		}
+		
+		if (regrowthType.equals("coral")) {
+			mobGrowCoralAction(entity, key);
+			return;
+		}
 
+		int x=3;
 		// all remaining actions currently require a grass block underfoot so if not a
 		// grass block- can exit now.
 		// this is for performance savings only.
@@ -328,6 +349,88 @@ public class MoveEntityEvent {
 			mobGrowPlantsAction(entity, key);
 			return;
 		}
+	}
+
+	private boolean mobGrowCoralAction(Entity e, String key) {
+
+		Level level = e.level;
+		int sealevel = level.getSeaLevel();
+		Random rand = level.getRandom();
+
+		// Block bwf = Blocks.BRAIN_CORAL_WALL_FAN;
+		
+		moveRand.setSeed(e.getBlockY()*1151+e.getBlockX()*51+e.getBlockZ()*31);  // "predictable" random.
+		double docoralplant = moveRand.nextDouble();
+		docoralplant = moveRand.nextDouble();
+		double docoralfan = moveRand.nextDouble();
+		int coralfanDirection = moveRand.nextInt(4);
+		int minCoraldepth = sealevel -4 + moveRand.nextInt(2);
+		int maxCoraldepth = sealevel -16;
+		
+		if (e.getBlockY() > minCoraldepth) return false;
+		if (e.getBlockY() < maxCoraldepth) return false;
+
+		BlockPos pos = e.blockPosition();
+
+
+		
+		if (level.getBlockState(pos.below(0)).getBlock() != Blocks.WATER) return false; // should be impossible.
+		if (level.getBlockState(pos.below(1)).getBlock() != Blocks.WATER) return false;
+
+		if (level.getBlockState(pos.below(2)).getBlock() instanceof CoralBlock) {
+			MyConfig.debugMsg(2, pos, "Coral double:" + docoralplant);
+			MyConfig.debugMsg(2, pos, "Coral fan double:" + docoralfan);
+			
+			MyConfig.debugMsg(2, pos, "Coral plant opportunity:" +e.getType().getRegistryName().toString() +" .");
+
+			if (docoralfan < 0.3) {
+				Direction d = Direction.from2DDataValue(coralfanDirection);
+				BlockPos fanPos = e.blockPosition().below(2).relative(d);
+				if (level.getBlockState(fanPos).getBlock() == Blocks.WATER) {
+					level.setBlockAndUpdate(fanPos, coralfans[rand.nextInt(coralfans.length)].defaultBlockState().setValue(CoralWallFanBlock.FACING,d));
+				}
+			}
+			
+			
+			int count = countCoral(e);
+			MyConfig.debugMsg(2, pos, "CORAL count = :" + count + ", "+e.getType().getRegistryName().toString() +" .");
+			if (count > 5) return false;
+			BlockState theCoralBlock = level.getBlockState(pos.below(2)); // grow same kind of coral block
+			if ((count < 6) && (e.getBlockY() == minCoraldepth)) {
+				if (docoralplant < 0.30) return false;
+				MyConfig.debugMsg(2, pos, "CORAL Plant grows over Coral Block:" +e.getType().getRegistryName().toString() +" .");
+				level.setBlockAndUpdate(pos.below(1), coralPlants[rand.nextInt(coralPlants.length)].defaultBlockState());
+				level.playSound(null, pos, SoundEvents.AMBIENT_UNDERWATER_ENTER, SoundSource.AMBIENT, 0.9f, 1.4f);
+				return true;
+			} else if ( (e.getBlockY() < minCoraldepth)) {
+				int ew = rand.nextInt(3)-1;
+				int ns = rand.nextInt(3)-1;
+				if (level.getBlockState(pos.below(1).east(ew).north(ns)).getBlock() != Blocks.WATER) return false;
+				MyConfig.debugMsg(2, pos, "CORAL Block grows over Coral Block:" +e.getType().getRegistryName().toString() +" .");
+				level.setBlockAndUpdate(pos.below(1).east(ew).north(ns), theCoralBlock);
+				level.playSound(null, pos, SoundEvents.CHORUS_FLOWER_GROW, SoundSource.AMBIENT, 0.9f, 1.4f);
+				MyConfig.debugMsg(2, pos, "CORAL:" +e.getType().getRegistryName().toString() +" new block set at near " + pos.below(1)+" .");
+
+			}
+
+			
+		}
+		
+		return true;
+	}
+
+	private int countCoral(Entity e) {
+		int c = 0;
+		for (int ud=-1; ud<=0; ud++) {
+			for (int ew=-1; ew<=1; ew++) {
+				for (int ns = -1; ns<=1; ns++) {
+					if (e.level.getBlockState(e.blockPosition().below(1).east(ew).north(ns)).getBlock() instanceof CoralBlock) {
+						c++;
+					}
+				}
+			}
+		}
+		return c;
 	}
 
 	private boolean mobGrowPlantsAction(Entity entity, String key) {

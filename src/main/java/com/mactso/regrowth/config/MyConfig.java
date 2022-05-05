@@ -184,7 +184,7 @@ public class MyConfig {
 				+ "minecraft:donkey,eat,180.0;" + "minecraft:sheep,eat,120.0;" + "minecraft:pig,reforest,450.0;"
 				+ "minecraft:bee,grow,500.0;" + "minecraft:chicken,grow,320.0;" + "minecraft:villager,chrwvt,2.0;"
 				+ "minecraft:creeper,tall,90.0;" + "minecraft:zombie,stumble, 30.0;" + "minecraft:bat,stumble, 30.0;"
-				+ "minecraft:skeleton,mushroom, 30.0";
+				+ "minecraft:skeleton,mushroom, 40.0;" + "minecraft:tropical_fish,coral, 15.0;"+ "minecraft:squid,coral, 15.0;";
 
 		// blocks walls can be built on
 		List<String> defaultWallFoundationsList = Arrays.asList(

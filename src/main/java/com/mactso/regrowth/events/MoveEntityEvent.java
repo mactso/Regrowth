@@ -27,6 +27,10 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.CactusBlock;
 import net.minecraft.block.CarpetBlock;
+import net.minecraft.block.CoralBlock;
+import net.minecraft.block.CoralBlockBlock;
+import net.minecraft.block.CoralParentBlock;
+import net.minecraft.block.CoralWallFanBlock;
 import net.minecraft.block.FenceBlock;
 import net.minecraft.block.FernBlock;
 import net.minecraft.block.Fertilizable;
@@ -68,6 +72,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.BlockPos.Mutable;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.util.registry.RegistryKey;
@@ -87,9 +92,13 @@ import net.minecraft.world.poi.PointOfInterestType;
 
 public class MoveEntityEvent {
 
+	private static Random moveRand = new Random();
+	private final static Block[] coralPlants = {Blocks.TALL_SEAGRASS,Blocks.SEAGRASS,Blocks.SEA_PICKLE, Blocks.BRAIN_CORAL_FAN,Blocks.BUBBLE_CORAL_FAN,Blocks.FIRE_CORAL_FAN, Blocks.HORN_CORAL_FAN,Blocks.TUBE_CORAL_FAN,Blocks.BRAIN_CORAL_FAN,Blocks.BUBBLE_CORAL_FAN,Blocks.FIRE_CORAL_FAN, Blocks.HORN_CORAL_FAN,Blocks.TUBE_CORAL_FAN};
+	private final static Block[] coralfans = { Blocks.BRAIN_CORAL_WALL_FAN,Blocks.BUBBLE_CORAL_WALL_FAN,Blocks.FIRE_CORAL_WALL_FAN, Blocks.HORN_CORAL_WALL_FAN,Blocks.TUBE_CORAL_WALL_FAN };
+
 	private static int[] dx = { 1, 0, -1, 0 };
 	private static int[] dz = { 0, 1, 0, -1 };
-	private static int TICKS_PER_SECOND = 20;
+	private static int CHECKS_PER_SECOND = 10;
 	private static int[][] facingArray = { { 0, 1 }, { -1, 1 }, { -1, 0 }, { -1, -1 }, { 0, -1 }, { 1, -1 }, { 1, 0 },
 			{ 1, 1 } };
 	private static int lastTorchX = 0;
@@ -118,7 +127,7 @@ public class MoveEntityEvent {
 		if (entity instanceof VillagerEntity ve) {
 			if ((ve.getVillagerData().getProfession() == VillagerProfession.FARMER)
 					&& (ve.getVillagerData().getLevel() > 3)) {
-				Utility.debugMsg(2, pos, "Villager is L3 farmer");
+				Utility.debugMsg(0, pos, "Villager is L3 farmer");
 				return true;
 			}
 		}
@@ -126,7 +135,7 @@ public class MoveEntityEvent {
 			if (spe.isCreative()) {
 				return true;
 			}
-			Utility.debugMsg(2, pos, "FarmlandTrampleCancelled");
+			Utility.debugMsg(0, pos, "FarmlandTrampleCancelled");
 		}
 
 		return false;
@@ -139,9 +148,12 @@ public class MoveEntityEvent {
 		if (entity instanceof PlayerEntity)
 			return;
 
-		if (entity.getBlockPos() == null) {
+		if (entity.getId()%2 == entity.world.getTime()%2) 
 			return;
-		}
+		
+		if (entity.getBlockPos() == null) 
+			return;
+		
 		String registryNameAsString = helperGetRegistryNameAsString(entity);
 		RegrowthMobItem currentRegrowthMobItem = RegrowthEntitiesManager.getRegrowthMobInfo(registryNameAsString);
 		if (currentRegrowthMobItem == null)
@@ -169,12 +181,12 @@ public class MoveEntityEvent {
 			if (isImpossibleRegrowthEvent(regrowthActions))
 				return;
 
-			double regrowthEventOdds = 1 / (currentRegrowthMobItem.getRegrowthEventSeconds() * TICKS_PER_SECOND);
+			double regrowthEventOdds = 1 / (currentRegrowthMobItem.getRegrowthEventSeconds() * CHECKS_PER_SECOND);
 			if (isHorseTypeEatingNow(entity)) {
 				regrowthEventOdds *= 20;
 			}
 			double randomD100Roll = entity.world.random.nextDouble();
-			int debugvalue = 0; // TODO make sure value 0 after debugging.
+			int debugvalue = 20; // TODO make sure value 0 after debugging.
 
 			long chunkAge = entity.world.getChunk(entity.getBlockPos()).getInhabitedTime();
 
@@ -276,6 +288,11 @@ public class MoveEntityEvent {
 			mobGrowMushroomAction(entity, key);
 			return;
 		}
+		
+		if (regrowthType.equals("coral")) {
+			mobGrowCoralAction(entity, key);
+			return;
+		}
 
 		// all remaining actions currently require a grass block underfoot so if not a
 		// grass block- can exit now.
@@ -309,6 +326,106 @@ public class MoveEntityEvent {
 			return;
 		}
 	}
+
+	private static boolean mobGrowCoralAction(Entity e, String key) {
+
+		World level = e.world;
+		int sealevel = level.getSeaLevel();
+		Random rand = level.getRandom();
+
+		// Block bwf = Blocks.BRAIN_CORAL_WALL_FAN;
+		
+		moveRand.setSeed(e.getBlockY()*1151+e.getBlockX()*51+e.getBlockZ()*31);  // "predictable" random.
+		double docoralplant = moveRand.nextDouble();
+		docoralplant = moveRand.nextDouble();
+		double docoralfan = moveRand.nextDouble();
+		int coralfanDirection = moveRand.nextInt(4);
+		int minCoraldepth = sealevel -4 + moveRand.nextInt(2);
+		int maxCoraldepth = sealevel -16;
+		
+		if (e.getBlockY() > minCoraldepth) return false;
+		if (e.getBlockY() < maxCoraldepth) return false;
+
+		BlockPos pos = e.getBlockPos();
+
+
+		
+		if (level.getBlockState(pos.down(0)).getBlock() != Blocks.WATER) return false; // should be impossible.
+		if (level.getBlockState(pos.down(1)).getBlock() != Blocks.WATER) return false;
+		Block b = level.getBlockState(pos.down(2)).getBlock();
+
+		if (level.getBlockState(pos.down(2)).getBlock() != Blocks.WATER) {
+			if ((b != Blocks.STONE) && (b!= Blocks.GLASS)) {
+				Utility.debugMsg(0,pos, "Block: " + level.getBlockState(pos.down(2)).getBlock().getTranslationKey() );
+				
+			}
+		}
+
+		boolean fabpatch = false;
+		if (level.getBlockState(pos.down(2)).getBlock() instanceof CoralBlockBlock) {
+			fabpatch = true;
+		}
+		if (level.getBlockState(pos.down(2)).getBlock() instanceof CoralBlock) {
+			fabpatch = true;
+		}
+		
+		if (fabpatch) {
+			Utility.debugMsg(0, pos, "Coral double:" + docoralplant);
+			Utility.debugMsg(0, pos, "Coral fan double:" + docoralfan);
+			
+			Utility.debugMsg(0, pos, "Coral plant opportunity:" +e.getType().getRegistryEntry().toString() +" .");
+
+			if (docoralfan < 0.3) {  // TODO set back to 0.3
+				Direction d = Direction.fromHorizontal(coralfanDirection);
+				BlockPos fanPos = e.getBlockPos().down(2).offset(d);
+				if (level.getBlockState(fanPos).getBlock() == Blocks.WATER) {
+					level.setBlockState(fanPos, coralfans[rand.nextInt(coralfans.length)].getDefaultState().with(CoralWallFanBlock.FACING,d));
+				}
+			}
+			
+			int x = 3;
+			int count = countCoral(e);
+			Utility.debugMsg(0, pos, "CORAL count = :" + count + ", "+e.getType().getRegistryEntry().toString() +" .");
+			if (count > 5) return false;
+			BlockState theCoralBlock = level.getBlockState(pos.down(2)); // grow same kind of coral block
+			if ((count < 6) && (e.getBlockY() == minCoraldepth)) {
+				if (docoralplant < 0.30) return false;
+				Utility.debugMsg(0, pos, "CORAL Plant grows over Coral Block:" +e.getType().getRegistryEntry().toString() +" .");
+				level.setBlockState(pos.down(1), coralPlants[rand.nextInt(coralPlants.length)].getDefaultState());
+				level.playSound(null, pos, SoundEvents.AMBIENT_UNDERWATER_ENTER, SoundCategory.AMBIENT, 0.9f, 1.4f);
+				return true;
+			} else if ( (e.getBlockY() < minCoraldepth)) {
+				int ew = rand.nextInt(3)-1;
+				int ns = rand.nextInt(3)-1;
+				if (level.getBlockState(pos.down(1).east(ew).north(ns)).getBlock() != Blocks.WATER) return false;
+				Utility.debugMsg(0, pos, "CORAL Block grows over Coral Block:" +e.getType().getRegistryEntry().toString() +" .");
+				level.setBlockState(pos.down(1).east(ew).north(ns), theCoralBlock);
+				level.playSound(null, pos, SoundEvents.BLOCK_CHORUS_FLOWER_GROW, SoundCategory.AMBIENT, 0.9f, 1.4f);
+				Utility.debugMsg(0, pos, "CORAL:" +e.getType().getRegistryEntry().toString() +" new block set at near " + pos.down(1)+" .");
+
+			}
+
+			
+		}
+		
+		return true;
+	}
+
+	private static int countCoral(Entity e) {
+		int c = 0;
+		for (int ud=-1; ud<=0; ud++) {
+			for (int ew=-1; ew<=1; ew++) {
+				for (int ns = -1; ns<=1; ns++) {
+					if (e.world.getBlockState(e.getBlockPos().down(1).east(ew).north(ns)).getBlock() instanceof CoralBlock) {
+						c++;
+					}
+				}
+			}
+		}
+		return c;
+	}
+
+
 
 	private static boolean mobGrowPlantsAction(Entity entity, String key) {
 
@@ -1365,7 +1482,7 @@ public class MoveEntityEvent {
 
 		String key = "minecraft:" + biomeCategory.toString();
 		key = key.toLowerCase();
-		Utility.debugMsg(2, vePos, key + " wall improvement.");
+		Utility.debugMsg(0, vePos, key + " wall improvement.");
 		WallBiomeDataManager.WallBiomeDataItem currentWallBiomeDataItem = WallBiomeDataManager
 				.getWallBiomeDataItem(key);
 		Utility.debugMsg(1, vePos, key + " biome for wall improvement. ");
@@ -1375,7 +1492,7 @@ public class MoveEntityEvent {
 		wallRadius = (wallRadius / 2) - 1;
 
 		if (isOnWallPerimeter(ve, wallRadius, gVMPPos)) {
-			Utility.debugMsg(2, ve.getBlockPos(), "villager on wall perimeter: " + wallRadius);
+			Utility.debugMsg(0, ve.getBlockPos(), "villager on wall perimeter: " + wallRadius);
 			// check for other meeting place bells blocking wall since too close.
 			Collection<PointOfInterest> result = ((ServerWorld) ve.world).getPointOfInterestStorage()
 					.getInSquare(t -> t == PointOfInterestType.MEETING, ve.getBlockPos(), 41, OccupationStatus.ANY)

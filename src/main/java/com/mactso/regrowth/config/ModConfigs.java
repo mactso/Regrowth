@@ -24,7 +24,8 @@ public class ModConfigs {
 			+ "minecraft:sheep,eat,120.0;" + "minecraft:pig,reforest,450.0;" + "minecraft:bee,grow,500.0;"
 			+ "minecraft:chicken,grow,320.0;" + "minecraft:villager,chrwvt,2.0;"
 			+ "minecraft:creeper,tall,90.0;" + "minecraft:zombie,stumble, 30.0;"
-			+ "minecraft:bat,stumble, 30.0;" + "minecraft:skeleton,mushroom, 30.0";
+			+ "minecraft:bat,stumble, 30.0;" + "minecraft:skeleton,mushroom, 30.0;"
+			+ "minecraft:tropical_fish,coral, 15.0;"+ "minecraft:squid,coral, 15.0;";
 	private static final String defaultWallblockList = "minecraft:plains,48,minecraft:cobblestone_wall,minecraft:oak_fence;"
 			+ "minecraft:desert,48,minecraft:sandstone_wall,minecraft:birch_fence;"
 			+ "minecraft:extreme_hills,48,minecraft:cobblestone_wall,minecraft:spruce_fence;"

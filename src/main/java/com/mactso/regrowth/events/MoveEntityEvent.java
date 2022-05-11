@@ -1722,7 +1722,7 @@ public class MoveEntityEvent {
 			}
 		}
 		// biomes you'll go grass compatibility
-		if (footBlock.getTranslationKey() == "block.byg.short_grass") {
+		if (footBlock.getTranslationKey().equals("block.byg.short_grass")) {
 			return true;
 		}
 		if (ModConfigs.getDebugLevel() > 0) {

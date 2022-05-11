@@ -959,8 +959,12 @@ public class MoveEntityEvent {
 		if (footBlock == Blocks.GRASS) {
 			BlockPos ePos = getAdjustedBlockPos(ent);
 			Fertilizable ib = (Fertilizable) footBlock;
-			ib.grow((ServerWorld) ent.world, ent.world.random, ePos, ent.world.getBlockState(ePos));
-			Utility.debugMsg(1, ePos, key + " grew and hid in tall plant.");
+			try {
+				ib.grow((ServerWorld) ent.world, ent.world.random, ePos, ent.world.getBlockState(ePos));
+				Utility.debugMsg(1, ePos, key + " grew and hid in tall plant.");
+			} catch (Exception e) {
+				Utility.debugMsg(1, ent.getBlockPos(), key + " caught grow attempt exception.");
+			}
 			return true;
 		}
 		return false;

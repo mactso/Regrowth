@@ -127,7 +127,7 @@ public class MoveEntityEvent {
 		if (entity instanceof VillagerEntity ve) {
 			if ((ve.getVillagerData().getProfession() == VillagerProfession.FARMER)
 					&& (ve.getVillagerData().getLevel() > 3)) {
-				Utility.debugMsg(0, pos, "Villager is L3 farmer");
+				Utility.debugMsg(1, pos, "Villager is L3 farmer");
 				return true;
 			}
 		}
@@ -135,7 +135,7 @@ public class MoveEntityEvent {
 			if (spe.isCreative()) {
 				return true;
 			}
-			Utility.debugMsg(0, pos, "FarmlandTrampleCancelled");
+			Utility.debugMsg(1, pos, "FarmlandTrampleCancelled");
 		}
 
 		return false;
@@ -186,7 +186,7 @@ public class MoveEntityEvent {
 				regrowthEventOdds *= 20;
 			}
 			double randomD100Roll = entity.world.random.nextDouble();
-			int debugvalue = 20; // TODO make sure value 0 after debugging.
+			int debugvalue = 0; // TODO make sure value 0 after debugging.
 
 			long chunkAge = entity.world.getChunk(entity.getBlockPos()).getInhabitedTime();
 
@@ -356,7 +356,7 @@ public class MoveEntityEvent {
 
 		if (level.getBlockState(pos.down(2)).getBlock() != Blocks.WATER) {
 			if ((b != Blocks.STONE) && (b!= Blocks.GLASS)) {
-				Utility.debugMsg(0,pos, "Block: " + level.getBlockState(pos.down(2)).getBlock().getTranslationKey() );
+				Utility.debugMsg(1,pos, "Block: " + level.getBlockState(pos.down(2)).getBlock().getTranslationKey() );
 				
 			}
 		}
@@ -370,10 +370,9 @@ public class MoveEntityEvent {
 		}
 		
 		if (fabpatch) {
-			Utility.debugMsg(0, pos, "Coral double:" + docoralplant);
-			Utility.debugMsg(0, pos, "Coral fan double:" + docoralfan);
-			
-			Utility.debugMsg(0, pos, "Coral plant opportunity:" +e.getType().getRegistryEntry().toString() +" .");
+//			Utility.debugMsg(1, pos, "Coral double:" + docoralplant);
+//			Utility.debugMsg(1, pos, "Coral fan double:" + docoralfan);
+			Utility.debugMsg(1, pos, "Coral plant opportunity:" +e.getType().getRegistryEntry().toString() +" .");
 
 			if (docoralfan < 0.3) {  // TODO set back to 0.3
 				Direction d = Direction.fromHorizontal(coralfanDirection);
@@ -383,14 +382,14 @@ public class MoveEntityEvent {
 				}
 			}
 			
-			int x = 3;
+//			int x = 3;
 			int count = countCoral(e);
-			Utility.debugMsg(0, pos, "CORAL count = :" + count + ", "+e.getType().getRegistryEntry().toString() +" .");
+//			Utility.debugMsg(1, pos, "CORAL count = :" + count + ", "+e.getType().getRegistryEntry().toString() +" .");
 			if (count > 5) return false;
 			BlockState theCoralBlock = level.getBlockState(pos.down(2)); // grow same kind of coral block
 			if ((count < 6) && (e.getBlockY() == minCoraldepth)) {
 				if (docoralplant < 0.30) return false;
-				Utility.debugMsg(0, pos, "CORAL Plant grows over Coral Block:" +e.getType().getRegistryEntry().toString() +" .");
+				Utility.debugMsg(1, pos, "CORAL Plant grows over Coral Block:" +e.getType().getRegistryEntry().toString() +" .");
 				level.setBlockState(pos.down(1), coralPlants[rand.nextInt(coralPlants.length)].getDefaultState());
 				level.playSound(null, pos, SoundEvents.AMBIENT_UNDERWATER_ENTER, SoundCategory.AMBIENT, 0.9f, 1.4f);
 				return true;
@@ -398,10 +397,10 @@ public class MoveEntityEvent {
 				int ew = rand.nextInt(3)-1;
 				int ns = rand.nextInt(3)-1;
 				if (level.getBlockState(pos.down(1).east(ew).north(ns)).getBlock() != Blocks.WATER) return false;
-				Utility.debugMsg(0, pos, "CORAL Block grows over Coral Block:" +e.getType().getRegistryEntry().toString() +" .");
+				Utility.debugMsg(1, pos, "CORAL Block grows over Coral Block:" +e.getType().getRegistryEntry().toString() +" .");
 				level.setBlockState(pos.down(1).east(ew).north(ns), theCoralBlock);
 				level.playSound(null, pos, SoundEvents.BLOCK_CHORUS_FLOWER_GROW, SoundCategory.AMBIENT, 0.9f, 1.4f);
-				Utility.debugMsg(0, pos, "CORAL:" +e.getType().getRegistryEntry().toString() +" new block set at near " + pos.down(1)+" .");
+				Utility.debugMsg(1, pos, "CORAL:" +e.getType().getRegistryEntry().toString() +" new block set at near " + pos.down(1)+" .");
 
 			}
 
@@ -606,7 +605,7 @@ public class MoveEntityEvent {
 
 		boolean growMushroom = false;
 		if (BlockTags.BASE_STONE_OVERWORLD == null) {
-			Utility.debugMsg(0, "BlockTags.BASE_STONE_OVERWORLD missing.");
+			Utility.warn ( "BlockTags.BASE_STONE_OVERWORLD missing.");
 			if (groundBlock == Blocks.STONE || groundBlock == Blocks.DIORITE || groundBlock == Blocks.ANDESITE
 					|| groundBlock == Blocks.GRANITE) {
 				growMushroom = true;

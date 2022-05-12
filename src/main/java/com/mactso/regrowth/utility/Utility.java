@@ -73,8 +73,12 @@ public class Utility {
 		p.sendSystemMessage(component, p.getUuid());
 	}
 
+	public static void warn (String dMsg) {
+		LOGGER.warn(dMsg);
+	}
+	
 	public static void debugMsg (int level, BlockPos pos, String dMsg) {
-	debugMsg(level, " ("+pos.getX()+","+pos.getY()+","+pos.getZ()+"): " + dMsg);
+		debugMsg(level, " ("+pos.getX()+","+pos.getY()+","+pos.getZ()+"): " + dMsg);
 	}
 	
 	public static void debugMsg(int level, String dMsg) {

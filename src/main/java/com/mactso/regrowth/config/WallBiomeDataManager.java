@@ -1,6 +1,7 @@
 package com.mactso.regrowth.config;
 
 import java.util.Hashtable;
+import java.util.List;
 import java.util.StringTokenizer;
 
 import com.mactso.regrowth.utility.Utility;
@@ -10,8 +11,7 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.tag.BlockTags;
 import net.minecraft.util.registry.Registry;
-import net.minecraft.util.registry.RegistryEntry;
-import net.minecraft.util.registry.RegistryEntryList.Named;
+
 
 public class WallBiomeDataManager {
 	private static Hashtable<String, WallBiomeDataItem> wallBiomeDataHashtable = new Hashtable<>();
@@ -60,19 +60,27 @@ public class WallBiomeDataManager {
 
 		
         // TODO: line 64 might be wrong method "Named" is different.
-    	Named<Block> walls = Registry.BLOCK.getOrCreateEntryList(BlockTags.WALLS);
-    	if (!walls.iterator().hasNext()) {
-        	System.out.println("failed to get walls all tags ");
-        	return;
-    	}
-    	System.out.println("succeeded in loading walls all tags");
-    	
-        Named<Block> fences = Registry.BLOCK.getOrCreateEntryList(BlockTags.FENCES);
-    	if (!fences.iterator().hasNext()) {
-        	System.out.println("failed to get fences all tags ");
-        	return;
-    	}        
-    	System.out.println("succeeded in loading fences all tags");
+		List<Block> walls = null;
+		List<Block> fences = null;
+
+		try {
+			walls = BlockTags.WALLS.values();
+	    	if (walls.isEmpty()) {
+	        	System.out.println("failed to get walls all tags ");
+	        	return;
+	    	}
+	    	System.out.println("succeeded in loading walls all tags");
+	    	
+	        fences = BlockTags.FENCES.values();
+	    	if (fences.isEmpty()) {
+	        	System.out.println("failed to get fences all tags ");
+	        	return;
+	    	}        
+	    	System.out.println("succeeded in loading fences all tags");
+		}  catch (Exception e) {
+			Utility.debugMsg(1, "BlockTags for WALLS or FENCES not ready yet.");
+			return;
+		}
     	
 		wallBiomeDataHashtable.clear();
 
@@ -91,19 +99,19 @@ public class WallBiomeDataManager {
 				int wallDiameter = validatedWallDiameter(Integer.parseInt(wallDiameterString.trim()));
 				
 				BlockState wallBlockState = DEFAULT_WALL_BLOCKSTATE;
-				for (RegistryEntry<Block> w : walls) {
-				    String wbs = Utility.getResourceLocationString(w.value());
+				for (Block w : walls) {
+				    String wbs = Utility.getResourceLocationString(w);
 					if (wbs.equals(wallBlockString)) {
-						wallBlockState = w.value().getDefaultState();
+						wallBlockState = w.getDefaultState();
 						break;
 					}
 				}
 				
 				BlockState fenceBlockState = DEFAULT_FENCE_BLOCKSTATE;
-				for (RegistryEntry<Block> f : fences) {
-				    String fbs = Utility.getResourceLocationString(f.value());
+				for (Block f : fences) {
+				    String fbs = Utility.getResourceLocationString(f);
 					if (fbs.equals(fenceBlockString)) {
-						fenceBlockState = f.value().getDefaultState();
+						fenceBlockState = f.getDefaultState();
 						break; 
 					}
 				}

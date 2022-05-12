@@ -16,8 +16,8 @@ import net.minecraft.world.World;
 @Mixin(FarmlandBlock.class)
 	abstract class FarmlandBlockMixin {
 
-	    @Inject(method = "onLandedUpon(Lnet/minecraft/world/World;Lnet/minecraft/block/BlockState;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/entity/Entity;F)V", at = @At("HEAD"), cancellable = true)
-	    private void onFarmlandTrampled(World w, BlockState bs, BlockPos pos, Entity entity, float f, CallbackInfo ci) {
+	    @Inject(method = "onLandedUpon(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/entity/Entity;F)V", at = @At("HEAD"), cancellable = true)
+	    private void onFarmlandTrampled(World w, BlockPos pos, Entity entity, float f, CallbackInfo ci) {
 	    	if (MoveEntityEvent.handleTrampleEvent(entity)) {
 	    		ci.cancel();
 	    	}

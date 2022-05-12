@@ -17,6 +17,7 @@ import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextColor;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.registry.Registry;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.Biome.Category;
@@ -87,19 +88,19 @@ public class Utility {
 		return getResourceLocationString(blockState.getBlock());
 	}
 	
-	@SuppressWarnings("deprecation")
 	public static String getResourceLocationString(Block block) {
-		return block.getRegistryEntry().registryKey().getValue().toString();
+		// TODO test this.
+		return Registry.BLOCK.getKey(block).get().getValue().toString();
 	}
 
-	@SuppressWarnings("deprecation")
+
 	public static String getResourceLocationString(Item item) {
-		return item.getRegistryEntry().registryKey().getValue().toString();
+		return Registry.ITEM.getKey(item).get().getValue().toString();
 	}
 
-	@SuppressWarnings("deprecation")
+
 	public static String getResourceLocationString(Entity entity) {
-		return entity.getType().getRegistryEntry().registryKey().getValue().toString();
+		return Registry.ENTITY_TYPE.getKey(entity.getType()).get().getValue().toString();
 	}
 
 	public static String getResourceLocationString(World world) {

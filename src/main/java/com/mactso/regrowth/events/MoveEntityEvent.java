@@ -1485,7 +1485,7 @@ public class MoveEntityEvent {
 
 		String key = "minecraft:" + biomeCategory.toString();
 		key = key.toLowerCase();
-		Utility.debugMsg(0, vePos, key + " wall improvement.");
+		Utility.debugMsg(1, vePos, key + " wall improvement.");
 		WallBiomeDataManager.WallBiomeDataItem currentWallBiomeDataItem = WallBiomeDataManager
 				.getWallBiomeDataItem(key);
 		Utility.debugMsg(1, vePos, key + " biome for wall improvement. ");
@@ -1495,7 +1495,7 @@ public class MoveEntityEvent {
 		wallRadius = (wallRadius / 2) - 1;
 
 		if (isOnWallPerimeter(ve, wallRadius, gVMPPos)) {
-			Utility.debugMsg(0, ve.getBlockPos(), "villager on wall perimeter: " + wallRadius);
+			Utility.debugMsg(1, ve.getBlockPos(), "villager on wall perimeter: " + wallRadius);
 			// check for other meeting place bells blocking wall since too close.
 			Collection<PointOfInterest> result = ((ServerWorld) ve.world).getPointOfInterestStorage()
 					.getInSquare(t -> t == PointOfInterestType.MEETING, ve.getBlockPos(), 41, OccupationStatus.ANY)

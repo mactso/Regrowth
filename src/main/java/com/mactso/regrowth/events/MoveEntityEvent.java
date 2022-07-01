@@ -966,17 +966,19 @@ public class MoveEntityEvent {
 	}
 
 	private boolean mobGrowTallAction(Entity ent, String key) {
-		if (footBlock instanceof TallGrassBlock) {
+		if ((footBlock instanceof TallGrassBlock) && (footBlock instanceof BonemealableBlock)) {
 			BlockPos ePos = getAdjustedBlockPos(ent);
-			try {
-				BonemealableBlock ib = (BonemealableBlock) footBlock;
-				ib.performBonemeal((ServerLevel) ent.level, ent.level.random, ePos, ent.level.getBlockState(ePos));
-				MyConfig.debugMsg(1, ePos, key + " grew and hid in tall plant.");			
-				return false;
+			if (footBlock.getRegistryName().getNamespace() != "byg") {
+				try {
+					BonemealableBlock ib = (BonemealableBlock) footBlock;
+					ib.performBonemeal((ServerLevel) ent.level, ent.level.random, ePos, ent.level.getBlockState(ePos));
+					MyConfig.debugMsg(1, ePos, key + " grew and hid in tall plant.");			
+					return false;
 
-			} catch (Exception e) {
-				MyConfig.debugMsg(1, ePos, key + " caught grow attempt exception.");
-				return false;
+				} catch (Exception e) {
+					MyConfig.debugMsg(1, ePos, key + " caught grow attempt exception.");
+					return false;
+				}
 			}
 		}
 		return false;

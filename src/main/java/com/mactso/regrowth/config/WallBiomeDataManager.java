@@ -14,8 +14,8 @@ import net.minecraftforge.registries.ForgeRegistries;
 
 public class WallBiomeDataManager {
 	private static Hashtable<String, WallBiomeDataItem> wallBiomeDataHashtable = new Hashtable<>();
-	private static String defaultRegrowthMobString = "regrowth:default";
-	private static String defaultRegrowthMobKey = defaultRegrowthMobString;
+
+
 
 	public static WallBiomeDataItem getWallBiomeDataItem(String key) {
 		String iKey = key;

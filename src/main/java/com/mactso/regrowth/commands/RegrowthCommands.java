@@ -11,7 +11,6 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.network.chat.TextColor;
@@ -40,10 +39,10 @@ public class RegrowthCommands {
 		.then(Commands.literal("info").executes(ctx -> {
 					ServerPlayer p = ctx.getSource().getPlayerOrException();
 
-					Level worldName = p.level;
+					Level level = p.level;
 					String objectInfo = "";
-					MinecraftServer srv = p.getServer();
-					if (!(p.level.isClientSide)) {
+
+					if (!(level.isClientSide)) {
 						Minecraft mc = Minecraft.getInstance();
 	                    HitResult object = mc.hitResult;
 	                    if (object instanceof EntityHitResult) {
@@ -59,7 +58,7 @@ public class RegrowthCommands {
 					//ITextComponent component = new StringTextComponent (worldName.getDimension().getType().getRegistryName() 
 		            //		+ "\n Current Values");
 
-					MyConfig.sendBoldChat(p, worldName.dimension().toString()
+					MyConfig.sendBoldChat(p, level.dimension().toString()
 		            		+ "\n Current Values", TextColor.fromLegacyFormat(ChatFormatting.DARK_GREEN));
 
 		            String msg = 

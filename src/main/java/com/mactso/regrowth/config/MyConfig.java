@@ -176,6 +176,7 @@ public class MyConfig {
 				+ "minecraft:mesa,48,minecraft:red_sandstone_wall,minecraft:oak_fence;"
 				+ "minecraft:jungle,48,minecraft:granite_wall,minecraft:jungle_fence;"
 				+ "minecraft:river,48,minecraft:mossy_cobblestone_wall,minecraft:oak_fence;"
+				+ "minecraft:underground,48,minecraft:cobbled_deepslate_wall,minecraft:warped_fence;"
 				+ "minecraft:nether,40,minecraft:blackstone_wall,minecraft:nether_brick_fence;"
 				+ "Regrowth:minimum,32,regrowth:minimum_wall_size,regrowth:fence_placeholder";
 

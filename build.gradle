@@ -116,7 +116,7 @@ jar {
     manifest {
         attributes([
             "Specification-Title": "RegrowthMod",
-            "Specification-Vendor": "mactso",
+            "Specification-Vendor": "twoguys",
             "Specification-Version": "1", // We are version 1 of ourselves
             "Implementation-Title": project.name,
             "Implementation-Version": "${version}",

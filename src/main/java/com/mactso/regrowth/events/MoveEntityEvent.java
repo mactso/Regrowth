@@ -35,11 +35,13 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.Brain;
+import net.minecraft.world.entity.ai.behavior.UseBonemeal;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy;
 import net.minecraft.world.entity.ai.village.poi.PoiRecord;
 import net.minecraft.world.entity.ai.village.poi.PoiType;
 import net.minecraft.world.entity.animal.horse.AbstractHorse;
+import net.minecraft.world.entity.monster.EnderMan;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.npc.VillagerProfession;
 import net.minecraft.world.entity.player.Player;
@@ -73,13 +75,19 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.FeatureAccess;
+import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.level.levelgen.feature.StructureFeature;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.FarmlandWaterManager;
+import net.minecraftforge.common.util.FakePlayer;
+import net.minecraftforge.common.util.FakePlayerFactory;
+import net.minecraftforge.event.ForgeEventFactory;
 //import net.minecraftforge.common.util.Constants.BlockFlags;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.event.world.BlockEvent.EntityPlaceEvent;
 import net.minecraftforge.event.world.BlockEvent.FarmlandTrampleEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -101,7 +109,13 @@ public class MoveEntityEvent {
 	static final int WALL_TYPE_WALL = -1;
 	static final int WALL_TYPE_FENCE = -2;
 
-	
+	static final String ACTION_GROW = "grow";
+	static final String ACTION_EAT = "eat";
+	static final String ACTION_BOTH = "both";
+	static final String ACTION_TALL = "tall";
+	static final String ACTION_MUSHROOM = "mushroom";
+	static final String ACTION_STUMBLE = "stumble";
+	static final String ACTION_REFOREST = "reforest";
 	
 	@SubscribeEvent 
 	public void handleTrampleEvents (FarmlandTrampleEvent event) {
@@ -231,19 +245,19 @@ public class MoveEntityEvent {
 	private void doMobRegrowthEvents(Entity entity, Block footBlock, Block groundBlock, String key, String regrowthType,
 			Biome localBiome) {
 
-		if (regrowthType.equals("stumble")) {
+		if (regrowthType.equals(ACTION_STUMBLE)) {
 			if ((footBlock instanceof TorchBlock) || (footBlock instanceof WallTorchBlock)) {
 				mobStumbleAction(entity, key);
 			}
 			return;
 		}
 
-		if (regrowthType.equals("reforest")) {
+		if (regrowthType.equals(ACTION_REFOREST)) {
 			mobReforestAction(entity, footBlock, groundBlock, key, localBiome);
 			return;
 		}
 
-		if (regrowthType.equals("mushroom")) {
+		if (regrowthType.equals(ACTION_MUSHROOM)) {
 			mobGrowMushroomAction(entity, groundBlock, key);
 			return;
 		}
@@ -257,25 +271,25 @@ public class MoveEntityEvent {
 			return;
 		}
 
-		if (regrowthType.equals("tall")) {
+		if (regrowthType.equals(ACTION_TALL)) {
 			mobGrowTallAction(entity, footBlock, key);
 			return;
 		}
 
-		if (regrowthType.equals("both")) {
+		if (regrowthType.equals(ACTION_BOTH)) {
 			if (entity.level.random.nextDouble() * 100 > 85.0) {
-				regrowthType = "grow";
+				regrowthType = ACTION_GROW;
 			} else {
-				regrowthType = "eat";
+				regrowthType = ACTION_EAT;
 			}
 		}
 
-		if (regrowthType.contentEquals("eat")) {
+		if (regrowthType.contentEquals(ACTION_EAT)) {
 			mobEatPlantsAction(entity, footBlock, groundBlock, key, regrowthType);
 			return;
 		}
 
-		if ((regrowthType.equals("grow"))) {
+		if ((regrowthType.equals(ACTION_GROW))) {
 			mobGrowPlantsAction(entity, footBlock, groundBlock, key);
 			return;
 		}
@@ -363,20 +377,22 @@ public class MoveEntityEvent {
 		if (!(isBlockGrassOrDirt(groundBlock)))
 			return;
 
-		BlockPos ePos = getAdjustedBlockPos(entity);
+		BlockPos ePos = entity.blockPosition();
 		int eX = ePos.getX();
 		int eY = ePos.getY();
 		int eZ = ePos.getZ();
 		// only try to plant saplings in about 1/4th of blocks.
 
+        Level level = entity.level;
+        
 		double sinY = Math.sin((double) ((eY + 64) % 256) / 256);
 
-		if (entity.level.random.nextDouble() > Math.abs(sinY))
+		if (level.random.nextDouble() > Math.abs(sinY))
 			return;
 
 		BlockState sapling = null;
 		// are we in a biome that has saplings in a spot a sapling can be planted?
-		sapling = helperSaplingState(entity.level, ePos, localBiome, sapling);
+		sapling = helperSaplingState(level, ePos, localBiome, sapling);
 
 		// check if there is room for a new tree. Original trees.
 		// don't plant a sapling near another sapling
@@ -385,7 +401,7 @@ public class MoveEntityEvent {
 		int yval = 0;
 		int yrange = 0;
 
-		if (helperCountBlocksBB(SaplingBlock.class, 1, entity.level, ePos, hval, yrange) > 0)
+		if (helperCountBlocksBB(SaplingBlock.class, 1, level, ePos, hval, yrange) > 0)
 			return;
 
 		// check if there is room for a new tree.
@@ -404,7 +420,18 @@ public class MoveEntityEvent {
 		if (leafCount > 0)
 			return;
 
-		entity.level.setBlockAndUpdate(ePos, sapling);
+        BlockPos blockpos1 = ePos.below();
+
+        FakePlayer fakeplayer = net.minecraftforge.common.util.FakePlayerFactory.getMinecraft((ServerLevel)level);
+        if (sapling!= null) {
+           sapling = Block.updateFromNeighbourShapes(sapling, level, ePos);
+           if (!net.minecraftforge.event.ForgeEventFactory.onBlockPlace(fakeplayer, net.minecraftforge.common.util.BlockSnapshot.create(level.dimension(), level, blockpos1), net.minecraft.core.Direction.UP)) {
+        	  level.setBlockAndUpdate(ePos, sapling);
+              entity.level.gameEvent(entity, GameEvent.BLOCK_PLACE, ePos);
+           }
+
+        }
+
 		MyConfig.debugMsg(1, ePos, key + " planted sapling.");
 	}
 

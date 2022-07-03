@@ -122,6 +122,14 @@ public class MoveEntityEvent {
 	static final int WALL_TYPE_WALL = -1;
 	static final int WALL_TYPE_FENCE = -2;
 
+	static final String ACTION_GROW = "grow";
+	static final String ACTION_EAT = "eat";
+	static final String ACTION_BOTH = "both";
+	static final String ACTION_TALL = "tall";
+	static final String ACTION_MUSHROOM = "mushroom";
+	static final String ACTION_STUMBLE = "stumble";
+	static final String ACTION_REFOREST = "reforest";
+	static final String ACTION_CORAL = "coral";
 
 	private BlockState footBlockState;
 	private BlockState groundBlockState;
@@ -295,24 +303,24 @@ public class MoveEntityEvent {
 	private void doMobRegrowthEvents(Entity entity, String key, String regrowthType) {
 		
 
-		if (regrowthType.equals("stumble")) {
+		if (regrowthType.equals(ACTION_STUMBLE)) {
 			if ((footBlock instanceof TorchBlock) || (footBlock instanceof WallTorchBlock)) {
 				mobStumbleAction(entity, key);
 			}
 			return;
 		}
 
-		if (regrowthType.equals("reforest")) {
+		if (regrowthType.equals(ACTION_REFOREST)) {
 			mobReforestAction(entity, key);
 			return;
 		}
 
-		if (regrowthType.equals("mushroom")) {
+		if (regrowthType.equals(ACTION_MUSHROOM)) {
 			mobGrowMushroomAction(entity, key);
 			return;
 		}
 		
-		if (regrowthType.equals("coral")) {
+		if (regrowthType.equals(ACTION_CORAL)) {
 			mobGrowCoralAction(entity, key);
 			return;
 		}
@@ -327,25 +335,25 @@ public class MoveEntityEvent {
 			return;
 		}
 
-		if (regrowthType.equals("tall")) {
+		if (regrowthType.equals(ACTION_TALL)) {
 			mobGrowTallAction(entity, key);
 			return;
 		}
 
-		if (regrowthType.equals("both")) {
+		if (regrowthType.equals(ACTION_BOTH)) {
 			if (entity.level.random.nextDouble() * 100 > 85.0) {
-				regrowthType = "grow";
+				regrowthType = ACTION_GROW;
 			} else {
-				regrowthType = "eat";
+				regrowthType = ACTION_EAT;
 			}
 		}
 
-		if (regrowthType.contentEquals("eat")) {
+		if (regrowthType.contentEquals(ACTION_EAT)) {
 			mobEatPlantsAction(entity, key, regrowthType);
 			return;
 		}
 
-		if ((regrowthType.equals("grow"))) {
+		if ((regrowthType.equals(ACTION_GROW))) {
 			mobGrowPlantsAction(entity, key);
 			return;
 		}

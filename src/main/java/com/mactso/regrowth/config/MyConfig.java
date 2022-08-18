@@ -204,19 +204,19 @@ public class MyConfig {
 
 		// biome to get biome category, wall size, wall block type
 		public final ConfigValue<String> defaultBiomeWallDataActual;
-		public final String defaultBiomeWallData6464 = "Regrowth:default,48,minecraft:cobblestone_wall,minecraft:oak_fence;"
-				+ "minecraft:plains,48,minecraft:cobblestone_wall,minecraft:oak_fence;"
-				+ "minecraft:desert,48,minecraft:sandstone_wall,minecraft:birch_fence;"
-				+ "minecraft:extreme_hills,48,minecraft:cobblestone_wall,minecraft:spruce_fence;"
-				+ "minecraft:taiga,48,minecraft:mossy_cobblestone_wall,minecraft:spruce_fence;"
-				+ "minecraft:savanna,48,minecraft:stone_brick_wall,minecraft:acacia_fence;"
+		public final String defaultBiomeWallData6464 = "Regrowth:default,40,minecraft:cobblestone_wall,minecraft:oak_fence;"
+				+ "minecraft:plains,40,minecraft:cobblestone_wall,minecraft:oak_fence;"
+				+ "minecraft:desert,40,minecraft:sandstone_wall,minecraft:birch_fence;"
+				+ "minecraft:extreme_hills,40,minecraft:cobblestone_wall,minecraft:spruce_fence;"
+				+ "minecraft:taiga,40,minecraft:mossy_cobblestone_wall,minecraft:spruce_fence;"
+				+ "minecraft:savanna,40,minecraft:stone_brick_wall,minecraft:acacia_fence;"
 				+ "minecraft:icy,40,minecraft:diorite_wall,minecraft:spruce_fence;"
 				+ "minecraft:the_end,40,minecraft:end_stone_brick_wall,minecraft:birch_fence;"
-				+ "minecraft:beach,48,minecraft:sandstone_wall,minecraft:oak_fence;"
-				+ "minecraft:forest,48,minecraft:mossy_stone_brick_wall,minecraft:oak_fence;"
-				+ "minecraft:mesa,48,minecraft:red_sandstone_wall,minecraft:oak_fence;"
-				+ "minecraft:jungle,48,minecraft:granite_wall,minecraft:jungle_fence;"
-				+ "minecraft:river,48,minecraft:mossy_cobblestone_wall,minecraft:oak_fence;"
+				+ "minecraft:beach,40,minecraft:sandstone_wall,minecraft:oak_fence;"
+				+ "minecraft:forest,40,minecraft:mossy_stone_brick_wall,minecraft:oak_fence;"
+				+ "minecraft:mesa,40,minecraft:red_sandstone_wall,minecraft:oak_fence;"
+				+ "minecraft:jungle,40,minecraft:granite_wall,minecraft:jungle_fence;"
+				+ "minecraft:river,40,minecraft:mossy_cobblestone_wall,minecraft:oak_fence;"
 				+ "minecraft:nether,40,minecraft:blackstone_wall,minecraft:nether_brick_fence;"
 				+ "Regrowth:minimum,32,regrowth:minimum_wall_size,regrowth:fence_placeholder";
 
@@ -232,7 +232,7 @@ public class MyConfig {
 
 			this.torchLightLevel = builder.comment("Torch Light Level - Villagers will only place torches on blocks this dark or darker.")
 					.translation("regrowth.config.torchLightLevel ")
-					.defineInRange("torchLightLevel ", () -> 7, 0, 10);
+					.defineInRange("torchLightLevel ", () -> 3, 0, 10);
 			
 			this.mushroomDensity = builder.comment("Mushroom density - 3 dense to 11 sparse to 21 very sparse")
 					.translation("regrowth.config.mushroomXDensity ")

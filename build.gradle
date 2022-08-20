@@ -32,7 +32,7 @@ tasks.withType(JavaCompile) {
 }
 
 java {
-	withSourcesJar()
+//	withSourcesJar()
 }
 
 jar {

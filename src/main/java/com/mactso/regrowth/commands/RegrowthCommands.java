@@ -3,20 +3,20 @@ package com.mactso.regrowth.commands;
 
 
 import com.mactso.regrowth.config.MyConfig;
+import com.mactso.regrowth.utility.Utility;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
-import net.minecraft.network.chat.TextColor;
-import net.minecraft.ChatFormatting;
-import net.minecraft.world.level.Level;
 
 public class RegrowthCommands {
 	String subcommand = "";
@@ -59,14 +59,14 @@ public class RegrowthCommands {
 					//ITextComponent component = new StringTextComponent (worldName.getDimension().getType().getRegistryName() 
 		            //		+ "\n Current Values");
 
-					MyConfig.sendBoldChat(p, worldName.dimension().toString()
-		            		+ "\n Current Values", TextColor.fromLegacyFormat(ChatFormatting.DARK_GREEN));
+					Utility.sendBoldChat(p, worldName.dimension().toString()
+		            		+ "\n Current Values", ChatFormatting.DARK_GREEN);
 
 		            String msg = 
 		              		  "\n  Regrowth Version 1.16.1 06/29/2020"  
 		            		+ "\n  Debug Level...........: " + MyConfig.aDebugLevel
 		            		+ "\n  Looking At................:"  + objectInfo;
-		            MyConfig.sendChat(p, msg, TextColor.fromLegacyFormat(ChatFormatting.DARK_GREEN));
+		            Utility.sendChat(p, msg, ChatFormatting.DARK_GREEN);
 					return 1;
 			}
 			)

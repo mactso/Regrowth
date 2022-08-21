@@ -9,10 +9,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import com.mactso.regrowth.Main;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.TextColor;
-import net.minecraft.network.chat.TextComponent;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.common.ForgeConfigSpec;
@@ -289,23 +286,6 @@ public class MyConfig {
 		{
 			return (o instanceof String);
 		}
-	}
-
-	// support for any color chattext
-	public static void sendChat(Player p, String chatMessage, TextColor color) {
-		TextComponent component = new TextComponent(chatMessage);
-		component.getStyle().withColor(color);
-		p.sendMessage(component, p.getUUID());
-	}
-
-	// support for any color, optionally bold text.
-	public static void sendBoldChat(Player p, String chatMessage, TextColor color) {
-		TextComponent component = new TextComponent(chatMessage);
-
-		component.getStyle().withBold(true);
-		component.getStyle().withColor(color);
-
-		p.sendMessage(component, p.getUUID());
 	}
 
 }

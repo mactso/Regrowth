@@ -23,5 +23,5 @@ description='Regrowth.'
     versionRange="[1.19,1.20)"
     ordering="NONE"
     side="SERVER"
-
+# side="BOTH", "CLIENT?", "SERVER"
 

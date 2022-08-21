@@ -1,6 +1,6 @@
 package com.mactso.regrowth.utility;
 
-import java.lang.reflect.Field;
+import java.util.Optional;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -9,12 +9,16 @@ import com.mactso.regrowth.config.MyConfig;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.BiomeTags;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
@@ -31,22 +35,29 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap.Types;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.coremod.api.ASMAPI;
 
 public class Utility {
 	
-	
-	private static Field fieldBiomeCategory = null;
-	private static final Logger LOGGER = LogManager.getLogger();
-	static {
-		try {
-			String name = ASMAPI.mapField("f_47442_");
-			fieldBiomeCategory = Biome.class.getDeclaredField(name);
-			fieldBiomeCategory.setAccessible(true);
-		} catch (Exception e) {
-			LOGGER.error("Unexpected Reflection Failure set Biome.biomeCategory accessible");
-		}
-	}
+	public static String NONE = "none";
+	public static String BEACH = "beach";
+	public static String BADLANDS = "badlands";
+	public static String DESERT = "desert";
+	public static String EXTREME_HILLS = "extreme_hills";
+	public static String ICY = "icy";
+	public static String JUNGLE = "jungle";
+	public static String THEEND = "the_end";
+	public static String FOREST = "forest";
+	public static String MESA = "mesa";
+	public static String MUSHROOM = "mushroom";
+	public static String MOUNTAIN = "mountain";
+	public static String NETHER = "nether";
+	public static String OCEAN = "ocean";
+	public static String PLAINS = "plains";
+	public static String RIVER = "river";
+	public static String SAVANNA = "savanna";
+	public static String SWAMP = "swamp";
+	public static String TAIGA = "taiga";
+	public static String UNDERGROUND = "underground";
 	
 	public final static int FOUR_SECONDS = 80;
 	public final static int TWO_SECONDS = 40;
@@ -64,6 +75,43 @@ public class Utility {
 	public final static float Pct95 = 0.95f;
 	public final static float Pct99 = 0.99f;
 	public final static float Pct100 = 1.0f;
+
+	private static final Logger LOGGER = LogManager.getLogger();
+	
+	public static String getMyBC (Holder<Biome> testBiome) {
+		
+		if (testBiome.is(BiomeTags.HAS_VILLAGE_DESERT))
+			return Utility.DESERT;
+		if (testBiome.is(BiomeTags.IS_FOREST))
+			return Utility.FOREST;
+		if (testBiome.is(BiomeTags.IS_BEACH))
+			return Utility.BEACH;
+		if (testBiome.is(BiomeTags.HAS_VILLAGE_SNOWY))
+			return Utility.ICY;		
+		if (testBiome.is(BiomeTags.IS_JUNGLE))
+			return Utility.JUNGLE;		
+		if (testBiome.is(BiomeTags.IS_OCEAN))
+			return Utility.OCEAN;		
+		if (testBiome.is(BiomeTags.IS_DEEP_OCEAN))
+			return Utility.OCEAN;		
+		if (testBiome.is(BiomeTags.HAS_VILLAGE_PLAINS))
+			return Utility.PLAINS;		
+		if (testBiome.is(BiomeTags.IS_RIVER))
+			return Utility.RIVER;		
+		if (testBiome.is(BiomeTags.IS_SAVANNA))
+			return Utility.SAVANNA;		
+		if (testBiome.is(BiomeTags.ALLOWS_SURFACE_SLIME_SPAWNS))
+			return Utility.SWAMP;		
+		if (testBiome.is(BiomeTags.IS_TAIGA))
+			return Utility.TAIGA;		
+		if (testBiome.is(BiomeTags.IS_BADLANDS))
+			return Utility.BADLANDS;		
+		if (testBiome.is(BiomeTags.IS_MOUNTAIN))
+			return Utility.EXTREME_HILLS;		
+		return NONE;
+
+	}
+	
 
 	public static void debugMsg(int level, String dMsg) {
 
@@ -228,44 +276,46 @@ public class Utility {
 		}
 	}	
 	
-	public static String getResourceLocationString(BlockState blockState) {
-		return getResourceLocationString(blockState.getBlock());
-	}
-	
+	public static String getResourceLocationString(ServerLevel serverLevel, BlockState blockState) {
+		return getResourceLocationString(serverLevel,blockState.getBlock());
+		}
+
+
 	@SuppressWarnings("deprecation")
-	public static String getResourceLocationString(Block block) {
-		return block.builtInRegistryHolder().unwrapKey().toString();
+	public static String getResourceLocationString(ServerLevel serverLevel, Block block) {
+		int id = Block.getId(block.defaultBlockState());
+		Optional<? extends Registry<Block>> opt = serverLevel.registryAccess().registry(Registry.BLOCK_REGISTRY);
+		String result = "BlockRegMissing";
+		if (opt.isPresent()) {
+			ResourceLocation rl = opt.get().getKey(block);
+			result = rl.toString();
+        }
+		return result;
 	}
 
 	@SuppressWarnings("deprecation")
-	public static String getResourceLocationString(Item item) {
-		return item.builtInRegistryHolder().unwrapKey().toString();
+	public static String getResourceLocationString(ServerLevel serverLevel, Item item) {
+		int id = Item.getId(item);
+		String result = "ItemRegMissing";
+		Optional<? extends Registry<Item>> opt = serverLevel.registryAccess().registry(Registry.ITEM_REGISTRY);
+		if (opt.isPresent()) {
+			ResourceLocation rl = opt.get().getKey(item);
+			result = rl.toString();
+        }
+		return result;
 	}
 
-	@SuppressWarnings("deprecation")
 	public static String getResourceLocationString(Entity entity) {
-		return entity.getType().builtInRegistryHolder().unwrapKey().toString();
+		EntityType<?> et = entity.getType();
+		return 	EntityType.getKey(et).toString();
 	}
 
 	public static String GetBiomeName(Biome b) {
 		return b.toString();
 	}
+
+
 	
-//	public static BiomeCategory getBiomeCategory(Biome b) {
-//		Holder<Biome> holder = localBiome;
-//        if (holder.is(BiomeTags.HAS_VILLAGE_DESERT)) {
-//        	
-//        }
-//		BiomeCategory bc = BiomeCategory.PLAINS;
-//		try {
-//			bc = (BiomeCategory) fieldBiomeCategory.get(b);
-//		} catch (IllegalArgumentException e) {
-//			e.printStackTrace();
-//		} catch (IllegalAccessException e) {
-//			e.printStackTrace();
-//		}
-//		return bc;
-//	}
-	
-	
+
+
 }

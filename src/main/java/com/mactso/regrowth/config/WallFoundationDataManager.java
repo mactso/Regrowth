@@ -43,7 +43,6 @@ public class WallFoundationDataManager {
 		wallFoundationsHashtable.clear();
 		while (i < MyConfig.defaultWallFoundationsArray.length) {
 			try {
-
 				String wallFoundationBlockKey = MyConfig.defaultWallFoundationsArray[i];
 				String key = wallFoundationBlockKey;				
 				if (ForgeRegistries.BLOCKS.containsKey(new ResourceLocation(wallFoundationBlockKey))) {
@@ -51,7 +50,6 @@ public class WallFoundationDataManager {
 				} else {
 					System.out.println("Regrowth Debug: Wall Foundation Block: " + wallFoundationBlockKey + " not in Forge Entity Type Registry.  Mispelled?  Missing semicolon? ");
 				}
-				
 			} catch (Exception e) {
 				System.out.println("Regrowth Debug:  Bad Wall Foundation Config (illegal characters, Upper Case or not [a-z0-9_.-] ?): " + MyConfig.defaultWallFoundationsArray[i]);
 			}

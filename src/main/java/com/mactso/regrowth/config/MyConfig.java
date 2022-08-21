@@ -73,18 +73,6 @@ public class MyConfig {
 		return torchLightLevel;
 	}
 	
-	public static void debugMsg (int level, String dMsg) {
-		if (aDebugLevel > level-1) {
-			System.out.println("L"+level + ":" + dMsg);
-		}
-	}
-
-	public static void debugMsg (int level, BlockPos pos, String dMsg) {
-		if (aDebugLevel > level-1) {
-			System.out.println("L"+level+" ("+pos.getX()+","+pos.getY()+","+pos.getZ()+"): " + dMsg);
-		}
-	}
-
 	public static int aDebugLevel;
 	public static double aEatingHeals;
 	public static Block playerWallControlBlock;

@@ -41,7 +41,7 @@ public class RegrowthEntitiesManager {
 		regrowthMobHashtable.clear();
 
 		String oneMob = "";
-		StringTokenizer tokenizedMobString = new StringTokenizer(ModConfigs.getActionMobList(), ";");
+		StringTokenizer tokenizedMobString = new StringTokenizer(MyConfig.getActionMobList(), ";");
 		while (tokenizedMobString.hasMoreElements()) {
 			oneMob = tokenizedMobString.nextToken().trim();
 			if (oneMob.isEmpty()) continue;

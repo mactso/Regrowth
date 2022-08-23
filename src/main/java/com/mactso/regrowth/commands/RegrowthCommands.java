@@ -6,7 +6,7 @@ package com.mactso.regrowth.commands;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.mactso.regrowth.config.ModConfigs;
+import com.mactso.regrowth.config.MyConfig;
 import com.mactso.regrowth.utility.Utility;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -16,7 +16,6 @@ import net.minecraft.entity.Entity;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.TextColor;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
@@ -28,8 +27,8 @@ public class RegrowthCommands {
 	String value = "";
 	private static final Logger LOGGER = LogManager.getLogger();
 	
-	public static void register(CommandDispatcher<ServerCommandSource> dispatcher, boolean dedicated)
-	{
+    public static void register(CommandDispatcher<ServerCommandSource> dispatcher) 
+    {	
 		System.out.println("Register Regrowth Commands");
 		dispatcher.register(CommandManager.literal("regrowth").requires((source) -> 
 			{
@@ -64,13 +63,13 @@ public class RegrowthCommands {
 
 
 					Utility.sendBoldChat(p, Utility.getResourceLocationString(world).toUpperCase()
-		            		+ "\n Current Values", TextColor.fromFormatting(Formatting.DARK_GREEN));
+		            		+ "\n Current Values", Formatting.DARK_GREEN);
 
 		            String msg = 
 		              		  "\n  Regrowth (Fabric) "  
-		            		+ "\n  Debug Level...........: " + ModConfigs.getDebugLevel()
+		            		+ "\n  Debug Level...........: " + MyConfig.getDebugLevel()
 		            		+ "\n  Looking At................: "  + objectInfo;
-		            Utility.sendChat(p, msg, TextColor.fromFormatting(Formatting.DARK_GREEN));
+		            Utility.sendChat(p, msg, Formatting.DARK_GREEN);
 					return 1;
 			}
 			)
@@ -80,7 +79,7 @@ public class RegrowthCommands {
 	}
 
 	public static int setDebugLevel (int newDebugLevel) {
-		ModConfigs.setDebugLevel(newDebugLevel);
+		MyConfig.setDebugLevel(newDebugLevel);
 		// ModConfigs.pushDebugLevel();
 		return 1;
 	}

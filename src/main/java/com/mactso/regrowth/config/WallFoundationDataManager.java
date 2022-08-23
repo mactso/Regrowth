@@ -43,7 +43,7 @@ public class WallFoundationDataManager {
 		wallFoundationsHashtable.clear();
 
 		String oneLine = "";
-		StringTokenizer tokenizedWallFoundationString = new StringTokenizer(ModConfigs.getWallFoundationsList(), ";");
+		StringTokenizer tokenizedWallFoundationString = new StringTokenizer(MyConfig.getWallFoundationsList(), ";");
 
 		while (tokenizedWallFoundationString.hasMoreElements()) {
 			oneLine = tokenizedWallFoundationString.nextToken().trim();

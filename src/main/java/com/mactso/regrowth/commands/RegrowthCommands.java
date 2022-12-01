@@ -6,7 +6,7 @@ package com.mactso.regrowth.commands;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.mactso.regrowth.config.ModConfigs;
+import com.mactso.regrowth.config.MyConfig;
 import com.mactso.regrowth.utility.Utility;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -68,7 +68,7 @@ public class RegrowthCommands {
 
 		            String msg = 
 		              		  "\n  Regrowth (Fabric) "  
-		            		+ "\n  Debug Level...........: " + ModConfigs.getDebugLevel()
+		            		+ "\n  Debug Level...........: " + MyConfig.getDebugLevel()
 		            		+ "\n  Looking At................: "  + objectInfo;
 		            Utility.sendChat(p, msg, TextColor.fromFormatting(Formatting.DARK_GREEN));
 					return 1;
@@ -80,7 +80,7 @@ public class RegrowthCommands {
 	}
 
 	public static int setDebugLevel (int newDebugLevel) {
-		ModConfigs.setDebugLevel(newDebugLevel);
+		MyConfig.setDebugLevel(newDebugLevel);
 		// ModConfigs.pushDebugLevel();
 		return 1;
 	}

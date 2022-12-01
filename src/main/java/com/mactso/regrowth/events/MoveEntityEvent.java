@@ -10,7 +10,7 @@ import java.util.Random;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
-import com.mactso.regrowth.config.ModConfigs;
+import com.mactso.regrowth.config.MyConfig;
 import com.mactso.regrowth.config.RegrowthEntitiesManager;
 import com.mactso.regrowth.config.RegrowthEntitiesManager.RegrowthMobItem;
 import com.mactso.regrowth.config.WallBiomeDataManager;
@@ -27,7 +27,6 @@ import net.minecraft.block.CactusBlock;
 import net.minecraft.block.CarpetBlock;
 import net.minecraft.block.CoralBlock;
 import net.minecraft.block.CoralBlockBlock;
-import net.minecraft.block.CoralParentBlock;
 import net.minecraft.block.CoralWallFanBlock;
 import net.minecraft.block.FenceBlock;
 import net.minecraft.block.FenceGateBlock;
@@ -648,7 +647,7 @@ public class MoveEntityEvent {
 			// if right next to a huge mushroom let it grow if it got past above density
 			// check.
 		} else {
-			int huge = helperCountBlocksBB(MushroomBlock.class, 1, sWorld, ePos, ModConfigs.getMushroomDensity(), 1);
+			int huge = helperCountBlocksBB(MushroomBlock.class, 1, sWorld, ePos, MyConfig.getMushroomDensity(), 1);
 			if (huge > 0) {
 				Utility.debugMsg(1, ePos, key + " huge (" + huge + ") mushroom too crowded.");
 				return;
@@ -820,9 +819,9 @@ public class MoveEntityEvent {
 		BlockPos ePos = getAdjustedBlockPos(entity);
 		float biomeTemp = entity.world.getBiome(ePos).value().getTemperature();
 		Utility.debugMsg(1, ePos, "Mushroom Biome temp: " + biomeTemp + ".");
-		if (biomeTemp < ModConfigs.getMushroomMinTemp())
+		if (biomeTemp < MyConfig.getMushroomMinTemp())
 			return false;
-		if (biomeTemp > ModConfigs.getMushroomMaxTemp())
+		if (biomeTemp > MyConfig.getMushroomMaxTemp())
 			return false;
 		return true;
 	}
@@ -861,7 +860,7 @@ public class MoveEntityEvent {
 			return;
 
 		// Give custom debugging names to nameless villagers.
-		if (ModConfigs.getDebugLevel() > 0) {
+		if (MyConfig.getDebugLevel() > 0) {
 			Text tName = new LiteralText("");
 			float veYaw = ve.getYaw(1.0f);
 			tName = new LiteralText("Reg-" + ve.getX() + "," + ve.getZ() + ": " + veYaw);
@@ -971,7 +970,7 @@ public class MoveEntityEvent {
 		entity.world.breakBlock(ePos, false);
 		LivingEntity le = (LivingEntity) entity;
 		helperChildAgeEntity(entity);
-		if (le.getMaxHealth() > le.getHealth() && (ModConfigs.getEatingHeals())) {
+		if (le.getMaxHealth() > le.getHealth() && (MyConfig.getEatingHeals())) {
 			StatusEffectInstance ei = new StatusEffectInstance(StatusEffects.HEALTH_BOOST, 1, 0, false, true);
 			le.addStatusEffect(ei);
 		}
@@ -1232,7 +1231,7 @@ public class MoveEntityEvent {
 		int blockLightValue = ve.world.getLightLevel(LightType.BLOCK, vePos);
 		int skyLightValue = ve.world.getLightLevel(LightType.SKY, vePos);
 
-		if (blockLightValue > ModConfigs.getTorchLightLevel())
+		if (blockLightValue > MyConfig.getTorchLightLevel())
 			return false;
 		if (skyLightValue > 11)
 			return false;
@@ -1531,11 +1530,11 @@ public class MoveEntityEvent {
 
 		BlockPos gVMPPos = ve.getBrain().getOptionalMemory(MemoryModuleType.MEETING_POINT).get().getPos();
 
-		if (ModConfigs.getPlayerWallControlBlock() != Blocks.AIR) {
+		if (MyConfig.getPlayerWallControlBlock() != Blocks.AIR) {
 			if (ve.world.getChunk(gVMPPos).getInhabitedTime() < 200) // Bell
-				ve.world.setBlockState(gVMPPos.up(1), ModConfigs.getPlayerWallControlBlock().getDefaultState());
+				ve.world.setBlockState(gVMPPos.up(1), MyConfig.getPlayerWallControlBlock().getDefaultState());
 
-			if (ve.world.getBlockState(gVMPPos.up(1)).getBlock() != ModConfigs.playerWallControlBlock) {
+			if (ve.world.getBlockState(gVMPPos.up(1)).getBlock() != MyConfig.playerWallControlBlock) {
 				return false;
 			}
 		}
@@ -1795,7 +1794,7 @@ public class MoveEntityEvent {
 				return true;
 			}
 		} catch (Exception e) {
-			if (ModConfigs.getDebugLevel() > 0) {
+			if (MyConfig.getDebugLevel() > 0) {
 				System.out.println("Tag Exception 1009-1014:" + footBlock.getTranslationKey() + ".");
 			}
 		}
@@ -1803,7 +1802,7 @@ public class MoveEntityEvent {
 		if (footBlock.getTranslationKey().equals("block.byg.short_grass")) {
 			return true;
 		}
-		if (ModConfigs.getDebugLevel() > 0) {
+		if (MyConfig.getDebugLevel() > 0) {
 			System.out.println("Not grass or Flower:" + footBlock.getTranslationKey() + ".");
 		}
 		return false;

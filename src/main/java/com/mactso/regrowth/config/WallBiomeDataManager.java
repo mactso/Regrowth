@@ -30,13 +30,13 @@ public class WallBiomeDataManager {
 		WallBiomeDataItem r = wallBiomeDataHashtable.get(iKey);
 
 		if (r == null) {
-			if (ModConfigs.getDebugLevel() > 0) {
+			if (MyConfig.getDebugLevel() > 0) {
 				System.out.println("Error! Requested wall has unknown Biome:" + key + ".");
 			}
 			r = DEFAULT_WALL_ITEM;
 		}
 		
-		if (ModConfigs.getDebugLevel() > 1) {
+		if (MyConfig.getDebugLevel() > 1) {
 			System.out.println("222 WallBiomeDataItem: "+ iKey +" wall=" + r.getWallBlockState().getBlock().toString() + "fence=" + r.getFenceBlockState().getBlock().toString() + ".");
 		}
 		return r;
@@ -77,7 +77,7 @@ public class WallBiomeDataManager {
 		wallBiomeDataHashtable.clear();
 
 		String oneLine = "";
-		StringTokenizer tokenizedMobString = new StringTokenizer(ModConfigs.getWallblockList(), ";");
+		StringTokenizer tokenizedMobString = new StringTokenizer(MyConfig.getWallblockList(), ";");
 		while (tokenizedMobString.hasMoreElements()) {
 			oneLine = tokenizedMobString.nextToken().trim();
 			if (oneLine.isEmpty()) continue;

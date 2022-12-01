@@ -1,5 +1,5 @@
 {
-  "parent": "regrowth:rgroot/rgroot",
+	"parent": "regrowth:rgroot/rgroot",
 	"display": {
 		"title": {
 			"translate": "advancements.offlimits.title",
@@ -11,20 +11,27 @@
 		},
 		"icon": {
 			"item": "minecraft:stone_shovel",
-      		"nbt": "{Damage:0}"
-		}
+			"nbt": "{Damage:0}"
+		},
+		"announce_to_chat": false
 	},
 	"rewards": {
 		"experience": 1
 	},
 	"criteria": {
-		"inv_changed-minecraft:stone_shovel": {
+		"has_traded": {
+			"trigger": "minecraft:villager_trade",
+			"conditions": {
+			}
+		},
+		"has_shovel": {
 			"trigger": "minecraft:inventory_changed",
 			"conditions": {
 				"items": [
 					{
-						"item": "minecraft:stone_shovel",
-						"nbt": "{Damage:0}"
+						"items": [
+							"minecraft:stone_shovel"
+						]
 					}
 				]
 			}
@@ -32,7 +39,10 @@
 	},
 	"requirements": [
 		[
-			"inv_changed-minecraft:stone_shovel"
+			"has_traded"
+		],
+		[
+			"has_shovel"
 		]
 	]
 }

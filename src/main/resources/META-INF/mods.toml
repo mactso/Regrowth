@@ -5,16 +5,16 @@ license="MIT License"
 [[mods]]
 modId="regrowth"
 version="${file.jarVersion}"
-displayName="Regrowth Mod"
+displayName="Regrowth"
 displayURL="https://www.curseforge.com/minecraft/mc-mods/regrowth"
 updateJSONURL="https://github.com/mactso/Regrowth/raw/main/update.json"
-logoFile="RegrowthMod.png"
+logoFile="Regrowth.png"
 authors="MacTso, Lupicus"
-description='Regrowth Mod.'
+description='Regrowth.'
 [[dependencies.regrowth]]
     modId="forge"
     mandatory=true
-    versionRange="[37,)"
+    versionRange="[39,)"
     ordering="NONE"
     side="SERVER"
 

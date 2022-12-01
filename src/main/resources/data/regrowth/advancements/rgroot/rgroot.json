@@ -16,20 +16,15 @@
 		"background": "regrowth:textures/gui/advancements/backgrounds/rgbackground.png"
 	},
 	"criteria": {
-		"has_cobblestone": {
-			"trigger": "minecraft:inventory_changed",
+		"has_traded": {
+			"trigger": "minecraft:villager_trade",
 			"conditions": {
-				"items": [
-					{
-						"item": "minecraft:cobblestone"
-					}
-				]
 			}
 		}
 	},
 	"requirements": [
 		[
-			"has_cobblestone"
+			"has_traded"
 		]
 	]
 }

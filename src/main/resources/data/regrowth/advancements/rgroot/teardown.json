@@ -1,5 +1,5 @@
 {
-  "parent":"regrowth:rgroot/rgroot",
+	"parent": "regrowth:rgroot/rgroot",
 	"display": {
 		"title": {
 			"translate": "advancements.teardown.title",
@@ -11,27 +11,35 @@
 		},
 		"icon": {
 			"item": "minecraft:cobblestone_wall"
-		}
+		},
+		"announce_to_chat": false
 	},
 	"rewards": {
 		"experience": 1
 	},
-
 	"criteria": {
-		"inv_changed-minecraft:cobblestone_wall": {
+		"has_traded": {
+			"trigger": "minecraft:villager_trade",
+			"conditions": {
+			}
+		},
+		"has_wall": {
 			"trigger": "minecraft:inventory_changed",
 			"conditions": {
 				"items": [
 					{
-						"item": "minecraft:cobblestone_wall"
-					}					
+						"tag": "minecraft:walls"
+					}
 				]
 			}
 		}
 	},
 	"requirements": [
 		[
-			"inv_changed-minecraft:cobblestone_wall"
-		]	
+			"has_traded"
+		],
+		[
+			"has_wall"
+		]
 	]
 }

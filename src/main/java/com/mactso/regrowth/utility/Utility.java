@@ -108,6 +108,8 @@ public class Utility {
 			return Utility.BADLANDS;		
 		if (testBiome.is(BiomeTags.IS_MOUNTAIN))
 			return Utility.EXTREME_HILLS;		
+		if (testBiome.is(BiomeTags.IS_NETHER))
+			return Utility.NETHER;	
 		return NONE;
 
 	}

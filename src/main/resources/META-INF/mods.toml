@@ -1,5 +1,5 @@
 modLoader="javafml"
-loaderVersion="[41,)"
+loaderVersion="[44,)"
 license="MIT License"
 [[mods]]
 modId="regrowth"
@@ -13,14 +13,14 @@ description='Regrowth.'
 [[dependencies.regrowth]]
     modId="forge"
     mandatory=true
-    versionRange="[41,)"
+    versionRange="[44,)"
     ordering="NONE"
     side="SERVER"
 
 [[dependencies.regrowth]]
     modId="minecraft"
     mandatory=true
-    versionRange="[1.19,1.20)"
+    versionRange="[1.19.3,1.20)"
     ordering="NONE"
     side="SERVER"
 # side="BOTH", "CLIENT?", "SERVER"

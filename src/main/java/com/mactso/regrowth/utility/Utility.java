@@ -1,7 +1,5 @@
 package com.mactso.regrowth.utility;
 
-import java.util.Optional;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -10,13 +8,11 @@ import com.mactso.regrowth.config.MyConfig;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
-import net.minecraft.core.Registry;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BiomeTags;
 import net.minecraft.world.effect.MobEffect;
@@ -202,8 +198,7 @@ public class Utility {
 			return false;
 		for (int i = 0; i <= numZP; i++) {
 
-			e = (Mob) et.spawn(level, null, null, null, savePos.north().west(), MobSpawnType.NATURAL, true, true);
-
+			e = (Mob) et.spawn(level, savePos, MobSpawnType.NATURAL);
 			if (persistant) 
 				e.setPersistenceRequired();
 			e.setBaby(isBaby);
@@ -215,7 +210,7 @@ public class Utility {
 		Mob e;
 
 		for (int i = 0; i < X; i++) {
-			e = (Mob) et.spawn(level, null, null, null, savePos.north().west(), MobSpawnType.NATURAL, true, true);
+			e = (Mob) et.spawn(level, savePos, MobSpawnType.NATURAL);
 			e.setBaby(isBaby);
 		}
 		return true;
@@ -285,26 +280,12 @@ public class Utility {
 
 	@SuppressWarnings("deprecation")
 	public static String getResourceLocationString(ServerLevel serverLevel, Block block) {
-		int id = Block.getId(block.defaultBlockState());
-		Optional<? extends Registry<Block>> opt = serverLevel.registryAccess().registry(Registry.BLOCK_REGISTRY);
-		String result = "BlockRegMissing";
-		if (opt.isPresent()) {
-			ResourceLocation rl = opt.get().getKey(block);
-			result = rl.toString();
-        }
-		return result;
+		return block.builtInRegistryHolder().key().location().toString();
 	}
 
 	@SuppressWarnings("deprecation")
 	public static String getResourceLocationString(ServerLevel serverLevel, Item item) {
-		int id = Item.getId(item);
-		String result = "ItemRegMissing";
-		Optional<? extends Registry<Item>> opt = serverLevel.registryAccess().registry(Registry.ITEM_REGISTRY);
-		if (opt.isPresent()) {
-			ResourceLocation rl = opt.get().getKey(item);
-			result = rl.toString();
-        }
-		return result;
+		return item.builtInRegistryHolder().key().location().toString();
 	}
 
 	public static String getResourceLocationString(Entity entity) {

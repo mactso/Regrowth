@@ -8,9 +8,6 @@ import java.util.StringTokenizer;
 
 import org.jetbrains.annotations.NotNull;
 
-import com.mactso.regrowth.utility.Utility;
-
-import net.minecraft.client.Minecraft;
 import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BlockTags;

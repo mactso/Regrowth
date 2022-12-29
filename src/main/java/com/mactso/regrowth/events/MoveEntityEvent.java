@@ -19,8 +19,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.BlockPos.MutableBlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.GlobalPos;
-import net.minecraft.core.Holder;
-import net.minecraft.core.Registry;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceKey;
@@ -36,6 +34,7 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.AgeableMob;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
@@ -87,7 +86,6 @@ import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.FarmlandWaterManager;
-import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingTickEvent;
 import net.minecraftforge.event.level.BlockEvent.FarmlandTrampleEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -367,7 +365,7 @@ public class MoveEntityEvent {
 		return (int) (e.getZ() - gVMPPos.getZ());
 	}
 
-	// TODO this was LivingUpdateEvent possible problems here.
+
 	@SubscribeEvent
 	public void handleEntityMoveEvents(LivingTickEvent event) {
 
@@ -684,10 +682,13 @@ public class MoveEntityEvent {
 
 	private BlockState helperSaplingState(Level world, BlockPos pos, Biome localBiome, BlockState sapling) {
 
-		// TODO use new BlockTag.SAPLING
+		// TODO use new BlockTag.SAPLING, get list of valid trees, return default state of one of those trees.
+		// the BlockTag.SAPLING doesn't work that way.  It says if something *is* a sapling.
+		// would need a new manager for saplings by biome.
+		
 		sapling = Blocks.OAK_SAPLING.defaultBlockState();
-		ResourceKey<Registry<Biome>> k = Registry.BIOME_REGISTRY;
-		String biomeName = world.registryAccess().registryOrThrow(k).getKey(localBiome).toString();
+		ResourceKey<Biome> k = world.getBiomeManager().getBiome(pos).unwrapKey().get();
+		String biomeName = k.location().getPath();;
 
 		if (biomeName.contains("birch")) {
 			sapling = Blocks.BIRCH_SAPLING.defaultBlockState();
@@ -704,6 +705,7 @@ public class MoveEntityEvent {
 		if (biomeName.contains("desert")) {
 			sapling = Blocks.ACACIA_SAPLING.defaultBlockState();
 		}
+		System.out.print("local Sapling Type :" + sapling);
 		return sapling;
 	}
 
@@ -985,6 +987,7 @@ public class MoveEntityEvent {
 		groundBlock = groundBlockState.getBlock();
 		Utility.debugMsg(1, le,
 				"Build Wall : gb" + groundBlock.toString() + ", fb:" + footBlock.toString());
+		int debug = 3;
 		WallFoundationDataManager.wallFoundationItem currentWallFoundationItem = WallFoundationDataManager
 				.getWallFoundationInfo(Utility.getResourceLocationString((ServerLevel)le.level, groundBlock));
 
@@ -1037,7 +1040,6 @@ public class MoveEntityEvent {
 	// on slopes too.
 
 	private boolean mobEatGrassOrFlower(Entity entity, String regrowthType) {
-
 		BlockPos ePos = getAdjustedBlockPos(entity);
 		if (!(isGrassOrFlower(footBlockState))) {
 			return false;
@@ -1116,7 +1118,7 @@ public class MoveEntityEvent {
 			BlockState theCoralBlock = level.getBlockState(pos.below(2)); // grow same kind of coral block
 			if ((count < 6) && (le.getBlockY() == minCoraldepth)) {
 				if (docoralplant < 0.30)
-					return false; // TODO test next line
+					return false; 
 				Utility.debugMsg(2, pos,
 						"CORAL Plant grows over Coral Block:" + Utility.getResourceLocationString(le) + " .");
 				level.setBlockAndUpdate(pos.below(1),
@@ -1384,8 +1386,12 @@ public class MoveEntityEvent {
 		if (e.level instanceof ServerLevel varLevel) {
 			AABB aabb = new AABB(ePos.east(2).above(2).north(2), ePos.west(2).below(2).south(2));
 			List<Entity> l = new ArrayList<>();
-			varLevel.getEntities().get(e.getType(), aabb, (entity) -> {
-				l.add(entity);
+
+			EntityType<?> test = e.getType();
+			varLevel.getEntities().get(aabb, (entity) -> {
+				if (test.tryCast(entity) != null) {
+					l.add(entity);
+				}
 			});
 			if (l.size() >= 9) {
 				varLevel.setBlockAndUpdate(ePos.below(), Blocks.DIRT_PATH.defaultBlockState());

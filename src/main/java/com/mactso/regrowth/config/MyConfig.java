@@ -8,7 +8,6 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import com.mactso.regrowth.Main;
 
-import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;

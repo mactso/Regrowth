@@ -21,15 +21,15 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.nbt.NbtString;
+import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.registry.tag.BiomeTags;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.tag.BiomeTags;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.BlockPos.Mutable;
-import net.minecraft.util.registry.RegistryEntry;
 import net.minecraft.world.Heightmap;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
@@ -306,9 +306,7 @@ public class Utility {
 		if (numZP < 0)
 			return false;
 		for (int i = 0; i <= numZP; i++) {
-			
-			e = ( HostileEntity) et.spawn(level, null, null, null, savePos.north().west(), SpawnReason.NATURAL, true, true);
-
+			e = ( HostileEntity) et.spawn(level, null, null, savePos.north().west(), SpawnReason.NATURAL, true, true);
 			if (persistant) 
 				e.setPersistent();
 			e.setBaby(isBaby);
@@ -320,7 +318,7 @@ public class Utility {
 		HostileEntity e;
 
 		for (int i = 0; i < X; i++) {
-			e = (HostileEntity) et.spawn(level, null, null, null, savePos.north().west(), SpawnReason.NATURAL, true, true);
+			e = (HostileEntity) et.spawn(level, null, null, savePos.north().west(), SpawnReason.NATURAL, true, true);
 			e.setBaby(isBaby);
 		}
 		return true;

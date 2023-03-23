@@ -8,10 +8,10 @@ import com.mactso.regrowth.utility.Utility;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
-import net.minecraft.tag.BlockTags;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.util.registry.RegistryEntry;
-import net.minecraft.util.registry.RegistryEntryList.Named;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.registry.entry.RegistryEntryList.Named;
+import net.minecraft.registry.tag.BlockTags;
 
 public class WallBiomeDataManager {
 	private static Hashtable<String, WallBiomeDataItem> wallBiomeDataHashtable = new Hashtable<>();
@@ -60,14 +60,14 @@ public class WallBiomeDataManager {
 
 		
         // TODO: line 64 might be wrong method "Named" is different.
-    	Named<Block> walls = Registry.BLOCK.getOrCreateEntryList(BlockTags.WALLS);
+    	Named<Block> walls = Registries.BLOCK.getOrCreateEntryList(BlockTags.WALLS);
     	if (!walls.iterator().hasNext()) {
         	System.out.println("failed to get walls all tags ");
         	return;
     	}
     	System.out.println("succeeded in loading walls all tags");
     	
-        Named<Block> fences = Registry.BLOCK.getOrCreateEntryList(BlockTags.FENCES);
+        Named<Block> fences = Registries.BLOCK.getOrCreateEntryList(BlockTags.FENCES);
     	if (!fences.iterator().hasNext()) {
         	System.out.println("failed to get fences all tags ");
         	return;

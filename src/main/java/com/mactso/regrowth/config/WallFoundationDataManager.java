@@ -3,8 +3,8 @@ package com.mactso.regrowth.config;
 import java.util.Hashtable;
 import java.util.StringTokenizer;
 
+import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.registry.Registry;
 
 
 public class WallFoundationDataManager {
@@ -50,7 +50,7 @@ public class WallFoundationDataManager {
 			if (oneLine.isEmpty()) continue;
 			try {
 				String key = oneLine;
-		        if (Registry.BLOCK.containsId(new Identifier(key))) {
+		        if (Registries.BLOCK.containsId(new Identifier(key))) {
 					wallFoundationsHashtable.put(key, new wallFoundationItem(key));		
 				} else {
 					System.out.println("Regrowth Debug: Wall Foundation Block: " + key + " not in Block Registry.  Mispelled?  Missing semicolon? ");

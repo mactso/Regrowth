@@ -11,8 +11,9 @@ import com.mojang.datafixers.util.Pair;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
+import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.registry.Registry;
+
 
 public class MyConfig {
 
@@ -175,7 +176,7 @@ public class MyConfig {
 		playerWallControlBlock = Blocks.COBBLESTONE_WALL; // default value if fail.
 		try {
 			Identifier id = new Identifier(playerWallControlBlockString);
-	        playerWallControlBlock  = Registry.BLOCK.get(id);
+	        playerWallControlBlock  = Registries.BLOCK.get(id);
 		}
 		catch (Exception e) {
 			Utility.debugMsg(0, "playerWallControlBlockString: '" + playerWallControlBlockString + "' is invalid");

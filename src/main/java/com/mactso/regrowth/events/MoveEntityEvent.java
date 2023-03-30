@@ -1304,7 +1304,7 @@ public class MoveEntityEvent {
 	}
 
 	private void mobHandleOverCrowding(LivingEntity le, String key) {
-		BlockPos ePos = new BlockPos(le.getX(), le.getY(), le.getZ());
+		BlockPos ePos = BlockPos.containing(le.getX(), le.getY(), le.getZ());
 		if (le instanceof Animal a) {
 			if (le.level instanceof ServerLevel world) {
 				AABB box = new AABB(ePos.east(3).above(2).north(3), ePos.west(3).below(2).south(3));
@@ -1318,7 +1318,7 @@ public class MoveEntityEvent {
 
 					} else {
 						float hurt = excess + (world.getRandom().nextFloat() / 6);
-						le.hurt(DamageSource.IN_WALL, hurt);
+						le.hurt(le.getLevel().damageSources().inWall(), hurt);
 
 					}
 				}
@@ -1382,7 +1382,7 @@ public class MoveEntityEvent {
 
 	private void mobTrodGrassBlock(Entity e) {
 
-		BlockPos ePos = new BlockPos(e.getX(), e.getY(), e.getZ());
+		BlockPos ePos = BlockPos.containing(e.getX(), e.getY(), e.getZ());
 		if (e.level instanceof ServerLevel varLevel) {
 			AABB aabb = new AABB(ePos.east(2).above(2).north(2), ePos.west(2).below(2).south(2));
 			List<Entity> l = new ArrayList<>();
@@ -1395,7 +1395,7 @@ public class MoveEntityEvent {
 			});
 			if (l.size() >= 9) {
 				varLevel.setBlockAndUpdate(ePos.below(), Blocks.DIRT_PATH.defaultBlockState());
-				e.hurt(DamageSource.IN_WALL, 0.25f);
+				e.hurt(e.getLevel().damageSources().inWall(), 0.25f);
 			}
 		}
 
@@ -1428,7 +1428,7 @@ public class MoveEntityEvent {
 		if (ve.level instanceof ServerLevel varW) {
 			int clericalLevel = ve.getVillagerData().getLevel();
 
-			BlockPos vePos = new BlockPos(ve.getX(), (ve.getY() + 0.99d), (ve.getZ()));
+			BlockPos vePos = BlockPos.containing(ve.getX(), (ve.getY() + 0.99d), (ve.getZ()));
 			AABB aabb = new AABB(vePos.east(4).above(2).north(4), vePos.west(4).below(2).south(4));
 			List<Entity> l = new ArrayList<>();
 			varW.getEntities().get(aabb, (entity) -> {
@@ -2006,7 +2006,7 @@ public class MoveEntityEvent {
 			int villagerLevel = ve.getVillagerData().getLevel();
 			if (villagerLevel < 1)
 				return;
-			BlockPos vePos = new BlockPos(ve.getX(), (ve.getY() + 0.99d), (ve.getZ()));
+			BlockPos vePos = BlockPos.containing(ve.getX(), (ve.getY() + 0.99d), (ve.getZ()));
 			AABB aabb = new AABB(vePos.east(6).above(3).north(6), vePos.west(6).below(2).south(6));
 			List<Entity> l = new ArrayList<>();
 			varW.getEntities().get(aabb, (entity) -> {

@@ -339,7 +339,7 @@ public class MoveEntityEvent {
 	}
 
 	private static void mobHandleOverCrowding(Entity e, String key) {
-		BlockPos ePos = new BlockPos(e.getX(), e.getY(), e.getZ());
+		BlockPos ePos = BlockPos.ofFloored(e.getX(), e.getY(), e.getZ());
 		if (e instanceof AnimalEntity a) {
 			if (e.world instanceof ServerWorld world) {
 				Box box = new Box(ePos.east(3).up(2).north(3), ePos.west(3).down(2).south(3));
@@ -352,9 +352,7 @@ public class MoveEntityEvent {
 
 					} else {
 						float hurt = excess + (world.getRandom().nextFloat()/6);
-						e.damage(DamageSource.IN_WALL, hurt);
-
-						
+						e.damage(e.getEntityWorld().getDamageSources().inWall(), hurt);
 					}
 				}
 			}
@@ -922,13 +920,14 @@ public class MoveEntityEvent {
 
 	private static void mobTrodGrassBlock(Entity e) {
 
-		BlockPos ePos = new BlockPos(e.getX(), e.getY(), e.getZ());
+		BlockPos ePos = BlockPos.ofFloored(e.getX(), e.getY(), e.getZ());
 		if (e.world instanceof ServerWorld world) {
 			Box box = new Box(ePos.east(2).up(2).north(2), ePos.west(2).down(2).south(2));
 			List<?> entityList = world.getEntitiesByType(e.getType(), box, (entity) -> true);
 			if (entityList.size() >= 9) {
 				world.setBlockState(ePos.down(), Blocks.DIRT_PATH.getDefaultState());
-				e.damage(DamageSource.IN_WALL, 0.25f);
+				e.damage(e.getEntityWorld().getDamageSources().inWall(), 0.25f);
+
 			}
 		}
 
@@ -1053,7 +1052,7 @@ public class MoveEntityEvent {
 			int villagerLevel = ve.getVillagerData().getLevel();
 			if (villagerLevel < 1)
 				return;
-			BlockPos vePos = new BlockPos(ve.getX(), (ve.getY() + 0.99d), (ve.getZ()));
+			BlockPos vePos = BlockPos.ofFloored(ve.getX(), (ve.getY() + 0.99d), (ve.getZ()));
 			Box box = new Box(vePos.east(6).up(3).north(6), vePos.west(6).down(2).south(6));
 
 			List<IronGolemEntity> l = varW.getEntitiesByType(EntityType.IRON_GOLEM, box, e -> true);
@@ -1091,7 +1090,7 @@ public class MoveEntityEvent {
 		if (ve.world instanceof ServerWorld varW) {
 			int clericalLevel = ve.getVillagerData().getLevel();
 
-			BlockPos vePos = new BlockPos(ve.getX(), (ve.getY() + 0.99d), (ve.getZ()));
+			BlockPos vePos = BlockPos.ofFloored(ve.getX(), (ve.getY() + 0.99d), (ve.getZ()));
 			Box box = new Box(vePos.east(4).up(2).north(4), vePos.west(4).down(2).south(4));
 
 			List<Entity> l = varW.getOtherEntities(null, box, (e) -> {

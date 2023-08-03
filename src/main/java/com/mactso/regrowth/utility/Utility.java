@@ -5,34 +5,32 @@ import org.apache.logging.log4j.Logger;
 
 import com.mactso.regrowth.config.MyConfig;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.SpawnReason;
-import net.minecraft.entity.effect.StatusEffect;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.entity.mob.HostileEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.nbt.NbtString;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.registry.tag.BiomeTags;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.BlockPos.Mutable;
-import net.minecraft.world.Heightmap;
-import net.minecraft.world.World;
-import net.minecraft.world.biome.Biome;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.BiomeTags;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.Heightmap.Types;
+import net.minecraft.world.phys.Vec3;
 
 public class Utility {
 	
@@ -76,312 +74,96 @@ public class Utility {
 
 	private static final Logger LOGGER = LogManager.getLogger();
 	
-		public static void debugMsg(int level, BlockPos pos, String dMsg) {
-
-			if (MyConfig.getDebugLevel() > level - 1) {
-				LOGGER.info("L" + level + " (" + pos.getX() + "," + pos.getY() + "," + pos.getZ() + "): " + dMsg);
-			}
-
-		}
-	
-	public static void debugMsg(int level, LivingEntity le, String dMsg) {
-
-		if (MyConfig.getDebugLevel() > level - 1) {
-			LOGGER.info("L" + level + " (" 
-					+ le.getBlockPos().getX() + "," 
-					+ le.getBlockPos().getY() + ","
-					+ le.getBlockPos().getZ() + "): " + dMsg);
-		}
+	public static String getMyBC (Holder<Biome> testBiome) {
+		
+		if (testBiome.is(BiomeTags.HAS_VILLAGE_DESERT))
+			return Utility.DESERT;
+		if (testBiome.is(BiomeTags.IS_FOREST))
+			return Utility.FOREST;
+		if (testBiome.is(BiomeTags.IS_BEACH))
+			return Utility.BEACH;
+		if (testBiome.is(BiomeTags.HAS_VILLAGE_SNOWY))
+			return Utility.ICY;		
+		if (testBiome.is(BiomeTags.IS_JUNGLE))
+			return Utility.JUNGLE;		
+		if (testBiome.is(BiomeTags.IS_OCEAN))
+			return Utility.OCEAN;		
+		if (testBiome.is(BiomeTags.IS_DEEP_OCEAN))
+			return Utility.OCEAN;		
+		if (testBiome.is(BiomeTags.HAS_VILLAGE_PLAINS))
+			return Utility.PLAINS;		
+		if (testBiome.is(BiomeTags.IS_RIVER))
+			return Utility.RIVER;		
+		if (testBiome.is(BiomeTags.IS_SAVANNA))
+			return Utility.SAVANNA;		
+		if (testBiome.is(BiomeTags.ALLOWS_SURFACE_SLIME_SPAWNS))
+			return Utility.SWAMP;		
+		if (testBiome.is(BiomeTags.IS_TAIGA))
+			return Utility.TAIGA;		
+		if (testBiome.is(BiomeTags.IS_BADLANDS))
+			return Utility.BADLANDS;		
+		if (testBiome.is(BiomeTags.IS_MOUNTAIN))
+			return Utility.EXTREME_HILLS;		
+		if (testBiome.is(BiomeTags.IS_NETHER))
+			return Utility.NETHER;	
+		return NONE;
 
 	}
+	
 
 	public static void debugMsg(int level, String dMsg) {
 
-		if (MyConfig.getDebugLevel() > level - 1) {
+		if (MyConfig.getaDebugLevel() > level - 1) {
 			LOGGER.info("L" + level + ":" + dMsg);
 		}
 
 	}
 
-	public static String getMyBC(RegistryEntry<Biome> testBiome) {
-	
-	if (testBiome.isIn(BiomeTags.VILLAGE_DESERT_HAS_STRUCTURE))
-		return Utility.DESERT;
-	if (testBiome.isIn(BiomeTags.IS_FOREST))
-		return Utility.FOREST;
-	if (testBiome.isIn(BiomeTags.IS_BEACH))
-		return Utility.BEACH;
-	if (testBiome.isIn(BiomeTags.VILLAGE_SNOWY_HAS_STRUCTURE))
-		return Utility.ICY;		
-	if (testBiome.isIn(BiomeTags.IS_JUNGLE))
-		return Utility.JUNGLE;		
-	if (testBiome.isIn(BiomeTags.IS_OCEAN))
-		return Utility.OCEAN;		
-	if (testBiome.isIn(BiomeTags.IS_DEEP_OCEAN))
-		return Utility.OCEAN;		
-	if (testBiome.isIn(BiomeTags.VILLAGE_PLAINS_HAS_STRUCTURE))
-		return Utility.PLAINS;		
-	if (testBiome.isIn(BiomeTags.IS_RIVER))
-		return Utility.RIVER;		
-	if (testBiome.isIn(BiomeTags.IS_SAVANNA))
-		return Utility.SAVANNA;		
-	if (testBiome.isIn(BiomeTags.ALLOWS_SURFACE_SLIME_SPAWNS))
-		return Utility.SWAMP;		
-	if (testBiome.isIn(BiomeTags.IS_TAIGA))
-		return Utility.TAIGA;		
-	if (testBiome.isIn(BiomeTags.IS_BADLANDS))
-		return Utility.BADLANDS;		
-	if (testBiome.isIn(BiomeTags.IS_MOUNTAIN))
-		return Utility.EXTREME_HILLS;		
-	if (testBiome.isIn(BiomeTags.IS_NETHER))
-		return Utility.NETHER;		
-	
-	return NONE;
+	public static void debugMsg(int level, BlockPos pos, String dMsg) {
 
-}
-
-	@SuppressWarnings("deprecation")
-	public static String getResourceLocationString(Block block) {
-		return block.getRegistryEntry().registryKey().getValue().toString();
-	}
-
-	public static String getResourceLocationString( BlockState blockState) {
-		return getResourceLocationString(blockState.getBlock());
+		if (MyConfig.getaDebugLevel() > level - 1) {
+			LOGGER.info("L" + level + " (" + pos.getX() + "," + pos.getY() + "," + pos.getZ() + "): " + dMsg);
 		}
 
-	@SuppressWarnings("deprecation")
-	public static String getResourceLocationString(Entity entity) {
-		return entity.getType().getRegistryEntry().registryKey().getValue().toString();
-	}
-	
-	@SuppressWarnings("deprecation")
-	public static String getResourceLocationString(Item item) {
-		return item.getRegistryEntry().registryKey().getValue().toString();
 	}
 
-	public static String getResourceLocationString(World world) {
-		return world.getRegistryKey().getValue().toString();
-	}
-	
-	public static int helperCountBlocksBB(Block searchBlock, int maxCount, World w, BlockPos bPos, int boxSize) {
-		return helperCountBlocksBB(searchBlock, maxCount, w, bPos, boxSize, boxSize); // "square" box subcase
-	}
+	public static void debugMsg(int level, LivingEntity le, String dMsg) {
 
-	public static int helperCountBlocksBB(Block searchBlock, int maxCount, World w, BlockPos bPos, int boxSize,
-			int ySize) {
-		int count = 0;
-		int minX = bPos.getX() - boxSize;
-		int maxX = bPos.getX() + boxSize;
-		int minZ = bPos.getZ() - boxSize;
-		int maxZ = bPos.getZ() + boxSize;
-		int minY = bPos.getY() - ySize;
-		int maxY = bPos.getY() + ySize;
-
-
-		Mutable mPos = new Mutable();
-		for (int dx = minX; dx <= maxX; dx++) {
-			for (int dz = minZ; dz <= maxZ; dz++) {
-				for (int dy = minY; dy <= maxY; dy++) {
-					mPos.set(dx, dy, dz);
-					if (w.getBlockState(mPos).getBlock() == searchBlock) {
-						if (++count >= maxCount)
-							return count;
-					}
-				}
-			}
+		if (MyConfig.getaDebugLevel() > level - 1) {
+			LOGGER.info("L" + level + " (" 
+					+ le.blockPosition().getX() + "," 
+					+ le.blockPosition().getY() + ","
+					+ le.blockPosition().getZ() + "): " + dMsg);
 		}
 
-		Utility.debugMsg(1, bPos,
-				Utility.getResourceLocationString(searchBlock) + " Sparse count:" + count + " countBlockBB ");
-
-		return count;
-	}
-	
-	public static int helperCountBlocksBB(Class<? extends Block> searchBlock, int maxCount, World w, BlockPos bPos,
-			int boxSize) {
-		return helperCountBlocksBB(searchBlock, maxCount, w, bPos, boxSize, 0);
-	}
-	
-	public static int helperCountBlocksBB(Class<? extends Block> searchBlock, int maxCount, World w, BlockPos bPos,
-			int boxSize, int ySize) {
-		int count = 0;
-		int minX = bPos.getX() - boxSize;
-		int maxX = bPos.getX() + boxSize;
-		int minZ = bPos.getZ() - boxSize;
-		int maxZ = bPos.getZ() + boxSize;
-		int minY = bPos.getY() - ySize;
-		int maxY = bPos.getY() + ySize;
-
-		Mutable mPos = new Mutable();
-
-		for (int dx = minX; dx <= maxX; dx++) {
-			for (int dz = minZ; dz <= maxZ; dz++) {
-				for (int dy = minY; dy <= maxY; dy++) {
-					mPos.set(dx, dy, dz);
-					if (searchBlock.isInstance(w.getBlockState(mPos).getBlock())) {
-						if (++count >= maxCount) {
-							return count;
-						}
-					}
-				}
-			}
-		}
-
-		Utility.debugMsg(1, bPos, searchBlock.getSimpleName() + " Sparse count:" + count + " countBlockBB ");
-
-		return count;
-	}
-	
-	public static int helperCountBlocksOrthogonalBB(Block searchBlock, int maxCount, World w, BlockPos bPos,
-			int lowerBoundY, int upperBoundY) {
-		int count = 0;
-		for (int j = lowerBoundY; j <= upperBoundY; j++) {
-			if (w.getBlockState(bPos.up(j).east()).getBlock() == searchBlock)
-				count++;
-			if (w.getBlockState(bPos.up(j).west()).getBlock() == searchBlock)
-				count++;
-			if (w.getBlockState(bPos.up(j).north()).getBlock() == searchBlock)
-				count++;
-			if (w.getBlockState(bPos.up(j).south()).getBlock() == searchBlock)
-				count++;
-			if (count >= maxCount)
-				return count;
-		}
-
-		return count;
-
-	}
-	
-	// this routine returns a count of the searchBlock immediately orthogonal to
-	// BlockPos, exiting if a max count is exceeded.
-	public static int helperCountBlocksOrthogonalBB(Block searchBlock, int maxCount, World w, BlockPos bPos,
-			int boundY) {
-		return Utility.helperCountBlocksOrthogonalBB(searchBlock, maxCount, w, bPos, 0 - boundY, 0 + boundY);
-	}
-	
-	public static boolean isNotNearWebs(BlockPos pos, ServerWorld serverworld) {
-
-		if (serverworld.getBlockState(pos).getBlock() == Blocks.COBWEB)
-			return true;
-		if (serverworld.getBlockState(pos.up()).getBlock() == Blocks.COBWEB)
-			return true;
-		if (serverworld.getBlockState(pos.down()).getBlock() == Blocks.COBWEB)
-			return true;
-		if (serverworld.getBlockState(pos.north()).getBlock() == Blocks.COBWEB)
-			return true;
-		if (serverworld.getBlockState(pos.south()).getBlock() == Blocks.COBWEB)
-			return true;
-		if (serverworld.getBlockState(pos.east()).getBlock() == Blocks.COBWEB)
-			return true;
-		if (serverworld.getBlockState(pos.west()).getBlock() == Blocks.COBWEB)
-			return true;
-
-		return false;
 	}
 
-	public static boolean isOutside(BlockPos pos, ServerWorld serverworld) {
+	public static void sendBoldChat(Player p, String chatMessage, ChatFormatting textColor) {
 
-		return serverworld.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, pos) == pos;
-	}
-
-	public static boolean populateEntityType(EntityType<?> et, ServerWorld level, BlockPos savePos, int range,
-			int modifier) {
-		boolean isBaby = false;
-		return populateEntityType(et, level, savePos, range, modifier, isBaby);
-	}
-
-	
-	public static boolean populateEntityType(EntityType<?> et, ServerWorld level, BlockPos savePos, int range,
-			int modifier, boolean isBaby) {
-		boolean persistant = false;
-		return populateEntityType(et, level, savePos, range, modifier, persistant, isBaby);
-	}
-	
-	
-	public static boolean populateEntityType(EntityType<?> et, ServerWorld level, BlockPos savePos, int range,
-			int modifier, boolean persistant, boolean isBaby) {
-		int numZP;
-		HostileEntity e;
-		numZP = level.random.nextInt(range) - modifier;
-		if (numZP < 0)
-			return false;
-		for (int i = 0; i <= numZP; i++) {
-			e = ( HostileEntity) et.spawn(level, null, null, savePos.north().west(), SpawnReason.NATURAL, true, true);
-			if (persistant) 
-				e.setPersistent();
-			e.setBaby(isBaby);
-		}
-		return true;
-	}
-	
-	public static boolean populateXEntityType(EntityType<?> et, ServerWorld level, BlockPos savePos, int X,  boolean isBaby) {
-		HostileEntity e;
-
-		for (int i = 0; i < X; i++) {
-			e = (HostileEntity) et.spawn(level, null, null, savePos.north().west(), SpawnReason.NATURAL, true, true);
-			e.setBaby(isBaby);
-		}
-		return true;
-	}
-
-	public static void sendBoldChat(PlayerEntity p, String chatMessage, Formatting textColor) {
-
-		MutableText component = Text.literal(chatMessage);
+		MutableComponent component = Component.literal(chatMessage);
 		component.setStyle(component.getStyle().withBold(true));
 		component.setStyle(component.getStyle().withColor(textColor));
-		p.sendMessage(component);
+		p.sendSystemMessage(component);
 
 
 	}
 
-	public static void sendChat(PlayerEntity p, String chatMessage, Formatting textColor) {
+	public static void sendChat(Player p, String chatMessage, ChatFormatting textColor) {
 
-		MutableText component = Text.literal(chatMessage);
+		MutableComponent component = Component.literal(chatMessage);
 		component.setStyle(component.getStyle().withColor(textColor));
-		p.sendMessage(component);
+		p.sendSystemMessage(component);
 
-	}	
+	}
 	
-	public static void setLore(ItemStack stack, String inString)
-	{
-		NbtCompound tag = stack.getOrCreateSubNbt("display");
-		NbtList list = new NbtList();
-		list.add(NbtString.of(inString));
-		tag.put("Lore", list);
-	}
-
-
-	public static void setName(ItemStack stack, String inString)
-	{
-		NbtCompound tag = stack.getOrCreateSubNbt("display");
-		NbtList list = new NbtList();
-		list.add(NbtString.of(inString));
-		tag.put("Name", list);
-	}
-
-	public static void slowFlyingMotion(LivingEntity le) {
-
-		if ((le instanceof PlayerEntity) && (le.isFallFlying())) {
-			PlayerEntity cp = (PlayerEntity) le;
-			Vec3d vec = cp.getVelocity();
-			Vec3d slowedVec;
-			if (vec.y > 0) {
-				slowedVec = vec.multiply(0.17, -0.75, 0.17);
-			} else {
-				slowedVec = vec.multiply(0.17, 1.001, 0.17);
-			}
-			cp.setVelocity(slowedVec);
-		}
-	}
-
-	public static void updateEffect(LivingEntity e, int amplifier, StatusEffect mobEffect, int duration) {
-		StatusEffectInstance ei = e.getStatusEffect(mobEffect);
+	public static void updateEffect(LivingEntity e, int amplifier, MobEffect mobEffect, int duration) {
+		MobEffectInstance ei = e.getEffect(mobEffect);
 		if (amplifier == 10) {
 			amplifier = 20; // player "plaid" speed.
 		}
 		if (ei != null) {
 			if (amplifier > ei.getAmplifier()) {
-				e.removeStatusEffect(mobEffect);
+				e.removeEffect(mobEffect);
 			}
 			if (amplifier == ei.getAmplifier() && ei.getDuration() > 10) {
 				return;
@@ -389,16 +171,136 @@ public class Utility {
 			if (ei.getDuration() > 10) {
 				return;
 			}
-			e.removeStatusEffect(mobEffect);
+			e.removeEffect(mobEffect);
 		}
-		e.addStatusEffect(new StatusEffectInstance(mobEffect, duration, amplifier, true, true));
+		e.addEffect(new MobEffectInstance(mobEffect, duration, amplifier, true, true));
 		return;
 	}
+
+	public static boolean populateEntityType(EntityType<?> et, ServerLevel level, BlockPos savePos, int range,
+			int modifier) {
+		boolean isBaby = false;
+		return populateEntityType(et, level, savePos, range, modifier, isBaby);
+	}
+
+	public static boolean populateEntityType(EntityType<?> et, ServerLevel level, BlockPos savePos, int range,
+			int modifier, boolean isBaby) {
+		boolean persistant = false;
+		return populateEntityType(et, level, savePos, range, modifier, persistant, isBaby);
+	}
+
+	public static boolean populateEntityType(EntityType<?> et, ServerLevel level, BlockPos savePos, int range,
+			int modifier, boolean persistant, boolean isBaby) {
+		int numZP;
+		Mob e;
+		numZP = level.random.nextInt(range) - modifier;
+		if (numZP < 0)
+			return false;
+		for (int i = 0; i <= numZP; i++) {
+
+			e = (Mob) et.spawn(level, savePos, MobSpawnType.NATURAL);
+			if (persistant) 
+				e.setPersistenceRequired();
+			e.setBaby(isBaby);
+		}
+		return true;
+	}
+
+	public static boolean populateXEntityType(EntityType<?> et, ServerLevel level, BlockPos savePos, int X,  boolean isBaby) {
+		Mob e;
+
+		for (int i = 0; i < X; i++) {
+			e = (Mob) et.spawn(level, savePos, MobSpawnType.NATURAL);
+			e.setBaby(isBaby);
+		}
+		return true;
+	}
+
+	
+	public static void setName(ItemStack stack, String inString)
+	{
+		CompoundTag tag = stack.getOrCreateTagElement("display");
+		ListTag list = new ListTag();
+		list.add(StringTag.valueOf(inString));
+		tag.put("Name", list);
+	}
+	
+	
+	public static void setLore(ItemStack stack, String inString)
+	{
+		CompoundTag tag = stack.getOrCreateTagElement("display");
+		ListTag list = new ListTag();
+		list.add(StringTag.valueOf(inString));
+		tag.put("Lore", list);
+	}
+	
+	public static boolean isNotNearWebs(BlockPos pos, ServerLevel serverLevel) {
+
+		if (serverLevel.getBlockState(pos).getBlock() == Blocks.COBWEB)
+			return true;
+		if (serverLevel.getBlockState(pos.above()).getBlock() == Blocks.COBWEB)
+			return true;
+		if (serverLevel.getBlockState(pos.below()).getBlock() == Blocks.COBWEB)
+			return true;
+		if (serverLevel.getBlockState(pos.north()).getBlock() == Blocks.COBWEB)
+			return true;
+		if (serverLevel.getBlockState(pos.south()).getBlock() == Blocks.COBWEB)
+			return true;
+		if (serverLevel.getBlockState(pos.east()).getBlock() == Blocks.COBWEB)
+			return true;
+		if (serverLevel.getBlockState(pos.west()).getBlock() == Blocks.COBWEB)
+			return true;
+
+		return false;
+	}
+
+	public static boolean isOutside(BlockPos pos, ServerLevel serverLevel) {
+		return serverLevel.getHeightmapPos(Types.MOTION_BLOCKING_NO_LEAVES, pos) == pos;
+	}
+
+	public static void slowFlyingMotion(LivingEntity le) {
+
+		if ((le instanceof Player) && (le.isFallFlying())) {
+			Player cp = (Player) le;
+			Vec3 vec = cp.getDeltaMovement();
+			Vec3 slowedVec;
+			if (vec.y > 0) {
+				slowedVec = vec.multiply(0.17, -0.75, 0.17);
+			} else {
+				slowedVec = vec.multiply(0.17, 1.001, 0.17);
+			}
+			cp.setDeltaMovement(slowedVec);
+		}
+	}	
+	
+	public static String getResourceLocationString( BlockState blockState) {
+		return getResourceLocationString(blockState.getBlock());
+		}
+
+
+	@SuppressWarnings("deprecation")
+	public static String getResourceLocationString(Block block) {
+		return block.builtInRegistryHolder().key().location().toString();
+	}
+
+	@SuppressWarnings("deprecation")
+	public static String getResourceLocationString(Item item) {
+		return item.builtInRegistryHolder().key().location().toString();
+	}
+
+	public static String getResourceLocationString(Entity entity) {
+		EntityType<?> et = entity.getType();
+		return 	EntityType.getKey(et).toString();
+	}
+
+	public static String GetBiomeName(Biome b) {
+		return b.toString();
+	}
+
 
 	public static void warn (String dMsg) {
 		LOGGER.warn(dMsg);
 	}
-
 
 
 }

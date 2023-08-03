@@ -11,65 +11,69 @@ import com.mactso.regrowth.utility.Utility;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.entity.Entity;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.hit.EntityHitResult;
-import net.minecraft.util.hit.HitResult;
-import net.minecraft.world.World;
-
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.HitResult;
 
 public class RegrowthCommands {
 	String subcommand = "";
 	String value = "";
 	private static final Logger LOGGER = LogManager.getLogger();
 	
-    public static void register(CommandDispatcher<ServerCommandSource> dispatcher) 
-    {	
-		System.out.println("Register Regrowth Commands");
-		dispatcher.register(CommandManager.literal("regrowth").requires((source) -> 
+	@SuppressWarnings("resource")
+	public static void register(CommandDispatcher<CommandSourceStack> dispatcher)
+	{
+		System.out.println("Enter register");  
+		dispatcher.register(Commands.literal("regrowth").requires((source) -> 
 			{
-				return source.hasPermissionLevel(2);
+				return source.hasPermission(2);
 			}
 		)
-		.then(CommandManager.literal("debugLevel").then(
-				CommandManager.argument("debugLevel", IntegerArgumentType.integer(0,2)).executes(ctx -> {
+		.then(Commands.literal("debugLevel").then(
+				Commands.argument("debugLevel", IntegerArgumentType.integer(0,2)).executes(ctx -> {
 					return setDebugLevel(IntegerArgumentType.getInteger(ctx, "debugLevel"));
 			}
 			)
 			)
 			)
-		.then(CommandManager.literal("info").executes(ctx -> {
-			ServerPlayerEntity p = ctx.getSource().getPlayer(); // or exception!
-					World world = p.world;
-					String objectInfo = "";
+		.then(Commands.literal("info").executes(ctx -> {
+					ServerPlayer p = ctx.getSource().getPlayerOrException();
 
-					if (p.world.isClient()) {
-						MinecraftClient mc = MinecraftClient.getInstance();
-	                    HitResult object = mc.crosshairTarget;
+					Level worldName = p.level();
+					String objectInfo = "";
+					MinecraftServer srv = p.getServer();
+					if (!(p.level().isClientSide)) {
+						Minecraft mc = Minecraft.getInstance();
+	                    HitResult object = mc.hitResult;
 	                    if (object instanceof EntityHitResult) {
 	                    	EntityHitResult ertr = (EntityHitResult) object;
 	                    	Entity tempEntity = ertr.getEntity();
-	                    	objectInfo = Utility.getResourceLocationString(tempEntity);
+	                    	objectInfo = EntityType.getKey(tempEntity.getType()).toString();
 	                     } else {
 	                   		objectInfo = "You are not looking at an entity.";	                    	 
 	                     }
 					} else {
 						objectInfo = "Load single player game to see entity you are looking at.";
 					}
+					//ITextComponent component = new StringTextComponent (worldName.getDimension().getType().getRegistryName() 
+		            //		+ "\n Current Values");
 
-
-					Utility.sendBoldChat(p, Utility.getResourceLocationString(world).toUpperCase()
-		            		+ "\n Current Values", Formatting.DARK_GREEN);
+					Utility.sendBoldChat(p, worldName.dimension().toString()
+		            		+ "\n Current Values", ChatFormatting.DARK_GREEN);
 
 		            String msg = 
 		              		  "\n  Regrowth (Fabric) "  
 		            		+ "\n  Debug Level...........: " + MyConfig.getDebugLevel()
-		            		+ "\n  Looking At................: "  + objectInfo;
-		            Utility.sendChat(p, msg, Formatting.DARK_GREEN);
+		            		+ "\n  Looking At................:"  + objectInfo;
+		            Utility.sendChat(p, msg, ChatFormatting.DARK_GREEN);
 					return 1;
 			}
 			)
@@ -80,7 +84,7 @@ public class RegrowthCommands {
 
 	public static int setDebugLevel (int newDebugLevel) {
 		MyConfig.setDebugLevel(newDebugLevel);
-		// ModConfigs.pushDebugLevel();
+		MyConfig.pushDebugLevel();
 		return 1;
 	}
 }

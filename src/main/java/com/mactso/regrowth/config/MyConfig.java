@@ -9,11 +9,10 @@ import com.mactso.regrowth.Main;
 import com.mactso.regrowth.utility.Utility;
 import com.mojang.datafixers.util.Pair;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.registry.Registries;
-import net.minecraft.util.Identifier;
-
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 
 public class MyConfig {
 
@@ -53,6 +52,10 @@ public class MyConfig {
 		return debugLevel;
 	}
 
+	public static int getaDebugLevel() {
+		return getDebugLevel();
+	}
+	
 	public static void setDebugLevel(int debugLevel) {
 		MyConfig.debugLevel = debugLevel;
 	}
@@ -175,8 +178,8 @@ public class MyConfig {
 				"minecraft:cobblestone_wall");
 		playerWallControlBlock = Blocks.COBBLESTONE_WALL; // default value if fail.
 		try {
-			Identifier id = new Identifier(playerWallControlBlockString);
-	        playerWallControlBlock  = Registries.BLOCK.get(id);
+			ResourceLocation id = new ResourceLocation(playerWallControlBlockString);
+			playerWallControlBlock  = BuiltInRegistries.BLOCK.get(id);
 		}
 		catch (Exception e) {
 			Utility.debugMsg(0, "playerWallControlBlockString: '" + playerWallControlBlockString + "' is invalid");
@@ -194,6 +197,11 @@ public class MyConfig {
 		WallFoundationDataManager.wallFoundationsInit();
 		
 		LOGGER.info("All " + configs.getConfigsList().size() + " have been set properly");
+	}
+
+	public static void pushDebugLevel() {
+		// TODO Auto-generated method stub
+		// someday...
 	}
 
 }

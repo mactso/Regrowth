@@ -3,9 +3,7 @@ package com.mactso.regrowth;
 import com.mactso.regrowth.commands.RegrowthCommands;
 // import com.mactso.regrowth.Commands.RegrowthCommands;
 import com.mactso.regrowth.config.MyConfig;
-import com.mactso.regrowth.events.MoveEntityEvent;
 
-import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModLoadingContext;
@@ -30,7 +28,6 @@ public class Main {
 		@SubscribeEvent 
 		public void preInit (final FMLCommonSetupEvent event) {
 			System.out.println("Regrowth : Registering Handler");
-			MinecraftForge.EVENT_BUS.register(new MoveEntityEvent ());
 			
 		}
 		

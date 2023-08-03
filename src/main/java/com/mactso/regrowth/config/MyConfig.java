@@ -36,16 +36,32 @@ public class MyConfig {
 		return aDebugLevel;
 	}
 
+	public static int getDebugLevel() {
+		return aDebugLevel;
+	}
+	
 	public static void setaDebugLevel(int aDebugLevel) {
 		MyConfig.aDebugLevel = aDebugLevel;
 	}
 
-	public static double getaEatingHeals() {
+	public static void setDebugLevel(int aDebugLevel) {
+		MyConfig.aDebugLevel = aDebugLevel;
+	}
+
+	public static double getEatingHeals() {
 		return aEatingHeals;
 	}
 
-	public static void setaEatingHeals(double aEatingHeals) {
+	public static void setEatingHeals(double aEatingHeals) {
 		MyConfig.aEatingHeals = aEatingHeals;
+	}
+
+	public static Block getPlayerWallControlBlock() {
+		return playerWallControlBlock;
+	}
+
+	public static void setPlayerWallControlBlock(Block playerWallControlBlock) {
+		MyConfig.playerWallControlBlock = playerWallControlBlock;
 	}
 
 	public static int getMushroomDensity() {

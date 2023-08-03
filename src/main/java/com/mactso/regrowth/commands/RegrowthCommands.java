@@ -22,6 +22,7 @@ public class RegrowthCommands {
 	String subcommand = "";
 	String value = "";
 	
+	@SuppressWarnings("resource")
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher)
 	{
 		System.out.println("Enter register");
@@ -40,10 +41,10 @@ public class RegrowthCommands {
 		.then(Commands.literal("info").executes(ctx -> {
 					ServerPlayer p = ctx.getSource().getPlayerOrException();
 
-					Level worldName = p.level;
+					Level worldName = p.level();
 					String objectInfo = "";
 					MinecraftServer srv = p.getServer();
-					if (!(p.level.isClientSide)) {
+					if (!(p.level().isClientSide)) {
 						Minecraft mc = Minecraft.getInstance();
 	                    HitResult object = mc.hitResult;
 	                    if (object instanceof EntityHitResult) {

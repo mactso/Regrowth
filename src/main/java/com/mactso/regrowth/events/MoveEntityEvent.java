@@ -29,7 +29,6 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.AgeableMob;
@@ -319,10 +318,8 @@ public class MoveEntityEvent {
 	}
 
 	private BlockState getAdjustedFootBlockState(Entity e) {
-		if (e.getY() == e.blockPosition().getY()) {
-			return e.level.getBlockState(e.blockPosition());
-		}
-		return e.level.getBlockState(e.blockPosition().above());
+		BlockPos pos = getAdjustedBlockPos (e);
+		return e.level.getBlockState(pos);
 	}
 
 	private BlockState getAdjustedGroundBlockState(Entity e) {
@@ -1767,6 +1764,10 @@ public class MoveEntityEvent {
 			return false;
 		}
 
+		if (!footBlockState.canOcclude()) {
+			return false;
+		}
+		
 		Block biomeRoadBlock = helperBiomeRoadBlockType(Utility.GetBiomeName(localBiome)).getBlock();
 
 		if (groundBlock == biomeRoadBlock)

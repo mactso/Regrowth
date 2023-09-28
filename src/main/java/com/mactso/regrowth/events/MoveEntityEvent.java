@@ -123,11 +123,15 @@ public class MoveEntityEvent {
 	private static int lastTorchX = 0;
 	private static int lastTorchY = 0;
 	private static int lastTorchZ = 0;
-	private static BlockState footBlockState;
 
+	private static BlockState footBlockState;
 	private static BlockState groundBlockState;
 	private static Block footBlock;
 	private static Block groundBlock;
+	private static BlockPos footBlockPos;
+	private static BlockPos groundBlockPos;
+	
+	
 	private static Biome localBiome;
 	private static boolean isRoadPiece = false;
 	private static String biomeCategory;
@@ -248,7 +252,7 @@ public class MoveEntityEvent {
 			if ((footBlock instanceof TallGrassBlock) || (footBlock instanceof DoublePlantBlock)
 					|| (footBlock.getDescriptionId().equals("block.byg.short_grass"))) {
 
-				ve.level().destroyBlock(ve.blockPosition(), false);
+				ve.level().destroyBlock(footBlockPos, false);
 				Utility.debugMsg(1, ve, debugKey + " grass cut.");
 			}
 		}
@@ -299,10 +303,8 @@ public class MoveEntityEvent {
 	}
 
 	private static BlockState getAdjustedFootBlockState(Entity e) {
-		if (e.getY() == e.blockPosition().getY()) {
-			return e.level().getBlockState(e.blockPosition());
-		}
-		return e.level().getBlockState(e.blockPosition().above());
+		BlockPos pos = getAdjustedBlockPos (e);
+		return e.level().getBlockState(pos);
 	}
 
 	private static BlockState getAdjustedGroundBlockState(Entity e) {
@@ -377,10 +379,10 @@ public class MoveEntityEvent {
 
 
 		adjustedPos = getAdjustedBlockPos(le);
-
 		footBlockState = getAdjustedFootBlockState(le);
 		footBlock = footBlockState.getBlock();
-
+		footBlockPos = getAdjustedBlockPos(le);
+		
 		if (footBlock instanceof WoolCarpetBlock)
 			return;
 
@@ -856,7 +858,12 @@ public class MoveEntityEvent {
 	}
 
 	private static boolean isNearWater(LevelReader level, BlockPos pos) {
-
+//		for (BlockPos blockpos : BlockPos.betweenClosed(pos.offset(-4, 0, -4), pos.offset(4, 1, 4))) {  TODO standardize on this in helperCountBB
+//		for (BlockPos blockpos : BlockPos.betweenClosed(pos.offset(-boxsize, 0, -boxsize), pos.offset(boxsize, yAxis, boxsize))) {  TODO standardize on this.
+//			if (level.getFluidState(blockpos).is(FluidTags.WATER)) {
+//				return true;
+//			}
+//		}
 		// TODO This also gets lava, so change later to getFluidState(p_46802_).is(FluidTags.WATER);
 		AABB box = new AABB(pos.east(4).north(4), pos.west(4).south(4).below(1));
 		if (level.containsAnyLiquid(box)) {
@@ -1751,6 +1758,12 @@ public class MoveEntityEvent {
 			return false;
 		}
 
+		if ((!footBlockState.canOcclude()) || (!footBlockState.isSolid())) {
+			return false;
+		}
+
+		
+		
 		Block biomeRoadBlock = helperBiomeRoadBlockType(Utility.GetBiomeName(localBiome)).getBlock();
 
 		if (groundBlock == biomeRoadBlock)
@@ -1771,6 +1784,7 @@ public class MoveEntityEvent {
 						footBlockState = Blocks.AIR.defaultBlockState();
 						footBlock = footBlockState.getBlock();
 					}
+					int x = 3;
 					e.level().setBlockAndUpdate(adjustedPos.below(), biomeRoadBlock.defaultBlockState());
 					return true;
 				}

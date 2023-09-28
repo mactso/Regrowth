@@ -9,8 +9,6 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.stream.Collectors;
 
-import org.antlr.v4.runtime.atn.BlockStartState;
-
 import com.google.common.collect.Lists;
 import com.mactso.regrowth.config.MyConfig;
 import com.mactso.regrowth.config.RegrowthEntitiesManager;
@@ -32,7 +30,6 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
@@ -88,7 +85,6 @@ import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.levelgen.Heightmap.Types;
 import net.minecraft.world.level.levelgen.feature.ConfiguredStructureFeature;
-import net.minecraft.world.level.levelgen.feature.CoralTreeFeature;
 import net.minecraft.world.level.levelgen.feature.StructureFeature;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
@@ -99,7 +95,6 @@ import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
 import net.minecraftforge.event.world.BlockEvent.FarmlandTrampleEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.registries.ForgeRegistries;
 
 @Mod.EventBusSubscriber()
 public class MoveEntityEvent {
@@ -134,6 +129,7 @@ public class MoveEntityEvent {
 	private BlockState footBlockState;
 	private BlockState groundBlockState;
 	private Block footBlock;
+	private static BlockPos footBlockPos;
 	private Block groundBlock;
 	private Biome localBiome;
 	private boolean isRoadPiece = false;
@@ -193,6 +189,7 @@ public class MoveEntityEvent {
 
 			footBlockState = getAdjustedFootBlockState(entity);
 			footBlock = footBlockState.getBlock();
+			footBlockPos = getAdjustedBlockPos(entity);
 			if (footBlock instanceof WoolCarpetBlock)
 				return;
 
@@ -867,7 +864,7 @@ public class MoveEntityEvent {
 			if ((footBlock instanceof TallGrassBlock) || (footBlock instanceof DoublePlantBlock)
 					|| (footBlock.getDescriptionId().equals("block.byg.short_grass"))) {
 
-				ve.level.destroyBlock(ve.blockPosition(), false);
+				ve.level.destroyBlock(footBlockPos, false);
 				MyConfig.debugMsg(1, ve.blockPosition(), debugKey + " grass cut.");
 			}
 		}
@@ -1323,6 +1320,10 @@ public class MoveEntityEvent {
 			return false;
 		}
 
+		if (!footBlockState.canOcclude()) {
+			return false;
+		}
+		
 		Block biomeRoadBlock = helperBiomeRoadBlockType(localBiome).getBlock();
 
 		if (groundBlock == biomeRoadBlock)

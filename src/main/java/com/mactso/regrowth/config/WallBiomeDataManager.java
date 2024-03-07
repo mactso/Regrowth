@@ -54,6 +54,7 @@ public class WallBiomeDataManager {
 		BlockState wallTypeBlockState;
 		for (String key : wallBiomeDataHashtable.keySet()) {
 			wallDiameter = wallBiomeDataHashtable.get(key).wallDiameter;
+			if (wallDiameter < 12) wallDiameter= 12;
 			wallTypeBlockState = wallBiomeDataHashtable.get(key).getWallBlockState();
 			String tempString = key + "," + wallDiameter + "," + wallTypeBlockState.toString() + ";";
 			returnString += tempString;

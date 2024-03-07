@@ -78,6 +78,7 @@ import net.minecraft.world.level.block.WoolCarpetBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.Heightmap.Types;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -290,11 +291,21 @@ public class MoveEntityEvent {
 		int absvx = (int) Math.abs(getVX(e, gVMPPos));
 		return absvx;
 	}
+	
+	private static int getAbsVX(BlockPos pos, BlockPos gVMPPos) {
+		int absvx = (int) Math.abs(getVX(pos, gVMPPos));
+		return absvx;
+	}
 
 	private static int getAbsVZ(Entity e, BlockPos gVMPPos) {
 		return (int) Math.abs(getVZ(e, gVMPPos));
 	}
 
+	private static int getAbsVZ(BlockPos pos, BlockPos gVMPPos) {
+		return (int) Math.abs(getVZ(pos, gVMPPos));
+	}
+
+	
 	private static BlockPos getAdjustedBlockPos(Entity e) {
 		if (e.getY() == e.blockPosition().getY()) {
 			return e.blockPosition();
@@ -319,6 +330,10 @@ public class MoveEntityEvent {
 
 	private static int getVX(Entity e, BlockPos gVMPPos) {
 		return (int) (e.getX() - gVMPPos.getX());
+	}
+
+	private static int getVX(BlockPos pos, BlockPos gVMPPos) {
+		return (int) (pos.getX() - gVMPPos.getX());
 	}
 	// TODO reimplement in 1.19
 //	private List<StructureStart> getStarts(LevelAccessor worldIn, StructureFeature<?> struct, int x, int z) {
@@ -345,7 +360,10 @@ public class MoveEntityEvent {
 	private static int getVZ(Entity e, BlockPos gVMPPos) {
 		return (int) (e.getZ() - gVMPPos.getZ());
 	}
-
+	
+	private static int getVZ(BlockPos pos, BlockPos gVMPPos) {
+		return (int) (pos.getZ() - gVMPPos.getZ());
+	}
 	@SuppressWarnings("resource")
 	@SubscribeEvent
 	public static void handleEntityMoveEvents(LivingTickEvent event) {
@@ -858,14 +876,9 @@ public class MoveEntityEvent {
 	}
 
 	private static boolean isNearWater(LevelReader level, BlockPos pos) {
-//		for (BlockPos blockpos : BlockPos.betweenClosed(pos.offset(-4, 0, -4), pos.offset(4, 1, 4))) {  TODO standardize on this in helperCountBB
-//		for (BlockPos blockpos : BlockPos.betweenClosed(pos.offset(-boxsize, 0, -boxsize), pos.offset(boxsize, yAxis, boxsize))) {  TODO standardize on this.
-//			if (level.getFluidState(blockpos).is(FluidTags.WATER)) {
-//				return true;
-//			}
-//		}
 		// TODO This also gets lava, so change later to getFluidState(p_46802_).is(FluidTags.WATER);
-		AABB box = new AABB(pos.east(4).north(4), pos.west(4).south(4).below(1));
+		AABB box = AABB.encapsulatingFullBlocks(pos.east(4).north(4), pos.west(4).south(4).below(1));
+				// new AABB(pos.east(4).north(4), pos.west(4).south(4).below(1));
 		if (level.containsAnyLiquid(box)) {
 			return true;
 		}
@@ -1285,10 +1298,10 @@ public class MoveEntityEvent {
 	}
 
 	private static void mobHandleOverCrowding(LivingEntity le, String key) {
-		BlockPos ePos = BlockPos.containing(le.getX(), le.getY(), le.getZ());
+		BlockPos pos = BlockPos.containing(le.getX(), le.getY(), le.getZ());
 		if (le instanceof Animal a) {
 			if (le.level() instanceof ServerLevel world) {
-				AABB box = new AABB(ePos.east(3).above(2).north(3), ePos.west(3).below(2).south(3));
+				AABB box = AABB.encapsulatingFullBlocks(pos.east(3).above(2).north(3), pos.west(3).below(2).south(3));
 				int excess = world.getEntities(le.getType(), box, (entity) -> true).size() - 16;
 
 				if (excess > 0) {
@@ -1296,11 +1309,9 @@ public class MoveEntityEvent {
 						le.level().playLocalSound(le.getX(), le.getY(), le.getZ(), SoundEvents.COW_DEATH, SoundSource.NEUTRAL,
 								1.1f, 0.54f, true);
 						le.setPos(le.getX(), -66, le.getZ());
-
 					} else {
 						float hurt = excess + (world.getRandom().nextFloat() / 6);
 						le.hurt(le.level().damageSources().inWall(), hurt);
-
 					}
 				}
 			}
@@ -1369,19 +1380,20 @@ public class MoveEntityEvent {
 
 	private static void mobTrodGrassBlock(Entity e) {
 
-		BlockPos ePos = BlockPos.containing(e.getX(), e.getY(), e.getZ());
+		BlockPos pos = BlockPos.containing(e.getX(), e.getY(), e.getZ());
 		if (e.level() instanceof ServerLevel varLevel) {
-			AABB aabb = new AABB(ePos.east(2).above(2).north(2), ePos.west(2).below(2).south(2));
+			
+			AABB box = AABB.encapsulatingFullBlocks(pos.east(2).above(2).north(2), pos.west(2).below(2).south(2));
 			List<Entity> l = new ArrayList<>();
 
 			EntityType<?> test = e.getType();
-			varLevel.getEntities().get(aabb, (entity) -> {
+			varLevel.getEntities().get(box, (entity) -> {
 				if (test.tryCast(entity) != null) {
 					l.add(entity);
 				}
 			});
 			if (l.size() >= 9) {
-				varLevel.setBlockAndUpdate(ePos.below(), Blocks.DIRT_PATH.defaultBlockState());
+				varLevel.setBlockAndUpdate(pos.below(), Blocks.DIRT_PATH.defaultBlockState());
 				e.hurt(e.level().damageSources().inWall(), 0.25f);
 			}
 		}
@@ -1416,10 +1428,10 @@ public class MoveEntityEvent {
 		if (ve.level() instanceof ServerLevel varW) {
 			int clericalLevel = ve.getVillagerData().getLevel();
 
-			BlockPos vePos = BlockPos.containing(ve.getX(), (ve.getY() + 0.99d), (ve.getZ()));
-			AABB aabb = new AABB(vePos.east(4).above(2).north(4), vePos.west(4).below(2).south(4));
+			BlockPos pos = BlockPos.containing(ve.getX(), (ve.getY() + 0.99d), (ve.getZ()));
+			AABB box = AABB.encapsulatingFullBlocks(pos.east(4).above(2).north(4), pos.west(4).below(2).south(4));
 			List<Entity> l = new ArrayList<>();
-			varW.getEntities().get(aabb, (entity) -> {
+			varW.getEntities().get(box, (entity) -> {
 				if (entity instanceof Villager || entity instanceof Player) {
 					l.add(entity);
 				}
@@ -1442,7 +1454,7 @@ public class MoveEntityEvent {
 				}
 				if (heal) {
 					le.addEffect(new MobEffectInstance(MobEffects.REGENERATION, clericalLevel * 51, 0), ve);
-					ve.level().playSound(null, vePos, SoundEvents.AMETHYST_CLUSTER_BREAK, SoundSource.NEUTRAL, 1.2f,
+					ve.level().playSound(null, pos, SoundEvents.AMETHYST_CLUSTER_BREAK, SoundSource.NEUTRAL, 1.2f,
 							1.52f);
 					return;
 				}
@@ -1910,6 +1922,12 @@ public class MoveEntityEvent {
 			}
 		}
 
+		boolean isMason = false;
+		if (ve.getVillagerData().getProfession() != VillagerProfession.MASON) {
+			isMason = true;
+			isMason = false; // Task: remove this line when enabling the mason feature.
+		}
+		
 		BlockPos vePos = getAdjustedBlockPos(ve);
 
 		String key = "minecraft:" + biomeCategory;
@@ -1922,6 +1940,10 @@ public class MoveEntityEvent {
 		int wallRadius = currentWallBiomeDataItem.getWallDiameter();
 
 		wallRadius = (wallRadius / 2) - 1;
+
+		if (isMason) {
+			tryBuildMasonWalls(ve, wallRadius);
+		}
 
 		if (isOnWallRadius(ve, wallRadius, gVMPPos)) {
 			// check for other meeting place bells blocking wall since too close.
@@ -1975,6 +1997,38 @@ public class MoveEntityEvent {
 
 	}
 
+	private static void tryBuildMasonWalls(Villager ve, int wallRadius) {
+		for (int i = 0; i<4; i++) {
+			double rndRadius = calcRandomWallSpot((ServerLevel) ve.level(), wallRadius);
+		    int rndWall = ve.level().getRandom().nextInt(4);
+		    int x = 0;
+		    int z = 0;
+		    if (rndWall == 0) {
+				x = -wallRadius;
+				z = calcRandomWallSpot((ServerLevel) ve.level(), wallRadius);
+			} else if (rndWall == 1){
+				x = calcRandomWallSpot((ServerLevel) ve.level(), wallRadius);
+				z = -wallRadius;
+			} else if (rndWall == 2){
+				x = wallRadius;
+				z = calcRandomWallSpot((ServerLevel) ve.level(), wallRadius);
+			} else if (rndWall == 3){
+				x = calcRandomWallSpot((ServerLevel) ve.level(), wallRadius);
+				z = wallRadius;
+			}
+		    BlockPos groundPos = ve.level().getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, BlockPos.containing(x,255,z));
+		    
+		}
+	}
+
+	private static int calcRandomWallSpot(ServerLevel level, int wallRadius) {
+		int rndRadius = level.getRandom().nextInt(wallRadius-2)+2+1;
+		if (level.getRandom().nextBoolean()) {
+			rndRadius = - wallRadius;
+		}
+		return rndRadius;
+	}
+
 	private static void vImproveWalls(Villager ve, String key, String regrowthType) {
 
 		if (groundBlockState.isAir()) {
@@ -2005,8 +2059,8 @@ public class MoveEntityEvent {
 			int villagerLevel = ve.getVillagerData().getLevel();
 			if (villagerLevel < 1)
 				return;
-			BlockPos vePos = BlockPos.containing(ve.getX(), (ve.getY() + 0.99d), (ve.getZ()));
-			AABB box = new AABB(vePos.east(6).above(3).north(6), vePos.west(6).below(2).south(6));
+			BlockPos pos = BlockPos.containing(ve.getX(), (ve.getY() + 0.99d), (ve.getZ()));
+			AABB box = AABB.encapsulatingFullBlocks(pos.east(6).above(3).north(6), pos.west(6).below(2).south(6));
 
 			List<IronGolem> l = varW.getEntities(EntityType.IRON_GOLEM, box, e -> true);
 
@@ -2022,7 +2076,7 @@ public class MoveEntityEvent {
 				if (heal) {
 					e.addEffect(new MobEffectInstance(MobEffects.REGENERATION, villagerLevel * 51, 0), ve);
 					ve.addEffect(new MobEffectInstance(MobEffects.REGENERATION, villagerLevel * 11, 0), ve);
-					ve.level().playSound(null, vePos, SoundEvents.VILLAGER_WORK_TOOLSMITH, SoundSource.NEUTRAL, 0.5f,
+					ve.level().playSound(null, pos, SoundEvents.VILLAGER_WORK_TOOLSMITH, SoundSource.NEUTRAL, 0.5f,
 							0.5f);
 					return;
 				}

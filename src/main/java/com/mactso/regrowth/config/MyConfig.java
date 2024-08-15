@@ -144,7 +144,10 @@ public class MyConfig {
 		WallFoundationDataManager.wallFoundationsInit();
 		defaultWallBiomeData6464 = COMMON.defaultBiomeWallDataActual.get();
 		try {
-			playerWallControlBlock = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(COMMON.playerWallControlBlockString.get()));
+			
+			ResourceLocation rl = ResourceLocation.parse(COMMON.playerWallControlBlockString.get());
+			playerWallControlBlock = ForgeRegistries.BLOCKS.getValue(rl);
+
 		}
 		catch (Exception e) {
 			System.out.println("Regrowth Debug:  Player Wall Control Block Illegal Config (uPper CaSe?): " + COMMON.playerWallControlBlockString.get());

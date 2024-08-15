@@ -73,7 +73,7 @@ public class RegrowthEntitiesManager {
 
 				regrowthMobHashtable.put(key, new RegrowthMobItem(regrowthType, seconds));
 				if (!modAndEntity.contentEquals("hbm:default") &&
-				    !ForgeRegistries.ENTITY_TYPES.containsKey(new ResourceLocation(modAndEntity))
+				    !ForgeRegistries.ENTITY_TYPES.containsKey(ResourceLocation.parse(modAndEntity))
 				   )  {
 					System.out.println("Regrowth Debug: Mob: " + modAndEntity + " not in Forge Entity Type Registry.  Mispelled?");
 				}

@@ -45,7 +45,7 @@ public class WallFoundationDataManager {
 			try {
 				String wallFoundationBlockKey = MyConfig.defaultWallFoundationsArray[i];
 				String key = wallFoundationBlockKey;				
-				if (ForgeRegistries.BLOCKS.containsKey(new ResourceLocation(wallFoundationBlockKey))) {
+				if (ForgeRegistries.BLOCKS.containsKey(ResourceLocation.parse(wallFoundationBlockKey))) {
 					wallFoundationsHashtable.put(key, new wallFoundationItem(wallFoundationBlockKey));
 				} else {
 					System.out.println("Regrowth Debug: Wall Foundation Block: " + wallFoundationBlockKey + " not in Forge Entity Type Registry.  Mispelled?  Missing semicolon? ");

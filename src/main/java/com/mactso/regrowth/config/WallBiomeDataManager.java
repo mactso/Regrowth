@@ -116,20 +116,20 @@ public class WallBiomeDataManager {
 				int wallDiameter = validatedWallDiameter(Integer.parseInt(wallDiameterString.trim()));
 
 				BlockState wallBlockState = DEFAULT_WALL_BLOCKSTATE;
-				if (ForgeRegistries.BLOCKS.containsKey(new ResourceLocation(wallBlockString))) {
+				if (ForgeRegistries.BLOCKS.containsKey( ResourceLocation.parse(wallBlockString))) {
 					@NotNull
 					Optional<Holder<Block>> opt = ForgeRegistries.BLOCKS
-							.getHolder(new ResourceLocation(wallBlockString));
+							.getHolder(ResourceLocation.parse(wallBlockString));
 					if (opt.isPresent()) {
 						wallBlockState = opt.get().get().defaultBlockState();
 					}
 				}
 
 				BlockState fenceBlockState = DEFAULT_FENCE_BLOCKSTATE;
-				if (ForgeRegistries.BLOCKS.containsKey(new ResourceLocation(wallBlockString))) {
+				if (ForgeRegistries.BLOCKS.containsKey(ResourceLocation.parse(wallBlockString))) {
 					@NotNull
 					Optional<Holder<Block>> opt = ForgeRegistries.BLOCKS
-							.getHolder(new ResourceLocation(fenceBlockString));
+							.getHolder(ResourceLocation.parse(fenceBlockString));
 					if (opt.isPresent()) {
 						fenceBlockState = opt.get().get().defaultBlockState();
 					}
@@ -143,7 +143,7 @@ public class WallBiomeDataManager {
 						&& !modAndBiome.contentEquals("minecraft:extreme_hills") // TODO: Hack...
 						&& !modAndBiome.contentEquals("minecraft:mesa") // TODO: Hack... aka badlands
 						&& !modAndBiome.contentEquals("minecraft:nether") // TODO: Hack... aks the_nether
-						&& !ForgeRegistries.BIOMES.containsKey(new ResourceLocation(modAndBiome))) {
+						&& !ForgeRegistries.BIOMES.containsKey(ResourceLocation.parse(modAndBiome))) {
 					System.out.println("Regrowth Debug: Wall Biome Data: " + key
 							+ " not in Forge Entity Type Registry.  Mispelled?");
 				}

@@ -136,16 +136,20 @@ public class WallBiomeDataManager {
 				}
 
 				wallBiomeDataHashtable.put(key, new WallBiomeDataItem(wallDiameter, wallBlockState, fenceBlockState));
-
+				
+				if (!ForgeRegistries.BIOMES.isEmpty()  ) {
+					int break3 = 4;
+				}
 				// odd bug: can't see extreme hills, mesa, or nether here but can elsewhere.
-				if (!modAndBiome.contentEquals("Regrowth:default") && !modAndBiome.contentEquals("Regrowth:minimum")
+				if (    !ForgeRegistries.BIOMES.isEmpty()    
+						&& !modAndBiome.contentEquals("Regrowth:default") && !modAndBiome.contentEquals("Regrowth:minimum")
 						&& !modAndBiome.contentEquals("minecraft:icy") // TODO: Hack...
 						&& !modAndBiome.contentEquals("minecraft:extreme_hills") // TODO: Hack...
 						&& !modAndBiome.contentEquals("minecraft:mesa") // TODO: Hack... aka badlands
 						&& !modAndBiome.contentEquals("minecraft:nether") // TODO: Hack... aks the_nether
 						&& !ForgeRegistries.BIOMES.containsKey(ResourceLocation.parse(modAndBiome))) {
 					System.out.println("Regrowth Debug: Wall Biome Data: " + key
-							+ " not in Forge Entity Type Registry.  Mispelled?");
+							+ " not in Forge Biome Type Registry.  Mispelled?");
 				}
 			} catch (Exception e) {
 				System.out.println("Regrowth Debug:  Bad Wall Biome Data Config : " + MyConfig.defaultWallBiomeData[i]);

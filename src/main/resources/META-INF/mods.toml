@@ -20,7 +20,7 @@ description='Regrowth.'
 [[dependencies.regrowth]]
     modId="minecraft"
     mandatory=true
-    versionRange="[1.20.4,1.21)"
+    versionRange="[1.21.1,1.22)"
     ordering="NONE"
     side="SERVER"
 # side="BOTH", "CLIENT?", "SERVER"

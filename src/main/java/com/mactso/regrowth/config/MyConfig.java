@@ -64,6 +64,15 @@ public class MyConfig {
 		MyConfig.playerWallControlBlock = playerWallControlBlock;
 	}
 
+	public static Block getTorchBlock() {
+		return torchBlock;
+	}
+
+	public static void setTorchBlock(Block torchBlock) {
+		MyConfig.torchBlock = torchBlock;
+	}
+
+	
 	public static int getMushroomDensity() {
 		return MyConfig.mushroomDensity;
 	}
@@ -91,6 +100,7 @@ public class MyConfig {
 	public static int aDebugLevel;
 	public static double aEatingHeals;
 	public static Block playerWallControlBlock;
+	public static Block torchBlock;
 	
 	public static String[] defaultRegrowthMobs;
 	public static String defaultRegrowthMobs6464;
@@ -147,7 +157,8 @@ public class MyConfig {
 			
 			ResourceLocation rl = ResourceLocation.parse(COMMON.playerWallControlBlockString.get());
 			playerWallControlBlock = ForgeRegistries.BLOCKS.getValue(rl);
-
+			ResourceLocation t1 = ResourceLocation.parse(COMMON.torchBlockString.get());
+			torchBlock = ForgeRegistries.BLOCKS.getValue(t1);
 		}
 		catch (Exception e) {
 			System.out.println("Regrowth Debug:  Player Wall Control Block Illegal Config (uPper CaSe?): " + COMMON.playerWallControlBlockString.get());
@@ -177,6 +188,7 @@ public class MyConfig {
 		public final ForgeConfigSpec.DoubleValue mushroomMinTemp;
 		public final ForgeConfigSpec.DoubleValue mushroomMaxTemp;
 		public final ConfigValue<String> playerWallControlBlockString;		
+		public final ConfigValue<String>  torchBlockString;		
 		public final ConfigValue<List<? extends String>> wallFoundationsList;
 
 		
@@ -255,9 +267,13 @@ public class MyConfig {
 					.defineInRange("mushroomMaxTemp", () -> 1.2, -2.0, 2.0);
 
 			this.playerWallControlBlockString = builder.comment("When block is over bell, villagers build walls. This block is created over bell when village is new.  If block is 'Air' players can't turn off wall building.")
-					.translation("regrowth.config.playerWallControlBlockStraing")
+					.translation("regrowth.config.playerWallControlBlockString")
 					.define("playerWallControlBlockString", "minecraft:cobblestone_wall");
-			
+
+			this.torchBlockString = builder.comment("This is the torch the villagers place.  It can be a modded torch.")
+					.translation("regrowth.config.torchBlockString")
+					.define("torchBlockString", "minecraft:torch");
+
 			builder.pop();
 
 			builder.push("Regrowth Mobs 6464");

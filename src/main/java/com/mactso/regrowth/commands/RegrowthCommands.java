@@ -39,12 +39,17 @@ public class RegrowthCommands {
 			)
 			)
 		.then(Commands.literal("info").executes(ctx -> {
+			Utility.debugMsg(0, "getting Serverplayer");
 					ServerPlayer p = ctx.getSource().getPlayerOrException();
 
 					Level worldName = p.level();
 					String objectInfo = "";
 					MinecraftServer srv = p.getServer();
-					if (!(p.level().isClientSide)) {
+					
+					if (srv.isDedicatedServer()) {
+                   		objectInfo = "( Unavailable on a Server ).";	                    	 
+					}
+					else {
 						Minecraft mc = Minecraft.getInstance();
 	                    HitResult object = mc.hitResult;
 	                    if (object instanceof EntityHitResult) {
@@ -54,17 +59,14 @@ public class RegrowthCommands {
 	                     } else {
 	                   		objectInfo = "You are not looking at an entity.";	                    	 
 	                     }
-					} else {
-						objectInfo = "Load single player game to see entity you are looking at.";
 					}
-					//ITextComponent component = new StringTextComponent (worldName.getDimension().getType().getRegistryName() 
-		            //		+ "\n Current Values");
 
 					Utility.sendBoldChat(p, worldName.dimension().toString()
 		            		+ "\n Current Values", ChatFormatting.DARK_GREEN);
 
-		            String msg = 
-		              		  "\n  Regrowth Version 1.16.1 06/29/2020"  
+		            String msg =
+		            		  "\n"
+		              		+ "\n  Regrowth Version 1.16.1 06/29/2020"  
 		            		+ "\n  Debug Level...........: " + MyConfig.aDebugLevel
 		            		+ "\n  Looking At................:"  + objectInfo;
 		            Utility.sendChat(p, msg, ChatFormatting.DARK_GREEN);

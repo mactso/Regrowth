@@ -847,7 +847,7 @@ public class MoveEntityEvent {
 	// TODO water mod compatibility?
 	// also ... Move this code back to forge.
 	private static boolean isNearWater(Level level, BlockPos pos) {
-		AABB box = new AABB(pos.east(4).north(4), pos.west(4).south(4));
+		AABB box = AABB.encapsulatingFullBlocks(pos.east(4).north(4), pos.west(4).south(4));
 		return level.containsAnyLiquid(box);
 	}
 
@@ -1328,10 +1328,10 @@ public class MoveEntityEvent {
 	}
 
 	private static void mobHandleOverCrowding(LivingEntity le, String key) {
-		BlockPos ePos = BlockPos.containing(le.getX(), le.getY(), le.getZ());
+		BlockPos pos = BlockPos.containing(le.getX(), le.getY(), le.getZ());
 		if (le instanceof Animal a) {
 			if (le.level() instanceof ServerLevel serverLevel) {
-				AABB box = new AABB(ePos.east(3).above(2).north(3), ePos.west(3).below(2).south(3));
+				AABB box = AABB.encapsulatingFullBlocks(pos.east(3).above(2).north(3), pos.west(3).below(2).south(3));
 				int excess = serverLevel.getEntities(le.getType(), box, (entity) -> true).size() - 16;
 
 				if (excess > 0) {
@@ -1412,12 +1412,12 @@ public class MoveEntityEvent {
 
 	private static void mobTrodGrassBlock(Entity e) {
 
-		BlockPos ePos = BlockPos.containing(e.getX(), e.getY(), e.getZ());
+		BlockPos pos = BlockPos.containing(e.getX(), e.getY(), e.getZ());
 		if (e.level() instanceof ServerLevel serverlevel) {
-			AABB box = new AABB(ePos.east(2).above(2).north(2), ePos.west(2).below(2).south(2));
+			AABB box = AABB.encapsulatingFullBlocks(pos.east(2).above(2).north(2), pos.west(2).below(2).south(2));
 			List<?> entityList = serverlevel.getEntities(e.getType(), box, (entity) -> true);
 			if (entityList.size() >= 9) {
-				serverlevel.setBlockAndUpdate(ePos.below(), Blocks.DIRT_PATH.defaultBlockState());
+				serverlevel.setBlockAndUpdate(pos.below(), Blocks.DIRT_PATH.defaultBlockState());
 				e.hurt(e.level().damageSources().inWall(), 0.25f);
 			}
 		}
@@ -1452,10 +1452,10 @@ public class MoveEntityEvent {
 		if (ve.level() instanceof ServerLevel varW) {
 			int clericalLevel = ve.getVillagerData().getLevel();
 
-			BlockPos vePos = BlockPos.containing(ve.getX(), (ve.getY() + 0.99d), (ve.getZ()));
-			AABB aabb = new AABB(vePos.east(4).above(2).north(4), vePos.west(4).below(2).south(4));
+			BlockPos pos = BlockPos.containing(ve.getX(), (ve.getY() + 0.99d), (ve.getZ()));
+			AABB box = AABB.encapsulatingFullBlocks(pos.east(4).above(2).north(4), pos.west(4).below(2).south(4));
 
-			List<Entity> l = varW.getEntities((Entity) null, aabb, (entity) -> {
+			List<Entity> l = varW.getEntities((Entity) null, box, (entity) -> {
 				if (entity instanceof Villager || entity instanceof Player) {
 					return true;
 				}
@@ -1481,7 +1481,7 @@ public class MoveEntityEvent {
 				}
 				if (heal) {
 					le.addEffect(new MobEffectInstance(MobEffects.REGENERATION, clericalLevel * 51, 0), ve);
-					ve.level().playSound(null, vePos, SoundEvents.AMETHYST_CLUSTER_BREAK, SoundSource.NEUTRAL, 1.2f,
+					ve.level().playSound(null, pos, SoundEvents.AMETHYST_CLUSTER_BREAK, SoundSource.NEUTRAL, 1.2f,
 							1.52f);
 					return;
 				}
@@ -2042,8 +2042,8 @@ public class MoveEntityEvent {
 			int villagerLevel = ve.getVillagerData().getLevel();
 			if (villagerLevel < 1)
 				return;
-			BlockPos vePos = BlockPos.containing(ve.getX(), (ve.getY() + 0.99d), (ve.getZ()));
-			AABB box = new AABB(vePos.east(6).above(3).north(6), vePos.west(6).below(2).south(6));
+			BlockPos pos = BlockPos.containing(ve.getX(), (ve.getY() + 0.99d), (ve.getZ()));
+			AABB box = AABB.encapsulatingFullBlocks(pos.east(6).above(3).north(6), pos.west(6).below(2).south(6));
 
 			List<IronGolem> l = varW.getEntities(EntityType.IRON_GOLEM, box, e -> true);
 
@@ -2059,7 +2059,7 @@ public class MoveEntityEvent {
 				if (heal) {
 					e.addEffect(new MobEffectInstance(MobEffects.REGENERATION, villagerLevel * 51, 0), ve);
 					ve.addEffect(new MobEffectInstance(MobEffects.REGENERATION, villagerLevel * 11, 0), ve);
-					ve.level().playSound(null, vePos, SoundEvents.VILLAGER_WORK_TOOLSMITH, SoundSource.NEUTRAL, 0.5f,
+					ve.level().playSound(null, pos, SoundEvents.VILLAGER_WORK_TOOLSMITH, SoundSource.NEUTRAL, 0.5f,
 							0.5f);
 					return;
 				}

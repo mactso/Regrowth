@@ -162,7 +162,9 @@ public class MoveEntityEvent {
 			return;
 		}
 
-		mobHandleOverCrowding(entity, key);
+		if (MyConfig.getHandleOvercrowding() > 0) {
+			mobHandleOverCrowding(entity, key);
+		}
 
 		// all remaining actions currently require a grass block underfoot so if not a
 		// grass block- can exit now.

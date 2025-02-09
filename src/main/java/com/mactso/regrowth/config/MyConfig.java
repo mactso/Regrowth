@@ -56,6 +56,14 @@ public class MyConfig {
 		MyConfig.aEatingHeals = aEatingHeals;
 	}
 
+	public static int getHandleOvercrowding() {
+		return handleOvercrowding;
+	}
+
+	public static void setHandleOvercrowding(int handleOvercrowding) {
+		MyConfig.handleOvercrowding = handleOvercrowding;
+	}
+
 	public static Block getPlayerWallControlBlock() {
 		return playerWallControlBlock;
 	}
@@ -89,6 +97,7 @@ public class MyConfig {
 	}
 	
 	public static int aDebugLevel;
+	public static int handleOvercrowding;
 	public static double aEatingHeals;
 	public static Block playerWallControlBlock;
 	
@@ -133,6 +142,7 @@ public class MyConfig {
 
 		aDebugLevel = COMMON.debugLevel.get();
 		aEatingHeals = COMMON.eatingHeals.get();
+		handleOvercrowding = COMMON.handleOvercrowding.get();
 		MyConfig.torchLightLevel = (int) MyConfig.COMMON.torchLightLevel.get();
 		MyConfig.mushroomDensity = (int) MyConfig.COMMON.mushroomDensity.get();
 		MyConfig.mushroomXDensity = (int) MyConfig.COMMON.mushroomXDensity.get();
@@ -167,6 +177,7 @@ public class MyConfig {
 
 		public final IntValue debugLevel;
 		public final DoubleValue eatingHeals;
+		public final IntValue handleOvercrowding;
 		public final IntValue torchLightLevel;
 		public final ForgeConfigSpec.IntValue mushroomDensity;
 		public final ForgeConfigSpec.IntValue mushroomXDensity;
@@ -229,6 +240,10 @@ public class MyConfig {
 			eatingHeals = builder.comment("Eating Heals: 0-No, 1-yes")
 					.translation(Main.MODID + ".config." + "eatingHeals")
 					.defineInRange("eatingHeals", () -> .99, 0.0, 1.0);
+
+			handleOvercrowding = builder.comment("Handle Overcrowding of entities: 0-No, 1-yes")
+					.translation(Main.MODID + ".config." + "handleOvercrowding")
+					.defineInRange("handleOvercrowding", () -> 1, 0, 1);
 
 			this.torchLightLevel = builder.comment("Torch Light Level - Villagers will only place torches on blocks this dark or darker.")
 					.translation("regrowth.config.torchLightLevel ")

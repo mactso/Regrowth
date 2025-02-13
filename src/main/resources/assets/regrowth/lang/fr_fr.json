@@ -1,0 +1,10 @@
+{
+	"advancements.rgroot.title": "Lore de Regrowth",
+	"advancements.rgroot.description": "Ramassez des feuilles, un mur ou une pelle pour en apprendre davantage.",
+	"advancements.offlimits.title": "Interdit !",
+	"advancements.offlimits.description": "Les villageois ne construiront pas de murs sur les routes du village (comme les chemins d'herbe) !",
+	"advancements.saferhedges.title": "Haies plus sûres !",
+	"advancements.saferhedges.description": "Les villageois ne couperont pas les blocs de feuilles que vous placez. Vos labyrinthes de haies sont en sécurité !",
+	"advancements.teardown.title": "Abattez ces murs !",
+	"advancements.teardown.description": "Les villageois ne construiront pas de murs si vous retirez le bloc de mur au-dessus des cloches du village !"
+}

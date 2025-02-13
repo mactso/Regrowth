@@ -178,7 +178,7 @@ public class MyConfig {
 				"minecraft:cobblestone_wall");
 		playerWallControlBlock = Blocks.COBBLESTONE_WALL; // default value if fail.
 		try {
-			ResourceLocation id = new ResourceLocation(playerWallControlBlockString);
+			ResourceLocation id = ResourceLocation.parse(playerWallControlBlockString);
 			playerWallControlBlock  = BuiltInRegistries.BLOCK.get(id);
 		}
 		catch (Exception e) {

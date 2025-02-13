@@ -50,7 +50,7 @@ public class WallFoundationDataManager {
 			if (oneLine.isEmpty()) continue;
 			try {
 				String key = oneLine;
-		        if (BuiltInRegistries.BLOCK.containsKey(new ResourceLocation(key))) {
+		        if (BuiltInRegistries.BLOCK.containsKey(ResourceLocation.parse(key))) {
 					wallFoundationsHashtable.put(key, new wallFoundationItem(key));		
 				} else {
 					System.out.println("Regrowth Debug: Wall Foundation Block: " + key + " not in Block Registry.  Mispelled?  Missing semicolon? ");

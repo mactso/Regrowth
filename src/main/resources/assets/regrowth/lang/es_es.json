@@ -1,0 +1,10 @@
+{
+"advancements.rgroot.title": "Tradición de recrecimiento", 
+"advancements.rgroot.description": "Recoge algunas hojas, una pared o una pala para aprender más.", 
+"advancements.offlimits.title": "¡Fuera de los límites!", 
+"advancements.offlimits.description": "¡Los aldeanos no construirán muros en los caminos de la aldea (como los caminos de hierba)!",
+"advancements.saferhedges.title": "¡Coberturas más seguras!",
+"advancements.saferhedges.description": "Los aldeanos no cortarán los bloques de hojas que coloques. ¡Tus laberintos de setos están a salvo!",
+"advancements.teardown.title": "¡Derriba esos muros!", 
+"advancements.teardown.description": "¡Los aldeanos no construirán muros si quitas el bloque del muro sobre las campanas del pueblo!"
+}

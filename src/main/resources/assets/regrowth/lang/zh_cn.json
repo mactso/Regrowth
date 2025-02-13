@@ -1,0 +1,10 @@
+{
+	"advancements.rgroot.title": "再生传说",
+	"advancements.rgroot.description": "捡起一些树叶、墙或铲子来了解更多。",
+	"advancements.offlimits.title": "禁止进入！",
+	"advancements.offlimits.description": "村民不会在村庄道路上（如草径）建造墙壁！",
+	"advancements.saferhedges.title": "更安全的树篱！",
+	"advancements.saferhedges.description": "村民不会剪掉你放置的树叶方块。你的树篱迷宫是安全的！",
+	"advancements.teardown.title": "拆除这些墙壁！",
+	"advancements.teardown.description": "如果你移除村庄钟楼上的墙方块，村民将不会建造墙壁！"
+}

@@ -1,7 +1,8 @@
 {
 	"display": {
 		"icon": {
-			"item": "minecraft:bell"
+			"count":1,
+			"id": "minecraft:bell"
 		},
 		"title": {
 			"translate": "advancements.rgroot.title"

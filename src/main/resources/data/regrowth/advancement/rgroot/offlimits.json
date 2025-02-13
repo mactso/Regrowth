@@ -1,18 +1,22 @@
 {
 	"parent": "regrowth:rgroot/rgroot",
 	"display": {
-		"icon": {
-			"item": "minecraft:oak_leaves"
-		},
 		"title": {
-			"translate": "advancements.saferhedges.title",
+			"translate": "advancements.offlimits.title",
 			"color": "white"
 		},
 		"description": {
-			"translate": "advancements.saferhedges.description",
+			"translate": "advancements.offlimits.description",
 			"color": "white"
 		},
+		"icon": {
+			"count":1,
+			"id": "minecraft:stone_shovel"
+		},
 		"announce_to_chat": false
+	},
+	"rewards": {
+		"experience": 1
 	},
 	"criteria": {
 		"has_traded": {
@@ -20,12 +24,12 @@
 			"conditions": {
 			}
 		},
-		"has_oak_leaves": {
+		"has_shovel": {
 			"trigger": "minecraft:inventory_changed",
 			"conditions": {
 				"items": [
 					{
-						"tag": "minecraft:leaves"
+						"items": "#minecraft:shovels"
 					}
 				]
 			}
@@ -36,10 +40,7 @@
 			"has_traded"
 		],
 		[
-			"has_oak_leaves"
+			"has_shovel"
 		]
-	],
-	"rewards": {
-		"experience": 1
-	}
+	]
 }

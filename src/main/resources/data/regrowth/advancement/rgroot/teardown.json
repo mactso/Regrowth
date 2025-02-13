@@ -2,16 +2,16 @@
 	"parent": "regrowth:rgroot/rgroot",
 	"display": {
 		"title": {
-			"translate": "advancements.offlimits.title",
+			"translate": "advancements.teardown.title",
 			"color": "white"
 		},
 		"description": {
-			"translate": "advancements.offlimits.description",
+			"translate": "advancements.teardown.description",
 			"color": "white"
 		},
 		"icon": {
-			"item": "minecraft:stone_shovel",
-			"nbt": "{Damage:0}"
+			"count":1,
+			"id": "minecraft:cobblestone_wall"
 		},
 		"announce_to_chat": false
 	},
@@ -24,14 +24,12 @@
 			"conditions": {
 			}
 		},
-		"has_shovel": {
+		"has_wall": {
 			"trigger": "minecraft:inventory_changed",
 			"conditions": {
 				"items": [
 					{
-						"items": [
-							"minecraft:stone_shovel"
-						]
+						"items": "#minecraft:walls"
 					}
 				]
 			}
@@ -42,7 +40,7 @@
 			"has_traded"
 		],
 		[
-			"has_shovel"
+			"has_wall"
 		]
 	]
 }

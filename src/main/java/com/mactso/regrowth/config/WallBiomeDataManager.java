@@ -9,6 +9,8 @@ import java.util.StringTokenizer;
 import org.jetbrains.annotations.NotNull;
 
 import net.minecraft.core.Holder;
+import net.minecraft.core.HolderSet.Named;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.block.Block;
@@ -66,24 +68,24 @@ public class WallBiomeDataManager {
 	public static void wallBiomeDataInit() {
 
 		List<Block> wallBlocks = new ArrayList<>();
-		for (Block b : ForgeRegistries.BLOCKS.tags().getTag(BlockTags.WALLS)) {
-			wallBlocks.add(b);
+		Optional<Named<Block>> optWallBlocks = BuiltInRegistries.BLOCK.get(BlockTags.WALLS);
+		if (optWallBlocks.isEmpty()) {
+			System.out.println("failed to get wall blocks this time- too early");
+			return;			
+		}
+		for ( Holder<Block> b : optWallBlocks.get()) {
+			wallBlocks.add(b.value());
 		}
 
-		if (!wallBlocks.iterator().hasNext()) {
-			System.out.println("failed to get wallblocks this time- too early");
-			return;
-		}
 		System.out.println("succeeded in loading wallblocks");
 
-		List<Block> fenceBlocks = new ArrayList<>();
-		for (Block b : ForgeRegistries.BLOCKS.tags().getTag(BlockTags.FENCES)) {
-			fenceBlocks.add(b);
+		Optional<Named<Block>> optFenceBlocks = BuiltInRegistries.BLOCK.get(BlockTags.FENCES);
+		if (optFenceBlocks.isEmpty()) {
+			System.out.println("failed to get fence blocks this time- too early");
+			return;			
 		}
-
-		if (!fenceBlocks.iterator().hasNext()) {
-			System.out.println("failed to get fence blocks");
-			return;
+		for ( Holder<Block> b : optFenceBlocks.get()) {
+			wallBlocks.add(b.value());
 		}
 		System.out.println("succeeded in loading fence blocks");
 

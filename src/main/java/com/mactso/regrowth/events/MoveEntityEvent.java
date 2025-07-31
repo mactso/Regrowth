@@ -77,13 +77,13 @@ import net.minecraft.world.level.block.WallTorchBlock;
 import net.minecraft.world.level.block.WoolCarpetBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
-import net.minecraft.world.level.block.state.properties.DirectionProperty;
-import net.minecraft.world.level.dimension.DimensionType;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.Heightmap.Types;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.FarmlandWaterManager;
+import net.minecraftforge.common.Tags;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingTickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -91,7 +91,7 @@ import net.minecraftforge.fml.common.Mod;
 @Mod.EventBusSubscriber()
 public class MoveEntityEvent {
 
-	public static final DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
+	public static final EnumProperty<Direction> FACING = HorizontalDirectionalBlock.FACING;
 	public static final BooleanProperty OPEN = FenceGateBlock.OPEN;
 	static final int WALL_CENTER = 0;
 	static final int FENCE_CENTER = 0;
@@ -141,6 +141,7 @@ public class MoveEntityEvent {
 	@SuppressWarnings("resource")
 	private static void doMobRegrowthEvents(LivingEntity entity, String key, String regrowthType) {
 		Utility.debugMsg(1, "enter Mob Events");
+		
 		if (regrowthType.equals(ACTION_STUMBLE)) {
 			if ((footBlock instanceof TorchBlock) || (footBlock instanceof WallTorchBlock)) {
 				mobStumbleAction(entity, key);
@@ -173,7 +174,6 @@ public class MoveEntityEvent {
 		if (!isKindOfGrassBlock(groundBlockState)) {
 			return;
 		}
-
 		if (regrowthType.equals(ACTION_TALL)) {
 			mobGrowTallAction(entity, key);
 			return;
@@ -779,7 +779,8 @@ public class MoveEntityEvent {
 			if (footBlockState.is(BlockTags.FLOWERS)) {
 				return true;
 			}
-			if (footBlockState.is(BlockTags.TALL_FLOWERS)) {
+			
+			if (footBlockState.is(Tags.Blocks.FLOWERS_TALL)) {
 				return true;
 			}
 		} catch (Exception e) {

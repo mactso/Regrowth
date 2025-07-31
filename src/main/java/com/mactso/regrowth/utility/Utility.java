@@ -11,12 +11,13 @@ import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.BiomeTags;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.biome.Biome;
@@ -132,7 +133,7 @@ public class Utility {
 
 	}
 
-	public static void sendBoldChat(Player p, String chatMessage, ChatFormatting textColor) {
+	public static void sendBoldChat(ServerPlayer p, String chatMessage, ChatFormatting textColor) {
 
 		MutableComponent component = Component.literal(chatMessage);
 		component.setStyle(component.getStyle().withBold(true));
@@ -142,7 +143,7 @@ public class Utility {
 
 	}
 
-	public static void sendChat(Player p, String chatMessage, ChatFormatting textColor) {
+	public static void sendChat(ServerPlayer p, String chatMessage, ChatFormatting textColor) {
 
 		MutableComponent component = Component.literal(chatMessage);
 		component.setStyle(component.getStyle().withColor(textColor));
@@ -197,7 +198,7 @@ public class Utility {
 			return false;
 		for (int i = 0; i <= numZP; i++) {
 
-			e = (Mob) et.spawn(level, savePos, MobSpawnType.NATURAL);
+			e = (Mob) et.spawn(level, savePos, EntitySpawnReason.NATURAL);
 			if (persistant) 
 				e.setPersistenceRequired();
 			e.setBaby(isBaby);
@@ -209,7 +210,7 @@ public class Utility {
 		Mob e;
 
 		for (int i = 0; i < X; i++) {
-			e = (Mob) et.spawn(level, savePos, MobSpawnType.NATURAL);
+			e = (Mob) et.spawn(level, savePos, EntitySpawnReason.NATURAL);
 			e.setBaby(isBaby);
 		}
 		return true;

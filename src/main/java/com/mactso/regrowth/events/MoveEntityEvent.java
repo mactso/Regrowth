@@ -22,6 +22,7 @@ import net.minecraft.core.GlobalPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -126,6 +127,9 @@ public class MoveEntityEvent {
 	private static int lastTorchY = 0;
 	private static int lastTorchZ = 0;
 
+	private static final ResourceLocation BEEKEEPER = ResourceLocation.parse("bk:beekeeper");
+
+	
 	private static BlockState footBlockState;
 	private static BlockState groundBlockState;
 	private static Block footBlock;
@@ -385,7 +389,6 @@ public class MoveEntityEvent {
 		if (le.blockPosition() == null)
 			return;
 
-		int x = 3;
 
 		String rlString = Utility.getResourceLocationString(le).toString();
 
@@ -655,7 +658,7 @@ public class MoveEntityEvent {
 			le.level().setBlock(vePos, gateBlockType, 3);
 			return true;
 		}
-		int x = 3;
+
 		if (le.level().setBlock(vePos, wallType, 3)) {
 			return true;
 		} else {
@@ -1043,7 +1046,7 @@ public class MoveEntityEvent {
 		double roll = le.getRandom().nextDouble();
 		helperChildAgeEntity(entity);
 		if (le.getMaxHealth() > le.getHealth() && (MyConfig.getEatingHeals() > roll)) {
-			MobEffectInstance ei = new MobEffectInstance(MobEffects.HEAL, 1, 0, false, true);
+			MobEffectInstance ei = new MobEffectInstance(MobEffects.INSTANT_HEALTH, 1, 0, false, true);
 			le.addEffect(ei);
 		}
 		return true;
@@ -1397,9 +1400,12 @@ public class MoveEntityEvent {
 	}
 
 	private static void vBeeKeeperFlowers(Villager ve) {
-		if (!ve.getVillagerData().getProfession().name().contains("beekeeper")) {
+		
+		
+		if (!ve.getVillagerData().profession().is(BEEKEEPER)) {
 			return;
 		}
+
 		Utility.debugMsg(1, ve.blockPosition(), "Beekeeper checking on flowers here.");
 		if ((ve.getX() % 6 == 0) && (ve.getZ() % 7 == 0)) {
 			if (isBlockGrassOrDirt(groundBlockState)) {
@@ -1414,7 +1420,7 @@ public class MoveEntityEvent {
 
 	private static void vClericalHealing(Villager ve) {
 
-		if (ve.getVillagerData().getProfession() != VillagerProfession.CLERIC) {
+		if (ve.getVillagerData().profession() != VillagerProfession.CLERIC) {
 			return;
 		}
 		long daytime = ve.level().getDayTime() % 24000;
@@ -1423,7 +1429,7 @@ public class MoveEntityEvent {
 			return;
 		}
 		if (ve.level() instanceof ServerLevel varW) {
-			int clericalLevel = ve.getVillagerData().getLevel();
+			int clericalLevel = ve.getVillagerData().level();
 
 			BlockPos pos = BlockPos.containing(ve.getX(), (ve.getY() + 0.99d), (ve.getZ()));
 			AABB box = AABB.encapsulatingFullBlocks(pos.east(4).above(2).north(4), pos.west(4).below(2).south(4));
@@ -1464,7 +1470,7 @@ public class MoveEntityEvent {
 	// it.
 	// todo add hydration check before tilling land.
 	private static boolean vImproveFarm(Villager ve, String regrowthType) {
-		if (ve.getVillagerData().getProfession() != VillagerProfession.FARMER) {
+		if (ve.getVillagerData().profession() != VillagerProfession.FARMER) {
 			return false;
 		}
 
@@ -1665,19 +1671,19 @@ public class MoveEntityEvent {
 	}
 
 	private static int getCoalVillagerBonus(Villager ve) {
-		if (ve.getVillagerData().getProfession() == VillagerProfession.TOOLSMITH) {
+		if (ve.getVillagerData().profession() == VillagerProfession.TOOLSMITH) {
 			return 10;
 		}
-		if (ve.getVillagerData().getProfession() == VillagerProfession.WEAPONSMITH) {
+		if (ve.getVillagerData().profession() == VillagerProfession.WEAPONSMITH) {
 			return 10;
 		}
-		if (ve.getVillagerData().getProfession() == VillagerProfession.ARMORER) {
+		if (ve.getVillagerData().profession() == VillagerProfession.ARMORER) {
 			return 20;
 		}
-		if (ve.getVillagerData().getProfession() == VillagerProfession.FISHERMAN) {
+		if (ve.getVillagerData().profession() == VillagerProfession.FISHERMAN) {
 			return 5;
 		}
-		if (ve.getVillagerData().getProfession() == VillagerProfession.BUTCHER) {
+		if (ve.getVillagerData().profession() == VillagerProfession.BUTCHER) {
 			return 5;
 		}
 
@@ -1706,8 +1712,7 @@ public class MoveEntityEvent {
 		if (ve.level().isThundering()) {
 			skyVisibilityValue = Math.max(0, skyVisibilityValue - 10);
 		}
-
-		if (ve.level().isNight()) {
+		if (!ve.level().isDarkOutside()) {
 			skyVisibilityValue = 0;
 		}
 
@@ -1715,7 +1720,7 @@ public class MoveEntityEvent {
 			return false;
 		}
 
-		int villagerLevel = ve.getVillagerData().getLevel() * 10;
+		int villagerLevel = ve.getVillagerData().level() * 10;
 		villagerLevel += getCoalVillagerBonus(ve);
 		villagerLevel += rand.nextInt(120);
 		
@@ -1841,7 +1846,7 @@ public class MoveEntityEvent {
 						footBlockState = Blocks.AIR.defaultBlockState();
 						footBlock = footBlockState.getBlock();
 					}
-					int x = 3;
+
 					e.level().setBlockAndUpdate(adjustedPos.below(), biomeRoadBlock.defaultBlockState());
 					return true;
 				}
@@ -1967,7 +1972,7 @@ public class MoveEntityEvent {
 		}
 
 		boolean isMason = false;
-		if (ve.getVillagerData().getProfession() != VillagerProfession.MASON) {
+		if (ve.getVillagerData().profession() != VillagerProfession.MASON) {
 			isMason = true;
 			isMason = false; // Task: remove this line when enabling the mason feature.
 		}
@@ -2091,7 +2096,7 @@ public class MoveEntityEvent {
 
 	private static void vToolMasterHealing(Villager ve) {
 
-		if (ve.getVillagerData().getProfession() != VillagerProfession.TOOLSMITH) {
+		if (ve.getVillagerData().profession() != VillagerProfession.TOOLSMITH) {
 			return;
 		}
 		long daytime = ve.level().getDayTime() % 24000;
@@ -2101,7 +2106,7 @@ public class MoveEntityEvent {
 		}
 
 		if (ve.level() instanceof ServerLevel varW) {
-			int villagerLevel = ve.getVillagerData().getLevel();
+			int villagerLevel = ve.getVillagerData().level();
 			if (villagerLevel < 1)
 				return;
 			BlockPos pos = BlockPos.containing(ve.getX(), (ve.getY() + 0.99d), (ve.getZ()));

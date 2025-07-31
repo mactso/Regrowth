@@ -21,10 +21,10 @@ public class TrampleEventHandler {
 			Utility.debugMsg(1, le, "FarmlandTrampleEvent");
 			if (event.isCancelable()) {
 				if (le instanceof Villager ve) {
-					if (ve.getVillagerData().getProfession() != VillagerProfession.FARMER) {
+					if (ve.getVillagerData().profession() != VillagerProfession.FARMER) {
 						return;
 					}
-					if (ve.getVillagerData().getLevel() >= 3) {
+					if (ve.getVillagerData().level() >= 3) {
 						event.setCanceled(true);
 						return;
 					}

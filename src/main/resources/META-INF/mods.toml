@@ -1,11 +1,12 @@
 modLoader="javafml"
-loaderVersion="[54,)"
+loaderVersion="[55,)"
 license="MIT License"
 [[mods]]
 modId="regrowth"
 version="${file.jarVersion}"
 displayName="Regrowth"
 displayURL="https://www.curseforge.com/minecraft/mc-mods/regrowth"
+displayTest="IGNORE_SERVER_VERSION"
 updateJSONURL="https://github.com/mactso/Regrowth/raw/main/update.json"
 logoFile="Regrowth.png"
 authors="MacTso, Lupicus"
@@ -13,14 +14,14 @@ description='Regrowth.'
 [[dependencies.regrowth]]
     modId="forge"
     mandatory=true
-    versionRange="[54,)"
+    versionRange="[55,)"
     ordering="NONE"
     side="SERVER"
 
 [[dependencies.regrowth]]
     modId="minecraft"
     mandatory=true
-    versionRange="[1.21.4,1.22)"
+    versionRange="[1.21.5,1.22)"
     ordering="NONE"
     side="SERVER"
 # side="BOTH", "CLIENT?", "SERVER"

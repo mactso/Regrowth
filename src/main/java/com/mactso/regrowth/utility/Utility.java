@@ -15,6 +15,7 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.BiomeTags;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -140,7 +141,7 @@ public class Utility {
 
 	}
 
-	public static void sendBoldChat(Player p, String chatMessage, ChatFormatting textColor) {
+	public static void sendBoldChat(ServerPlayer p, String chatMessage, ChatFormatting textColor) {
 
 		MutableComponent component = Component.literal(chatMessage);
 		component.setStyle(component.getStyle().withBold(true));
@@ -150,7 +151,7 @@ public class Utility {
 
 	}
 
-	public static void sendChat(Player p, String chatMessage, ChatFormatting textColor) {
+	public static void sendChat(ServerPlayer p, String chatMessage, ChatFormatting textColor) {
 
 		MutableComponent component = Component.literal(chatMessage);
 		component.setStyle(component.getStyle().withColor(textColor));
@@ -199,7 +200,7 @@ public class Utility {
 		if (numZP < 0)
 			return false;
 		for (int i = 0; i <= numZP; i++) {
-
+			// MobSpawnType changes to EntitySpawnReason in a later version.
 			e = (Mob) et.spawn(level, savePos, MobSpawnType.NATURAL);
 			if (persistant) 
 				e.setPersistenceRequired();
@@ -212,13 +213,14 @@ public class Utility {
 		Mob e;
 
 		for (int i = 0; i < X; i++) {
+			// MobSpawnType changes to EntitySpawnReason in a later version.
 			e = (Mob) et.spawn(level, savePos, MobSpawnType.NATURAL);
 			e.setBaby(isBaby);
 		}
 		return true;
 	}
 
-	
+	// TODO Remove if unused.
 	public static void setName(ItemStack stack, String inString)
 	{
 		stack.set(DataComponents.CUSTOM_NAME, Component.literal(inString));
@@ -272,18 +274,19 @@ public class Utility {
 		}
 	}	
 	
+	@SuppressWarnings("deprecation")
 	public static String getResourceLocationString( BlockState blockState) {
-		return getResourceLocationString(blockState.getBlock());
-		}
-
+		return blockState.getBlock().builtInRegistryHolder().key().location().toString();
+	}
+	
 
 	@SuppressWarnings("deprecation")
-	public static String getResourceLocationString(Block block) {
+	public static String getResourceLocationString( Block block) {
 		return block.builtInRegistryHolder().key().location().toString();
 	}
 
 	@SuppressWarnings("deprecation")
-	public static String getResourceLocationString(Item item) {
+	public static String getResourceLocationString( Item item) {
 		return item.builtInRegistryHolder().key().location().toString();
 	}
 

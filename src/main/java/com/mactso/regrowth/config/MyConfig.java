@@ -15,6 +15,9 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 
 public class MyConfig {
+	
+	public static boolean CANCEL_EVENT = true;
+	public static boolean CONTINUE_EVENT = false;
 
 	private static final Logger LOGGER = LogManager.getLogger();
 
@@ -60,15 +63,20 @@ public class MyConfig {
 		MyConfig.debugLevel = debugLevel;
 	}
 
-	public static boolean getEatingHeals() {
-		if (eatingHeals.equals("true")) {
-			return true;
-		}
-		return false;
+	public static double getEatingHealsOdds() {
+		return eatingHealsOdds;
 	}
 
 	public static Block getPlayerWallControlBlock() {
 		return playerWallControlBlock;
+	}
+	
+		public static Block getTorchBlock() {
+		return torchBlock;
+	}
+
+	public static void setTorchBlock(Block torchBlock) {
+		MyConfig.torchBlock = torchBlock;
 	}
 
 	public static String getActionMobList() {
@@ -80,9 +88,6 @@ public class MyConfig {
 	}
 	
 
-	public static int getTorchLightLevel() {
-		return torchLightLevel;
-	}
 
 	public static int getMushroomDensity() {
 		return mushroomDensity;
@@ -104,8 +109,13 @@ public class MyConfig {
 		return mushroomMaxTemp;
 	}
 
+	public static int getTorchLightLevel() {
+		return torchLightLevel;
+	}
+
 	public static int debugLevel;
-	public static String eatingHeals;
+	public static double eatingHealsOdds;
+	public static Block torchBlock;
 	private static int torchLightLevel;
 	private static int mushroomDensity;
 	private static int mushroomXDensity;
@@ -153,7 +163,8 @@ public class MyConfig {
 	private static void createConfigs() {
 		configs.addKeyValuePair(new Pair<>("key.debugLevel", 0), "int");
 		configs.addKeyValuePair(new Pair<>("key.torchLightLevel", 7), "int");
-		configs.addKeyValuePair(new Pair<>("key.eatingHeals", "true"), "String");
+		configs.addKeyValuePair(new Pair<>("key.torchBlockString", "minecraft:torch"), "String");
+		configs.addKeyValuePair(new Pair<>("key.eatingHeals", .99), "double");
 		configs.addKeyValuePair(new Pair<>("key.mushroomDensity", 7), "int");
 		configs.addKeyValuePair(new Pair<>("key.mushroomXDensity", 6), "int");
 		configs.addKeyValuePair(new Pair<>("key.mushroomZDensity", 6), "int");
@@ -164,11 +175,19 @@ public class MyConfig {
 		configs.addKeyValuePair(new Pair<>("key.wallblockList", defaultWallblockList),"String");
 		configs.addKeyValuePair(new Pair<>("key.wallFoundationsList", defaultWallFoundationsList),"String");
 	}
-
 	private static void assignConfigs() {
+
 		debugLevel = CONFIG.getOrDefault("key.debugLevel", 0);
 		torchLightLevel = CONFIG.getOrDefault("key.torchLightLevel", 7);
-		eatingHeals = CONFIG.getOrDefault("key.eatingHeals", "true");
+		try {
+			ResourceLocation id = ResourceLocation.parse(playerWallControlBlockString);
+			torchBlock  = BuiltInRegistries.BLOCK.get(id);
+		}
+		catch (Exception e) {
+			torchBlock = Blocks.TORCH;
+			Utility.debugMsg(0, "playerWallControlBlockString: '" + playerWallControlBlockString + "' is invalid");
+		}
+		eatingHealsOdds = CONFIG.getOrDefault("key.eatingHeals", .99);
 		mushroomDensity = CONFIG.getOrDefault("key.mushroomDensity", 7);
 		mushroomXDensity = CONFIG.getOrDefault("key.mushroomXDensity", 6);
 		mushroomZDensity = CONFIG.getOrDefault("key.mushroomZDensity", 6);
@@ -182,6 +201,7 @@ public class MyConfig {
 			playerWallControlBlock  = BuiltInRegistries.BLOCK.get(id);
 		}
 		catch (Exception e) {
+			playerWallControlBlock = Blocks.COBBLESTONE_WALL;
 			Utility.debugMsg(0, "playerWallControlBlockString: '" + playerWallControlBlockString + "' is invalid");
 		}
 		

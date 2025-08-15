@@ -3,9 +3,6 @@ package com.mactso.regrowth.commands;
 
 
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import com.mactso.regrowth.config.MyConfig;
 import com.mactso.regrowth.utility.Utility;
 import com.mojang.brigadier.CommandDispatcher;
@@ -26,7 +23,6 @@ import net.minecraft.world.phys.HitResult;
 public class RegrowthCommands {
 	String subcommand = "";
 	String value = "";
-	private static final Logger LOGGER = LogManager.getLogger();
 	
 	@SuppressWarnings("resource")
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher)

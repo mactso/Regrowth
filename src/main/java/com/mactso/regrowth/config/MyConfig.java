@@ -1,6 +1,7 @@
 package com.mactso.regrowth.config;
 
 import java.util.HashSet;
+import java.util.Optional;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -9,6 +10,7 @@ import com.mactso.regrowth.Main;
 import com.mactso.regrowth.utility.Utility;
 import com.mojang.datafixers.util.Pair;
 
+import net.minecraft.core.Holder.Reference;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
@@ -51,13 +53,15 @@ public class MyConfig {
 		return wallblockList;
 	}
 
+	public static int getaDebugLevel() {
+		return getDebugLevel();
+	}
+	
 	public static int getDebugLevel() {
 		return debugLevel;
 	}
 
-	public static int getaDebugLevel() {
-		return getDebugLevel();
-	}
+
 	
 	public static void setDebugLevel(int debugLevel) {
 		MyConfig.debugLevel = debugLevel;
@@ -115,8 +119,9 @@ public class MyConfig {
 
 	public static int debugLevel;
 	public static double eatingHealsOdds;
-	public static Block torchBlock;
 	private static int torchLightLevel;
+	private static String torchBlockString;
+	public static Block torchBlock;
 	private static int mushroomDensity;
 	private static int mushroomXDensity;
 	private static int mushroomZDensity;
@@ -179,9 +184,14 @@ public class MyConfig {
 
 		debugLevel = CONFIG.getOrDefault("key.debugLevel", 0);
 		torchLightLevel = CONFIG.getOrDefault("key.torchLightLevel", 7);
+		torchBlockString = CONFIG.getOrDefault("key.torchBlockString", "minecraft:torch" );
+		torchBlock = Blocks.TORCH;
 		try {
-			ResourceLocation id = ResourceLocation.parse(playerWallControlBlockString);
-			torchBlock  = BuiltInRegistries.BLOCK.get(id);
+			ResourceLocation id = ResourceLocation.parse(torchBlockString);
+			Optional<Reference<Block>> optTorchBlock = BuiltInRegistries.BLOCK.get(id);
+			if (optTorchBlock.isPresent()) {
+				torchBlock = optTorchBlock.get().value();
+			}
 		}
 		catch (Exception e) {
 			torchBlock = Blocks.TORCH;
@@ -197,8 +207,12 @@ public class MyConfig {
 				"minecraft:cobblestone_wall");
 		playerWallControlBlock = Blocks.COBBLESTONE_WALL; // default value if fail.
 		try {
+			
 			ResourceLocation id = ResourceLocation.parse(playerWallControlBlockString);
-			playerWallControlBlock  = BuiltInRegistries.BLOCK.get(id);
+			Optional<Reference<Block>> optPlayerWallControlBlock = BuiltInRegistries.BLOCK.get(id);
+			if (optPlayerWallControlBlock.isPresent()) {
+				playerWallControlBlock = optPlayerWallControlBlock.get().value();
+			}
 		}
 		catch (Exception e) {
 			playerWallControlBlock = Blocks.COBBLESTONE_WALL;
@@ -210,7 +224,6 @@ public class MyConfig {
 		RegrowthEntitiesManager.regrowthMobInit();
 
 		wallblockList = CONFIG.getOrDefault("key.wallblockList", defaultWallblockList);
-		WallBiomeDataManager.wallBiomeDataInit();
 
 		wallFoundationsList = CONFIG.getOrDefault("key.wallFoundationsList", defaultWallFoundationsList);
 		

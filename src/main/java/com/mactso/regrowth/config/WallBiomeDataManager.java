@@ -1,7 +1,10 @@
 package com.mactso.regrowth.config;
 
+import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Optional;
 import java.util.StringTokenizer;
 
 import com.mactso.regrowth.utility.Utility;
@@ -15,55 +18,16 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 
 public class WallBiomeDataManager {
-	public static class WallBiomeDataItem {
-		int wallDiameter;
-		BlockState wallBlockState;
-		BlockState fenceBlockState;
-
-		public WallBiomeDataItem(int wallRadius, BlockState wallBlockState, BlockState fenceBlockState) {
-			this.wallDiameter = wallRadius;
-			this.wallBlockState = wallBlockState;
-			this.fenceBlockState = fenceBlockState;
-		}
-
-		public BlockState getFenceBlockState() {
-			return fenceBlockState;
-		}
-
-		public BlockState getWallBlockState() {
-			return wallBlockState;
-		}
-		
-		public int getWallDiameter() {
-			return wallDiameter;
-		}
-
-		public int getWallRadius() {
-			return (wallDiameter/2)+1;
-		}
-	}
+	
 	private static Hashtable<String, WallBiomeDataItem> wallBiomeDataHashtable = new Hashtable<>();
+	private static String defaultRegrowthMobString = "regrowth:default";
+	private static String defaultRegrowthMobKey = defaultRegrowthMobString;
 	private static BlockState DEFAULT_WALL_BLOCKSTATE = Blocks.COBBLESTONE_WALL.defaultBlockState();
-
 	private static BlockState DEFAULT_FENCE_BLOCKSTATE = Blocks.OAK_FENCE.defaultBlockState();
 
-	private static WallBiomeDataItem DEFAULT_WALL_ITEM= 
-			new WallBiomeDataItem(36, DEFAULT_WALL_BLOCKSTATE, DEFAULT_FENCE_BLOCKSTATE);
-
-	public static String getWallBiomeDataHashAsString() {
-		String returnString = "";
-		int wallDiameter;
-		BlockState wallTypeBlockState;
-		for (String key : wallBiomeDataHashtable.keySet()) {
-			wallDiameter = wallBiomeDataHashtable.get(key).wallDiameter;
-			wallTypeBlockState = wallBiomeDataHashtable.get(key).getWallBlockState();
-			String tempString = key + "," + wallDiameter + "," + wallTypeBlockState.toString() + ";";
-			returnString += tempString;
-		}
-		return returnString;
-
-	}
-
+	private static WallBiomeDataItem DEFAULT_WALL_ITEM = new WallBiomeDataItem(36, DEFAULT_WALL_BLOCKSTATE,
+			DEFAULT_FENCE_BLOCKSTATE);
+	
 	public static WallBiomeDataItem getWallBiomeDataItem(String key) {
 		String iKey = key;
 
@@ -74,41 +38,57 @@ public class WallBiomeDataManager {
 
 		if (r == null) {
 			if (MyConfig.getDebugLevel() > 0) {
-				System.out.println("Error! Requested wall has unknown Biome:" + key + ".");
+				System.out.println("Error! Villager in unknown Biome:" + key + ".");
 			}
 			r = DEFAULT_WALL_ITEM;
 		}
 		
 		if (MyConfig.getDebugLevel() > 1) {
-			System.out.println("222 WallBiomeDataItem: "+ iKey +" wall=" + r.getWallBlockState().getBlock().toString() + "fence=" + r.getFenceBlockState().getBlock().toString() + ".");
+			System.out.println("222 WallBiomeDataItem: " + iKey + " wall=" + r.getWallBlockState().getBlock().toString()
+ + "fence=" + r.getFenceBlockState().getBlock().toString() + ".");
 		}
 		return r;
 	}
 
-	private static int validatedWallDiameter(int wallDiameter) {
-		if (wallDiameter <= 24)
-			wallDiameter = 24;
-		if (wallDiameter > 80)
-			wallDiameter = 80;
-		return wallDiameter;
+	public static String getWallBiomeDataHashAsString() {
+		String returnString = "";
+		int wallDiameter;
+		BlockState wallTypeBlockState;
+		for (String key : wallBiomeDataHashtable.keySet()) {
+			wallDiameter = wallBiomeDataHashtable.get(key).wallDiameter;
+			if (wallDiameter < 12) wallDiameter= 12;
+			wallTypeBlockState = wallBiomeDataHashtable.get(key).getWallBlockState();
+			String tempString = key + "," + wallDiameter + "," + wallTypeBlockState.toString() + ";";
+			returnString += tempString;
+		}
+		return returnString;
+
 	}
 
 	public static void wallBiomeDataInit() {
 
 		
-        // TODO: line 64 might be wrong method "Named" is different.
-    	Named<Block> walls = BuiltInRegistries.BLOCK.getOrCreateTag(BlockTags.WALLS);
-    	if (!walls.iterator().hasNext()) {  // TODO change to size in fabric and forge
-        	System.out.println("failed to get walls all tags ");
-        	return;
-    	}
+		List<Block> wallBlocks = new ArrayList<>();
+		Optional<Named<Block>> optWallBlocks = BuiltInRegistries.BLOCK.get(BlockTags.WALLS);
+		if (optWallBlocks.isEmpty()) {
+			System.out.println("failed to get wall blocks this time- too early");
+			return;			
+		}
+		for ( Holder<Block> b : optWallBlocks.get()) {
+			wallBlocks.add(b.value());
+		}
     	System.out.println("succeeded in loading walls all tags");
     	
-        Named<Block> fences = BuiltInRegistries.BLOCK.getOrCreateTag(BlockTags.FENCES);
-    	if (!fences.iterator().hasNext()) {
-        	System.out.println("failed to get fences all tags ");
-        	return;
-    	}        
+		List<Block> fencesBlocks = new ArrayList<>();
+		Optional<Named<Block>> optFenceBlocks = BuiltInRegistries.BLOCK.get(BlockTags.FENCES);
+
+		if (optFenceBlocks.isEmpty()) {
+			System.out.println("failed to get fence blocks this time- too early");
+			return;			
+		}
+		for ( Holder<Block> b : optFenceBlocks.get()) {
+			fencesBlocks.add(b.value());
+		}      
     	System.out.println("succeeded in loading fences all tags");
     	
 		wallBiomeDataHashtable.clear();
@@ -129,23 +109,23 @@ public class WallBiomeDataManager {
 				
 				BlockState wallBlockState = DEFAULT_WALL_BLOCKSTATE;
 
-				Iterator<Holder<Block>> wallIter = walls.iterator();
+				Iterator<Block> wallIter = wallBlocks.iterator();
 				while ( wallIter.hasNext()) {
-					Holder<Block> w = wallIter.next();
-				    String wbs = Utility.getResourceLocationString(w.value());
+					Block w = wallIter.next();
+				    String wbs = Utility.getResourceLocationString(w);
 					if (wbs.equals(wallBlockString)) {
-						wallBlockState = w.value().defaultBlockState();
+						wallBlockState = w.defaultBlockState();
 						break;
 					}
 				}
 				
 				BlockState fenceBlockState = DEFAULT_FENCE_BLOCKSTATE;
-				Iterator<Holder<Block>> fenceIter = fences.iterator();
+				 Iterator<Block> fenceIter = fencesBlocks.iterator();
 				while ( fenceIter.hasNext()) {
-					Holder<Block> f = fenceIter.next();
-				    String fbs = Utility.getResourceLocationString(f.value());
+					Block f = fenceIter.next();
+				    String fbs = Utility.getResourceLocationString(f);
 					if (fbs.equals(fenceBlockString)) {
-						fenceBlockState = f.value().defaultBlockState();
+						fenceBlockState = f.defaultBlockState();
 						break; 
 					}
 				}
@@ -165,6 +145,45 @@ public class WallBiomeDataManager {
 				System.out.println("Regrowth Debug:  Bad Wall Biome Data Config : " + oneLine);
 			}
 
+		}
+		
+		
+
+	}
+	
+	private static int validatedWallDiameter(int wallDiameter) {
+		if (wallDiameter <= 24)
+			wallDiameter = 24;
+		if (wallDiameter > 80)
+			wallDiameter = 80;
+		return wallDiameter;
+	}
+	
+	public static class WallBiomeDataItem {
+		int wallDiameter;
+		BlockState wallBlockState;
+		BlockState fenceBlockState;
+
+		public WallBiomeDataItem(int wallRadius, BlockState wallBlockState, BlockState fenceBlockState) {
+			this.wallDiameter = wallRadius;
+			this.wallBlockState = wallBlockState;
+			this.fenceBlockState = fenceBlockState;
+		}
+
+		public int getWallDiameter() {
+			return wallDiameter;
+		}
+		
+		public BlockState getFenceBlockState() {
+			return fenceBlockState;
+		}
+
+		public int getWallRadius() {
+			return (wallDiameter / 2) + 1;
+		}
+		
+		public BlockState getWallBlockState() {
+			return wallBlockState;
 		}
 
 	}

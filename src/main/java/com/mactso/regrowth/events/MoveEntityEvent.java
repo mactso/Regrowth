@@ -79,22 +79,21 @@ import net.minecraft.world.level.block.WallTorchBlock;
 import net.minecraft.world.level.block.WoolCarpetBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
-import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.levelgen.Heightmap.Types;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 public class MoveEntityEvent {
 
+	public static final EnumProperty<Direction> FACING = HorizontalDirectionalBlock.FACING;
+
 // Start of Fabric/Forge Custom Section.    
 	// it will become "ConventionalTags." in a later minecraft version.
-	private static final TagKey<Block> MY_TALL_FLOWERS = BlockTags.TALL_FLOWERS;
-	private static final TagKey<Block> MY_FLOWERS = BlockTags.FLOWERS;
+	private static final TagKey<Block> MY_ALL_FLOWERS = BlockTags.FLOWERS;
+	private static final TagKey<Block> MY_SMALL_FLOWERS = BlockTags.SMALL_FLOWERS;
 // End of Fabric/Forge Custom Section;
-
-	public static final DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
 	public static final BooleanProperty OPEN = FenceGateBlock.OPEN;
-
 	static final int WALL_CENTER = 0;
 	static final int FENCE_CENTER = 0;
 	static final int WALL_TYPE_WALL = -1;
@@ -799,10 +798,7 @@ public class MoveEntityEvent {
 		}
 
 		try {
-			if (footBlockState.is(MY_FLOWERS)) {
-				return true;
-			}
-			if (footBlockState.is(MY_TALL_FLOWERS)) {
+			if (footBlockState.is(MY_ALL_FLOWERS)) {
 				return true;
 			}
 		} catch (Exception e) {

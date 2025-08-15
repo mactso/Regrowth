@@ -31,8 +31,9 @@ public class Main implements ModInitializer {
 	public void onInitialize() {
 		registerEvents();
 		MyConfig.registerConfigs();
-
 	}
+	
+
 	
 	private void registerEvents() {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
@@ -40,6 +41,7 @@ public class Main implements ModInitializer {
 		});
 	}
 
+	
 
 }
 

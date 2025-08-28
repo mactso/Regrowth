@@ -25,7 +25,8 @@ public class MyConfig {
 
 	public static final Common COMMON;
 	public static final ForgeConfigSpec COMMON_SPEC;
-
+	public static boolean CONTINUE_EVENT = true;
+	
 	static {
 		final Pair<Common, ForgeConfigSpec> specPair = new ForgeConfigSpec.Builder().configure(Common::new);
 		COMMON_SPEC = specPair.getRight();
@@ -33,27 +34,27 @@ public class MyConfig {
 	}
 
 	public static int getaDebugLevel() {
-		return aDebugLevel;
+		return debugLevel;
 	}
 
 	public static int getDebugLevel() {
-		return aDebugLevel;
+		return debugLevel;
 	}
 	
-	public static void setaDebugLevel(int aDebugLevel) {
-		MyConfig.aDebugLevel = aDebugLevel;
+	public static void setaDebugLevel(int debugLevel) {
+		MyConfig.debugLevel = debugLevel;
 	}
 
-	public static void setDebugLevel(int aDebugLevel) {
-		MyConfig.aDebugLevel = aDebugLevel;
+	public static void setDebugLevel(int debugLevel) {
+		MyConfig.debugLevel = debugLevel;
 	}
 
-	public static double getEatingHeals() {
-		return aEatingHeals;
+	public static double getEatingHealsOdds() {
+		return eatingHealsOdds;
 	}
 
 	public static void setEatingHeals(double aEatingHeals) {
-		MyConfig.aEatingHeals = aEatingHeals;
+		MyConfig.eatingHealsOdds = aEatingHeals;
 	}
 
 	public static Block getPlayerWallControlBlock() {
@@ -97,8 +98,8 @@ public class MyConfig {
 		return torchLightLevel;
 	}
 	
-	public static int aDebugLevel;
-	public static double aEatingHeals;
+	private static int debugLevel;
+	public static double eatingHealsOdds;
 	public static Block playerWallControlBlock;
 	public static Block torchBlock;
 	
@@ -129,7 +130,7 @@ public class MyConfig {
 	}
 
 	public static void pushDebugLevel() {
-		COMMON.debugLevel.set(aDebugLevel);
+		COMMON.debugLevel.set(debugLevel);
 	}
 
 	public static void pushValues() {
@@ -141,8 +142,8 @@ public class MyConfig {
 	// remember need to push each of these values separately once we have commands.
 	public static void bakeConfig() {
 
-		aDebugLevel = COMMON.debugLevel.get();
-		aEatingHeals = COMMON.eatingHeals.get();
+		debugLevel = COMMON.debugLevel.get();
+		eatingHealsOdds = COMMON.eatingHeals.get();
 		MyConfig.torchLightLevel = (int) MyConfig.COMMON.torchLightLevel.get();
 		MyConfig.mushroomDensity = (int) MyConfig.COMMON.mushroomDensity.get();
 		MyConfig.mushroomXDensity = (int) MyConfig.COMMON.mushroomXDensity.get();
@@ -167,8 +168,8 @@ public class MyConfig {
 			System.out.println("Regrowth Warn:  Player Wall Control Block is : " + COMMON.playerWallControlBlockString.get());
 		}
 
-		if (aDebugLevel > 0) {
-			System.out.println("Regrowth Debug Level: " + aDebugLevel);
+		if (debugLevel > 0) {
+			System.out.println("Regrowth Debug Level: " + debugLevel);
 		}
 	}
 

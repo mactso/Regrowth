@@ -37,13 +37,13 @@ public class WallBiomeDataManager {
 		WallBiomeDataItem r = wallBiomeDataHashtable.get(iKey);
 
 		if (r == null) {
-			if (MyConfig.aDebugLevel > 0) {
+			if (MyConfig.getDebugLevel() > 0) {
 				System.out.println("Error!  Villager in unknown Biome:" + key + ".");
 			}
 			r = DEFAULT_WALL_ITEM;
 		}
 
-		if (MyConfig.aDebugLevel > 1) {
+		if (MyConfig.getDebugLevel() > 1) {
 			System.out.println("222 WallBiomeDataItem: " + iKey + " wall=" + r.getWallBlockState().getBlock().toString()
 					+ "fence=" + r.getFenceBlockState().getBlock().toString() + ".");
 		}

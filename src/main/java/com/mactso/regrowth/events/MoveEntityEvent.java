@@ -57,20 +57,23 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.BonemealableBlock;
 import net.minecraft.world.level.block.CactusBlock;
 import net.minecraft.world.level.block.CoralBlock;
-import net.minecraft.world.level.block.CoralWallFanBlock;
 import net.minecraft.world.level.block.DoublePlantBlock;
+import net.minecraft.world.level.block.FarmBlock;
 import net.minecraft.world.level.block.FenceBlock;
 import net.minecraft.world.level.block.FenceGateBlock;
 import net.minecraft.world.level.block.FlowerBlock;
 import net.minecraft.world.level.block.GrassBlock;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
+import net.minecraft.world.level.block.HugeMushroomBlock;
+import net.minecraft.world.level.block.LanternBlock;
+import net.minecraft.world.level.block.LeafLitterBlock;
 import net.minecraft.world.level.block.LeavesBlock;
 import net.minecraft.world.level.block.MushroomBlock;
-import net.minecraft.world.level.block.MyceliumBlock;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.SaplingBlock;
+import net.minecraft.world.level.block.ShortDryGrassBlock;
 import net.minecraft.world.level.block.SnowLayerBlock;
-import net.minecraft.world.level.block.SupportType;
+import net.minecraft.world.level.block.TallDryGrassBlock;
 import net.minecraft.world.level.block.TallFlowerBlock;
 import net.minecraft.world.level.block.TallGrassBlock;
 import net.minecraft.world.level.block.TorchBlock;
@@ -84,6 +87,7 @@ import net.minecraft.world.level.levelgen.Heightmap.Types;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
+// FORGE @Mod.EventBusSubscriber()
 public class MoveEntityEvent {
 
 	public static final EnumProperty<Direction> FACING = HorizontalDirectionalBlock.FACING;
@@ -93,11 +97,15 @@ public class MoveEntityEvent {
 	private static final TagKey<Block> MY_ALL_FLOWERS = BlockTags.FLOWERS;
 	private static final TagKey<Block> MY_SMALL_FLOWERS = BlockTags.SMALL_FLOWERS;
 // End of Fabric/Forge Custom Section;
+
 	public static final BooleanProperty OPEN = FenceGateBlock.OPEN;
 	static final int WALL_CENTER = 0;
 	static final int FENCE_CENTER = 0;
 	static final int WALL_TYPE_WALL = -1;
 	static final int WALL_TYPE_FENCE = -2;
+
+	static final int FAIL = -Integer.MIN_VALUE;
+	static final int UPDATE = 3;
 
 	static final String ACTION_GROW = "grow";
 	static final String ACTION_EAT = "eat";
@@ -129,6 +137,7 @@ public class MoveEntityEvent {
 
 	private static final ResourceLocation BEEKEEPER = ResourceLocation.parse("bk:beekeeper");
 
+	private static boolean doDebug = false;
 	private static BlockState footBlockState;
 	private static BlockState groundBlockState;
 	private static Block footBlock;
@@ -141,34 +150,140 @@ public class MoveEntityEvent {
 	private static String biomeCategory;
 	static BlockPos adjustedPos;
 
-	@SuppressWarnings("resource")
-	private static void doMobRegrowthEvents(LivingEntity entity, ServerLevel serverLevel, String key,
-			String regrowthType) {
-		Utility.debugMsg(1, "enter Mob Events");
+//	@SubscribeEvent // is in Forge 
+	public static boolean handleEntityMoveEvents(LivingEntity le) {
+		Utility.debugMsg(1, "enter LivingEntity movement event handler");
+		Level level = le.level();
+		if (level.isClientSide()) {
+			return MyConfig.CONTINUE_EVENT;
+		}
+		ServerLevel serverLevel = (ServerLevel) level;
+		return doMobsAndVillagers(le, serverLevel);
+	}
+
+	private static boolean doMobsAndVillagers(LivingEntity le, ServerLevel serverLevel) {
+
+		if (le instanceof Player)
+			return MyConfig.CONTINUE_EVENT;
+		if (le.blockPosition() == null)
+			return MyConfig.CONTINUE_EVENT;
+
+		if (MyConfig.getaDebugLevel() > 0)
+			doDebug = true;
+
+		if (doDebug)
+			Utility.debugMsg(1, "enter doMobsAndVillagers");
+
+		if (le.getId() % 2 == serverLevel.getGameTime() % 2)
+			return MyConfig.CONTINUE_EVENT;
+
+		String rlString = Utility.getResourceLocationString(le).toString();
+
+		RegrowthMobItem currentRegrowthMobItem = RegrowthEntitiesManager.getRegrowthMobInfo(rlString);
+		if (currentRegrowthMobItem == null)
+			return MyConfig.CONTINUE_EVENT;
+
+		adjustedPos = getAdjustedBlockPos(le);
+		footBlockState = getAdjustedFootBlockState(le);
+		footBlock = footBlockState.getBlock();
+		footBlockPos = getAdjustedBlockPos(le);
+
+		if (footBlock instanceof WoolCarpetBlock)
+			return MyConfig.CONTINUE_EVENT;
+
+		groundBlockState = getAdjustedGroundBlockState(le);
+		groundBlock = groundBlockState.getBlock();
+		groundBlockPos = getAdjustedBlockPos(le); // TODO is this used?
+
+		if ((groundBlockState.isAir()) && !(le instanceof Bat))
+			return MyConfig.CONTINUE_EVENT;
+
+		biomeCategory = Utility.getMyBC(serverLevel.getBiome(le.blockPosition()));
+		localBiome = serverLevel.getBiome(le.blockPosition()).value();
+
+		String regrowthActions = currentRegrowthMobItem.getRegrowthActions();
+		if (isImpossibleRegrowthEvent(regrowthActions))
+			return MyConfig.CONTINUE_EVENT;
+
+		double regrowthEventOdds = 1 / (currentRegrowthMobItem.getRegrowthEventSeconds() * CHECKS_PER_SECOND);
+		if (isHorseTypeEatingNow(le)) {
+			regrowthEventOdds *= 20;
+		}
+		double randomD100Roll = serverLevel.random.nextDouble();
+		int debugvalue = 0; // TODO make sure value 0 after debugging.
+
+		long chunkAge = serverLevel.getChunkAt(le.blockPosition()).getInhabitedTime();
+
+		// improve village roads and walls faster for the first 200 minutes;
+		if (chunkAge < 480000) {
+			if (le instanceof Villager ve) {
+				if (serverLevel.getGameTime() % 12 == 0) {
+					if (regrowthActions.contains("r")) {
+						vRoadImprove(ve, serverLevel, "preRoad");
+					}
+					if (regrowthActions.contains("w")) {
+						vImproveVillageWall(ve, serverLevel, regrowthActions);
+					}
+
+				}
+			}
+		}
+
+		if (randomD100Roll <= regrowthEventOdds + debugvalue) {
+			if (le instanceof Villager ve) {
+				doVillagerRegrowthEvents(ve, serverLevel, rlString, regrowthActions);
+			} else {
+				doMobRegrowthEvents(le, serverLevel, rlString, regrowthActions);
+			}
+		}
+		if (doDebug)
+			Utility.debugMsg(1, "fall out of Handle Entity tick Events");
+		return MyConfig.CONTINUE_EVENT;
+	}
+
+	private static void doMobRegrowthEvents(LivingEntity le, ServerLevel serverLevel, String key, String regrowthType) {
+
+		Utility.debugMsg(1, "enter Mob Events action:" + regrowthType);
+		BlockPos lePos = le.blockPosition();
 
 		if (regrowthType.equals(ACTION_STUMBLE)) {
-			if ((footBlock instanceof TorchBlock) || (footBlock instanceof WallTorchBlock)) {
-				mobStumbleAction(entity, key);
+			if (mobStumbleAction(le, serverLevel, key)) {
+				if (doDebug)
+					Utility.debugMsg(1, lePos, key + " stumbled over torch.");
 			}
 			return;
 		}
 
 		if (regrowthType.equals(ACTION_REFOREST)) {
-			mobReforestAction(entity, key);
+			if (mobReforestAction(le, serverLevel, key)) {
+				if (doDebug)
+					Utility.debugMsg(1, lePos, key + " planted sapling.");
+			}
 			return;
 		}
 
 		if (regrowthType.equals(ACTION_MUSHROOM)) {
-			mobGrowMushroomAction(entity, key);
+			if (mobGrowMushroomAction(le, serverLevel, key)) {
+				if (doDebug)
+					Utility.debugMsg(1, lePos, key + " grow giant mushroom.");
+			}
 			return;
 		}
 
 		if (regrowthType.equals(ACTION_CORAL)) {
-			mobGrowCoralAction(entity, key);
+			if (mobGrowCoralAction(le, serverLevel, key)) {
+				if (doDebug)
+					Utility.debugMsg(1, lePos, key + " grow coral from below.");
+			}
 			return;
 		}
 
-		mobHandleOverCrowding(entity, key);
+		if (regrowthType.equals(ACTION_TALL)) {
+			mobGrowTallAction(le, serverLevel, key);
+			return;
+		}
+
+		mobCheckOverCrowding(le, serverLevel, key);
 
 		// all remaining actions currently require a grass block underfoot so if not a
 		// grass block- can exit now.
@@ -179,13 +294,8 @@ public class MoveEntityEvent {
 			return;
 		}
 
-		if (regrowthType.equals(ACTION_TALL)) {
-			mobGrowTallAction(entity, key);
-			return;
-		}
-
 		if (regrowthType.equals(ACTION_BOTH)) {
-			if (entity.level().random.nextDouble() * 100 > 85.0) {
+			if (serverLevel.random.nextDouble() * 100 > 85.0) {
 				regrowthType = ACTION_GROW;
 			} else {
 				regrowthType = ACTION_EAT;
@@ -193,12 +303,14 @@ public class MoveEntityEvent {
 		}
 
 		if (regrowthType.contentEquals(ACTION_EAT)) {
-			mobEatPlantsAction(entity, key, regrowthType);
+			mobEatPlantsAction(le, serverLevel, key, regrowthType);
 			return;
 		}
 
 		if ((regrowthType.equals(ACTION_GROW))) {
-			mobGrowPlantsAction(entity, key);
+			if (mobGrowPlantsAction(le, serverLevel, key)) {
+				Utility.debugMsg(2, le.getType().toShortString() + " grew plants.");
+			}
 			return;
 		}
 
@@ -207,15 +319,21 @@ public class MoveEntityEvent {
 	private static void doVillagerRegrowthEvents(Villager ve, ServerLevel serverLevel, String debugKey,
 			String regrowthActions) {
 		boolean debugOn = false;
-		// Villagers hopping, falling, etc. are doing improvements.
+
+		vPowderedSnowImprove(ve, serverLevel);
 		if (!(ve.onGround()))
 			return;
+		if (footBlock instanceof BedBlock) {
+			return;
+		}
+		// Villagers hopping, falling, etc. are doing improvements.
 		if (groundBlockState.getBlock() instanceof TorchBlock)
 			return;
 		if (groundBlockState.getBlock() instanceof WallTorchBlock)
 			return;
 
 		// Give custom debugging names to nameless villagers.
+		// MyConfig.setDebugLevel(0); // TODO comment this out before release
 		if (MyConfig.getDebugLevel() > 0) {
 			debugOn = true;
 			float veYaw = ve.getViewYRot(1.0f);
@@ -234,20 +352,20 @@ public class MoveEntityEvent {
 
 		// note all villagers may not have a home. poor homeless villagers.
 		// default = repair farms
-		if (vImproveFarm(ve, regrowthActions)) {
+		if (vImproveFarm(ve, serverLevel, regrowthActions)) {
 			if (debugOn)
 				Utility.debugMsg(1, ve, debugKey + " farm improved.");
 		}
 
-		// 'h'eal villagers and players
+		// 'h'eal villagers and players and repair Iron Golems.
 		if (regrowthActions.contains("h")) {
 			if (debugOn)
 				Utility.debugMsg(1, footBlockPos, debugKey + "Cleric healing, Toolmaster Repair ");
-			vClericalHealing(ve);
-			vToolMasterHealing(ve);
+			vClericalHealing(ve, serverLevel);
+			vToolMasterHealing(ve, serverLevel);
 		}
 
-		vBeeKeeperFlowers(ve);
+		vBeeKeeperFlowers(ve, serverLevel);
 
 		// cut lea'v'es.
 		// remove leaves if facing head height leaves
@@ -255,7 +373,7 @@ public class MoveEntityEvent {
 		if (regrowthActions.contains("v")) {
 			if (debugOn)
 				Utility.debugMsg(1, footBlockPos, debugKey + " Trim Lea v es.");
-			vImproveLeaves(ve, debugKey);
+			vImproveLeaves(ve, serverLevel, debugKey);
 		}
 
 		// c = cut down grass (but not flowers for now)
@@ -273,7 +391,7 @@ public class MoveEntityEvent {
 		if (regrowthActions.contains("r")) {
 			if (debugOn)
 				Utility.debugMsg(1, footBlockPos, debugKey + " try road improve.");
-			vRoadImprove(ve,serverLevel, debugKey);
+			vRoadImprove(ve, serverLevel, debugKey);
 		}
 
 		// note villages may not have a meeting place. Sometimes they change. Sometimes
@@ -281,19 +399,19 @@ public class MoveEntityEvent {
 		if ((regrowthActions.contains("w"))) {
 			if (debugOn)
 				Utility.debugMsg(1, footBlockPos, " try town wall build.");
-			vImproveWalls(ve, debugKey, regrowthActions);
+			vImproveWalls(ve, serverLevel, debugKey, regrowthActions);
 
 		}
 
 		if ((regrowthActions.contains("p"))) {
 			if (debugOn)
 				Utility.debugMsg(1, footBlockPos, " try personal fence build.");
-			vImproveFences(ve, debugKey, regrowthActions);
+			vImproveFences(ve, serverLevel, debugKey, regrowthActions);
 
 		}
 
 		if ((regrowthActions.contains("t") && (footBlock != Blocks.TORCH))) {
-			if (vImproveLighting(ve)) {
+			if (vImproveLighting(ve, serverLevel)) {
 				if (debugOn)
 					Utility.debugMsg(1, ve, debugKey + "-" + footBlock + ", " + groundBlock + " pitch: " + ve.getXRot()
 							+ " lighting improved.");
@@ -313,8 +431,10 @@ public class MoveEntityEvent {
 	}
 
 	private static boolean isCuttable(Block b) {
-		return ((b instanceof TallGrassBlock) || (b instanceof DoublePlantBlock)
-				|| (b.getDescriptionId().equals("block.byg.short_grass")));
+
+		return ((b instanceof TallGrassBlock) || (b instanceof DoublePlantBlock) || (b instanceof ShortDryGrassBlock)
+				|| (b instanceof LeafLitterBlock)
+				|| (b instanceof TallDryGrassBlock) || (b.getDescriptionId().equals("block.byg.short_grass")));
 	}
 
 	private static int getAbsVX(Entity e, BlockPos gVMPPos) {
@@ -335,6 +455,7 @@ public class MoveEntityEvent {
 		return (int) Math.abs(getVZ(pos, gVMPPos));
 	}
 
+	// adjust position for partial blocks like slabs, farmland, soul sand, and mud.
 	private static BlockPos getAdjustedBlockPos(Entity e) {
 		if (e.getY() == e.blockPosition().getY()) {
 			return e.blockPosition();
@@ -373,95 +494,7 @@ public class MoveEntityEvent {
 		return (int) (pos.getZ() - gVMPPos.getZ());
 	}
 
-	@SuppressWarnings("resource")
-//	@SubscribeEvent
-	public static boolean handleEntityMoveEvents(LivingEntity le) {
-
-		if (le instanceof Player)
-			return MyConfig.CONTINUE_EVENT;
-		if (le.blockPosition() == null)
-			return MyConfig.CONTINUE_EVENT;
-
-		Level level = le.level();
-		if (level.isClientSide) {
-			return MyConfig.CONTINUE_EVENT;
-		}
-
-		ServerLevel serverLevel = (ServerLevel) level;
-
-		Utility.debugMsg(1, "enter serverside Handle Entity Move Events");
-
-		if (le.getId() % 2 == serverLevel.getGameTime() % 2)
-			return MyConfig.CONTINUE_EVENT;
-
-		String rlString = Utility.getResourceLocationString(le).toString();
-
-		footBlockState = getAdjustedFootBlockState(le);
-		footBlock = footBlockState.getBlock();
-		footBlockPos = getAdjustedBlockPos(le);
-
-		if (footBlock instanceof WoolCarpetBlock)
-			return MyConfig.CONTINUE_EVENT;
-
-		groundBlockState = getAdjustedGroundBlockState(le);
-		groundBlock = groundBlockState.getBlock();
-		groundBlockPos = getAdjustedBlockPos(le);
-
-		adjustedPos = getAdjustedBlockPos(le);
-
-		if ((groundBlockState.isAir()) && !(le instanceof Bat))
-			return MyConfig.CONTINUE_EVENT;
-
-		biomeCategory = Utility.getMyBC(serverLevel.getBiome(le.blockPosition()));
-		localBiome = serverLevel.getBiome(le.blockPosition()).value();
-
-		RegrowthMobItem currentRegrowthMobItem = RegrowthEntitiesManager.getRegrowthMobInfo(rlString);
-		if (currentRegrowthMobItem == null)
-			return MyConfig.CONTINUE_EVENT;
-		String regrowthActions = currentRegrowthMobItem.getRegrowthActions();
-		if (isImpossibleRegrowthEvent(regrowthActions))
-			return MyConfig.CONTINUE_EVENT;
-
-		double regrowthEventOdds = 1 / (currentRegrowthMobItem.getRegrowthEventSeconds() * CHECKS_PER_SECOND);
-		if (isHorseTypeEatingNow(le)) {
-			regrowthEventOdds *= 20;
-		}
-		double randomD100Roll = le.level().random.nextDouble();
-		int debugvalue = 0; // TODO make sure value 0 after debugging.
-
-		long chunkAge = serverLevel.getChunkAt(le.blockPosition()).getInhabitedTime();
-
-		// improve village roads and walls faster for the first 200 minutes;
-		if (chunkAge < 480000) {
-			if (le instanceof Villager ve) {
-				if (serverLevel.getGameTime() % 12 == 0) {
-					if (regrowthActions.contains("r")) {
-						vRoadImprove(ve, serverLevel, "preRoad");
-					}
-					if (regrowthActions.contains("w")) {
-						vImproveVillageWall(ve, regrowthActions);
-					}
-
-				}
-			}
-		}
-
-		if (randomD100Roll <= regrowthEventOdds + debugvalue) {
-			if (le instanceof Villager ve) {
-				improvePowderedSnow(le);
-				// if onGround and not on bed.
-				if ((ve.onGround()) && (!(footBlock instanceof BedBlock))) {
-					doVillagerRegrowthEvents(ve, serverLevel, rlString, regrowthActions);
-				}
-			} else {
-				doMobRegrowthEvents(le, serverLevel, rlString, regrowthActions);
-			}
-		}
-		Utility.debugMsg(1, "fall out of Handle Entity tick Events");
-		return MyConfig.CONTINUE_EVENT;
-	}
-
-	private static BlockState helperBiomeRoadBlockType(String localBiome) {
+	private static BlockState helpBiomeRoadBlockType(String localBiome) {
 		BlockState gateBlockType = Blocks.DIRT_PATH.defaultBlockState();
 
 		if (biomeCategory.equals(Utility.DESERT)) {
@@ -470,22 +503,23 @@ public class MoveEntityEvent {
 		return gateBlockType;
 	}
 
-	private static void helperChildAgeEntity(Entity ent) {
-		if (ent instanceof AgeableMob) {
-			AgeableMob aEnt = (AgeableMob) ent;
-			if (aEnt.isBaby()) {
-				aEnt.setAge(aEnt.getAge() + 30);
+	private static void helpAgeChildEntity(LivingEntity le) {
+		if (le instanceof AgeableMob) {
+			AgeableMob ageableLe = (AgeableMob) le;
+			if (ageableLe.isBaby()) {
+				ageableLe.setAge(ageableLe.getAge() + 30);
 			}
 		}
 	}
 
-	public static int helperCountBlocksBB(Block searchBlock, int maxCount, ServerLevel serverLevel, BlockPos bPos,
+	public static int helpCountBlocksInBox(Block searchBlock, int maxCount, ServerLevel serverLevel, BlockPos bPos,
 			int boxSize) {
-		return helperCountBlocksBB(searchBlock, maxCount, serverLevel, bPos, boxSize, boxSize); // "square" box subcase
+		return helpCountBlocksInBox(searchBlock, maxCount, serverLevel, bPos, boxSize, boxSize); // "square" box subcase
 	}
 
-	public static int helperCountBlocksBB(Block searchBlock, int maxCount, ServerLevel serverLevel, BlockPos bPos,
+	public static int helpCountBlocksInBox(Block searchBlock, int maxCount, ServerLevel serverLevel, BlockPos bPos,
 			int boxSize, int ySize) {
+
 		int count = 0;
 		int minX = bPos.getX() - boxSize;
 		int maxX = bPos.getX() + boxSize;
@@ -495,108 +529,112 @@ public class MoveEntityEvent {
 		int maxY = bPos.getY() + ySize;
 
 		MutableBlockPos mPos = new MutableBlockPos();
-		for (int dx = minX; dx <= maxX; dx++) {
-			for (int dz = minZ; dz <= maxZ; dz++) {
-				for (int dy = minY; dy <= maxY; dy++) {
+		for (int dy = minY; dy <= maxY; dy++) {
+			for (int dx = minX; dx <= maxX; dx++) {
+				for (int dz = minZ; dz <= maxZ; dz++) {
 					mPos.set(dx, dy, dz);
-					if (serverLevel.getBlockState(mPos).getBlock() == searchBlock) {
-						if (++count >= maxCount)
-							return count;
-					}
-				}
-			}
-		}
-
-		Utility.debugMsg(2, bPos,
-				Utility.getResourceLocationString(searchBlock) + " Sparse count:" + count + " countBlockBB ");
-
-		return count;
-	}
-
-	public static int helperCountBlocksBB(Class<? extends Block> searchBlock, int maxCount, Level w, BlockPos bPos,
-			int boxSize) {
-		return helperCountBlocksBB(searchBlock, maxCount, w, bPos, boxSize, 0);
-	}
-
-	public static int helperCountBlocksBB(Class<? extends Block> searchBlock, int maxCount, Level w, BlockPos bPos,
-			int boxSize, int ySize) {
-		int count = 0;
-		int minX = bPos.getX() - boxSize;
-		int maxX = bPos.getX() + boxSize;
-		int minZ = bPos.getZ() - boxSize;
-		int maxZ = bPos.getZ() + boxSize;
-		int minY = bPos.getY() - ySize;
-		int maxY = bPos.getY() + ySize;
-
-		MutableBlockPos mPos = new MutableBlockPos();
-
-		for (int dx = minX; dx <= maxX; dx++) {
-			for (int dz = minZ; dz <= maxZ; dz++) {
-				for (int dy = minY; dy <= maxY; dy++) {
-					mPos.set(dx, dy, dz);
-					if (searchBlock.isInstance(w.getBlockState(mPos).getBlock())) {
-						if (++count >= maxCount) {
-							return count;
+					if (serverLevel.hasChunkAt(mPos)) {
+						if (serverLevel.getBlockState(mPos).getBlock() == searchBlock) {
+							if (++count >= maxCount)
+								return count;
 						}
 					}
 				}
 			}
 		}
 
-		Utility.debugMsg(2, bPos, searchBlock.getSimpleName() + " Sparse count:" + count + " countBlockBB ");
+		if (doDebug)
+			Utility.debugMsg(2, bPos,
+					Utility.getResourceLocationString(searchBlock) + " Sparse count:" + count + " countBlockBB ");
+
+		return count;
+
+	}
+
+	public static int helpCountBlocksInBox(Class<? extends Block> searchBlock, int maxCount, ServerLevel serverLevel,
+			BlockPos bPos, int boxSize) {
+		return helpCountBlocksInBox(searchBlock, maxCount, serverLevel, bPos, boxSize, 0);
+	}
+
+	// used when counting blocks extended from a shared class
+	// SaplingBlock for OakSaplingBlock, SpruceSaplingBlock, etc.)
+
+	public static int helpCountBlocksInBox(Class<? extends Block> searchBlock, int maxCount, Level serverLevel,
+			BlockPos bPos, int boxSize, int ySize) {
+		int count = 0;
+		int minX = bPos.getX() - boxSize;
+		int maxX = bPos.getX() + boxSize;
+		int minZ = bPos.getZ() - boxSize;
+		int maxZ = bPos.getZ() + boxSize;
+		int minY = bPos.getY() - ySize;
+		int maxY = bPos.getY() + ySize;
+
+		MutableBlockPos mPos = new MutableBlockPos();
+
+		for (int dy = minY; dy <= maxY; dy++) {
+			for (int dx = minX; dx <= maxX; dx++) {
+				for (int dz = minZ; dz <= maxZ; dz++) {
+					mPos.set(dx, dy, dz);
+					if (serverLevel.hasChunkAt(mPos)) {
+						if (searchBlock.isInstance(serverLevel.getBlockState(mPos).getBlock())) {
+							if (++count >= maxCount) {
+								return count;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if (doDebug) {
+			Utility.debugMsg(2, bPos, searchBlock.getSimpleName() + " Sparse count:" + count + " countBlockBB ");
+		}
 
 		return count;
 	}
 
 	// this routine returns a count of the searchBlock immediately orthogonal to
 	// BlockPos, exiting if a max count is exceeded.
-	public static int helperCountBlocksOrthogonalBB(Block searchBlock, int maxCount, Level w, BlockPos bPos,
+	public static int helpCountBlocksOrthogonalInBox(Block searchBlock, int maxCount, Level w, BlockPos bPos,
 			int boundY) {
-		return helperCountBlocksOrthogonalBB(searchBlock, maxCount, w, bPos, 0 - boundY, 0 + boundY);
+		return helpCountBlocksOrthogonalInBox(searchBlock, maxCount, w, bPos, 0 - boundY, 0 + boundY);
 	}
 
-	public static int helperCountBlocksOrthogonalBB(Block searchBlock, int maxCount, Level w, BlockPos bPos,
+	public static int helpCountBlocksOrthogonalInBox(Block searchBlock, int maxCount, Level w, BlockPos bPos,
 			int lowerBoundY, int upperBoundY) {
 		int count = 0;
+		BlockPos.MutableBlockPos mPos = new BlockPos.MutableBlockPos();
+
 		for (int j = lowerBoundY; j <= upperBoundY; j++) {
-			if (w.getBlockState(bPos.above(j).east()).getBlock() == searchBlock)
+
+			int baseX = bPos.getX();
+			int baseY = bPos.getY() + j;
+			int baseZ = bPos.getZ();
+
+			mPos.set(baseX + 1, baseY, baseZ); // east
+			if (w.getBlockState(mPos).getBlock() == searchBlock)
 				count++;
-			if (w.getBlockState(bPos.above(j).west()).getBlock() == searchBlock)
+
+			mPos.set(baseX - 1, baseY, baseZ); // west
+			if (w.getBlockState(mPos).getBlock() == searchBlock)
 				count++;
-			if (w.getBlockState(bPos.above(j).north()).getBlock() == searchBlock)
+
+			mPos.set(baseX, baseY, baseZ - 1); // north
+			if (w.getBlockState(mPos).getBlock() == searchBlock)
 				count++;
-			if (w.getBlockState(bPos.above(j).south()).getBlock() == searchBlock)
+
+			mPos.set(baseX, baseY, baseZ + 1); // south
+			if (w.getBlockState(mPos).getBlock() == searchBlock)
 				count++;
+
 			if (count >= maxCount)
 				return count;
 		}
 
 		return count;
-
 	}
 
-	private static int helperCountCoral(Entity e) {
-
-		int c = 0;
-		for (int ud = -1; ud <= 0; ud++) {
-			for (int ew = -1; ew <= 1; ew++) {
-				for (int ns = -1; ns <= 1; ns++) {
-					if (e.level().getBlockState(e.blockPosition().below(1).east(ew).north(ns))
-							.getBlock() instanceof CoralBlock) {
-						c++;
-					}
-				}
-			}
-		}
-		return c;
-	}
-
-// TODO: Fabric Only
-	private static String helperGetRegistryNameAsString(Entity entity) {
-		return Utility.getResourceLocationString(entity);
-	}
-
-	private static void helperJumpAway(Entity e) {
+	private static void helpJumpAway(Entity e) {
 		// "jump" villagers away if they are inside a wall, fence, or dirtPath block.
 		Block postActionFootBlock = getAdjustedFootBlockState(e).getBlock();
 		if (postActionFootBlock == Blocks.DIRT_PATH) {
@@ -617,11 +655,11 @@ public class MoveEntityEvent {
 		}
 	}
 
-	private static long helperLongRandomSeed(BlockPos ePos) {
+	private static long helpLongRandomSeed(BlockPos ePos) {
 		return (long) Math.abs(ePos.getX() * 31) + Math.abs(ePos.getZ() * 11) + Math.abs(ePos.getY() * 7);
 	}
 
-	private static boolean helperPlaceOneWallPiece(LivingEntity le, int wallRadius, int wallTorchSpacing,
+	private static boolean helpPlaceOneWallPiece(LivingEntity le, ServerLevel serverLevel, int wallRadius,
 			BlockState wallType, BlockPos gVMPPos) {
 
 		// Build East and West Walls (and corners)
@@ -631,54 +669,58 @@ public class MoveEntityEvent {
 		if (getAbsVX(le, gVMPPos) == wallRadius) {
 			if (getAbsVZ(le, gVMPPos) <= wallRadius) {
 				d = (getVX(le, gVMPPos) > 0) ? Direction.EAST : Direction.WEST;
-				return helperPlaceWallPiece(le, wallType, gateBlockState.setValue(FACING, d), getVZ(le, gVMPPos));
+				return helpPlaceWallPiece(le, serverLevel, wallType, gateBlockState.setValue(FACING, d),
+						getVZ(le, gVMPPos));
 			}
 		}
 		// Build North and South Walls (and corners)
 		if (getAbsVZ(le, gVMPPos) == wallRadius) {
 			if (getAbsVX(le, gVMPPos) <= wallRadius) {
 				d = (getVZ(le, gVMPPos) > 0) ? Direction.NORTH : Direction.SOUTH;
-				return helperPlaceWallPiece(le, wallType, gateBlockState.setValue(FACING, d), getVX(le, gVMPPos));
+				return helpPlaceWallPiece(le, serverLevel, wallType, gateBlockState.setValue(FACING, d),
+						getVX(le, gVMPPos));
 			}
 		}
 
 		return false;
 	}
 
-	private static boolean helperPlaceWallPiece(LivingEntity le, BlockState wallType, BlockState gateBlockType,
-			int va) {
+	private static boolean helpPlaceWallPiece(LivingEntity le, ServerLevel serverLevel, BlockState wallType,
+			BlockState gateBlockType, int va) {
 
 		BlockPos vePos = getAdjustedBlockPos(le);
 
 		if (footBlock instanceof SnowLayerBlock) {
-			le.level().destroyBlock(vePos, false);
+			serverLevel.destroyBlock(vePos, false);
 		}
 
-		if (isNatProgPebbleOrStick((ServerLevel) le.level())) {
-			le.level().destroyBlock(vePos, true);
+		if (isNatProgPebbleOrStick()) {
+			serverLevel.destroyBlock(vePos, true);
 		}
 
 		if ((footBlock instanceof SaplingBlock) || (footBlock instanceof TallGrassBlock)
 				|| (footBlock instanceof FlowerBlock) || (footBlock instanceof DoublePlantBlock)) {
-			le.level().destroyBlock(vePos, true);
+			serverLevel.destroyBlock(vePos, true);
 		}
 
 		int absva = Math.abs(va);
 		if (absva == WALL_CENTER) {
-			le.level().setBlock(vePos, gateBlockType, 3);
+			serverLevel.setBlockAndUpdate(vePos, gateBlockType);
 			return true;
 		}
 
-		if (le.level().setBlock(vePos, wallType, 3)) {
+		if (serverLevel.setBlockAndUpdate(vePos, wallType)) {
 			return true;
 		} else {
-			Utility.debugMsg(1, le, "Building Wall Fail: SetBlockAndUpdate Time End = " + le.level().getGameTime());
+			if (doDebug)
+				Utility.debugMsg(1, le,
+						"Building Wall Fail: SetBlockAndUpdate Time End = " + serverLevel.getGameTime());
 			return false;
 		}
 
 	}
 
-	private static BlockState helperGetSaplingState(Level serverLevel, BlockPos pos, Biome localBiome,
+	private static BlockState helpGetSaplingState(Level serverLevel, BlockPos pos, Biome localBiome,
 			BlockState sapling) {
 
 		// TODO use new BlockTag.SAPLING, get list of valid trees, return default state
@@ -712,23 +754,24 @@ public class MoveEntityEvent {
 		return sapling;
 	}
 
-	private static void improvePowderedSnow(Entity entity) {
-		Level sLevel = entity.level();
-		if (entity.isInPowderSnow) {
+	private static void vPowderedSnowImprove(LivingEntity le, ServerLevel serverLevel) {
+
+		if (le.isInPowderSnow) {
 			int hp = 0;
-			if (sLevel.getBlockState(entity.blockPosition().above(2)).getBlock() == Blocks.POWDER_SNOW) {
-				entity.level().destroyBlock(entity.blockPosition().above(2), false);
+			if (serverLevel.getBlockState(le.blockPosition().above(2)).getBlock() == Blocks.POWDER_SNOW) {
+				serverLevel.destroyBlock(le.blockPosition().above(2), false);
 				hp = 2;
 			}
-			if (sLevel.getBlockState(entity.blockPosition().above()).getBlock() == Blocks.POWDER_SNOW) {
-				entity.level().destroyBlock(entity.blockPosition().above(), false);
+			if (serverLevel.getBlockState(le.blockPosition().above()).getBlock() == Blocks.POWDER_SNOW) {
+				serverLevel.destroyBlock(le.blockPosition().above(), false);
 				hp += 2;
 			}
-			if (sLevel.getBlockState(entity.blockPosition()).getBlock() == Blocks.POWDER_SNOW) {
+			if (serverLevel.getBlockState(le.blockPosition()).getBlock() == Blocks.POWDER_SNOW) {
 				BlockState SnowLayer = Blocks.SNOW.defaultBlockState().setValue(SnowLayerBlock.LAYERS, 2 + hp);
-				entity.level().setBlockAndUpdate(entity.blockPosition(), SnowLayer);
+				serverLevel.setBlockAndUpdate(le.blockPosition(), SnowLayer);
 			}
 		}
+
 	}
 
 	private static boolean isBlockGrassOrDirt(BlockState tempBlockState) {
@@ -754,7 +797,7 @@ public class MoveEntityEvent {
 		if (footBlockState.getBlock() instanceof SnowLayerBlock) {
 			return true;
 		}
-		if (isNatProgPebbleOrStick(serverLevel))
+		if (isNatProgPebbleOrStick())
 			return true;
 
 		return false;
@@ -763,7 +806,8 @@ public class MoveEntityEvent {
 	private static boolean isGoodMushroomTemperature(Entity entity) {
 		BlockPos ePos = getAdjustedBlockPos(entity);
 		float biomeTemp = entity.level().getBiome(ePos).value().getBaseTemperature();
-		Utility.debugMsg(1, ePos, "Mushroom Biome temp: " + biomeTemp + ".");
+		if (doDebug)
+			Utility.debugMsg(1, ePos, "Mushroom Biome temp: " + biomeTemp + ".");
 		if (biomeTemp < MyConfig.getMushroomMinTemp())
 			return false;
 		if (biomeTemp > MyConfig.getMushroomMaxTemp())
@@ -774,46 +818,48 @@ public class MoveEntityEvent {
 	private static boolean isGrassOrFlower(BlockState footBlockState) {
 		Block footBlock = footBlockState.getBlock();
 
-		if (footBlock instanceof TallGrassBlock) {
+		if (footBlock instanceof TallGrassBlock)
 			return true;
-		}
-		if (footBlock instanceof FlowerBlock) {
-			return true;
-		}
 
-// DPB includes tall grass and ferns now in later releases	
-		if (footBlock instanceof DoublePlantBlock) {
+		// DoublePlantBlock includes tall grass and ferns now in later releases
+		if (footBlock instanceof DoublePlantBlock)
 			return true;
-		}
 
-		if (footBlock instanceof TallFlowerBlock) {
+		if (footBlock instanceof ShortDryGrassBlock)
 			return true;
-		}
 
-		if (footBlock == Blocks.FERN) {
-			return true;
-		}
-		if (footBlock == Blocks.LARGE_FERN) {
-			return true;
-		}
+		if (footBlock instanceof TallDryGrassBlock)
 
-		try {
-			if (footBlockState.is(MY_ALL_FLOWERS)) {
+			if (footBlock instanceof FlowerBlock)
 				return true;
-			}
-		} catch (Exception e) {
-			if (MyConfig.getDebugLevel() > 0) {
-				System.out.println("Tag Exception 1009-1014:" + footBlock.getDescriptionId() + ".");
-			}
-		}
+
+		if (footBlock instanceof TallFlowerBlock)
+			return true;
+
+		if (footBlock == Blocks.FERN)
+			return true;
+
+		if (footBlock == Blocks.LARGE_FERN)
+			return true;
 
 		// "biomes you'll go" grass compatibility
 		if (footBlock.getDescriptionId().equals("block.byg.short_grass")) {
 			return true;
 		}
-		if (MyConfig.getDebugLevel() > 0) {
-			Utility.debugMsg(2, "Not grass or Flower:" + footBlock.getDescriptionId() + ".");
+
+		// check for vanilla and most modded flowers
+		try {
+			if (footBlockState.is(MY_ALL_FLOWERS)) {
+				return true;
+			}
+		} catch (Exception e) {
+			if (doDebug)
+				Utility.debugMsg(0, "ERROR: Tag Exception 1009-1014:" + footBlock.getDescriptionId() + ".");
 		}
+
+		if (doDebug)
+			Utility.debugMsg(2, "Not grass or Flower:" + footBlock.getDescriptionId() + ".");
+
 		return false;
 	}
 
@@ -828,16 +874,16 @@ public class MoveEntityEvent {
 	}
 
 	private static boolean isImpossibleRegrowthEvent(String regrowthType) {
-		if ((regrowthType.equals("eat")) && (footBlockState.isAir())) {
+		if ((regrowthType.equals(ACTION_EAT)) && (footBlockState.isAir())) {
 			return true;
 		}
-		if ((regrowthType.equals("grow")) && (footBlockState.getBlock() instanceof TallGrassBlock)) {
+		if ((regrowthType.equals(ACTION_GROW)) && (footBlockState.getBlock() instanceof TallGrassBlock)) {
 			return true;
 		}
-		if ((regrowthType.equals("grow")) && (footBlockState.getBlock() instanceof FlowerBlock)) {
+		if ((regrowthType.equals(ACTION_GROW)) && (footBlockState.getBlock() instanceof FlowerBlock)) {
 			return true;
 		}
-		if ((regrowthType.equals("tall")) && (!(footBlockState.getBlock() instanceof TallGrassBlock))) {
+		if ((regrowthType.equals(ACTION_TALL)) && (!(footBlockState.getBlock() instanceof TallGrassBlock))) {
 			return true;
 		}
 		return false;
@@ -851,12 +897,10 @@ public class MoveEntityEvent {
 		return false;
 	}
 
-	// handle natural progression pebbles and sticks
-	private static boolean isNatProgPebbleOrStick(ServerLevel serverLevel) {
-		String rl = Utility.getResourceLocationString(footBlock);
-//		String namespace = footBlockState.getBlock().getRegistryName().getNamespace();
-//		String path = footBlockState.getBlock().getRegistryName().getPath();
+	// handle "Natural Progression" pebbles and sticks
+	private static boolean isNatProgPebbleOrStick() {
 
+		String rl = Utility.getResourceLocationString(footBlock);
 		if ((rl.contains("natprog")) && (rl.contains("pebble")))
 			return true;
 
@@ -866,27 +910,40 @@ public class MoveEntityEvent {
 		if ((rl.contains("minecraft")) && (rl.contains("button"))) {
 			return true;
 		}
+
 		return false;
+
 	}
 
-	private static boolean isNearbyPoi(Villager ve, Biome localBiome, BlockPos vePos, int poiDistance) {
+	private static boolean isNearbyPoi(Villager ve, ServerLevel serverLevel, Biome localBiome, BlockPos vePos,
+			int poiDistance) {
 
 		// 08/30/20 Collection pre 16.2 bug returns non empty collections.
 		// the collection is not empty when it should be.
 		// are returned in the collection so have to loop thru it manually.
 
-		Collection<PoiRecord> result = ((ServerLevel) ve.level()).getPoiManager()
+		Collection<PoiRecord> result = serverLevel.getPoiManager()
 				.getInSquare(t -> true, ve.blockPosition(), poiDistance, Occupancy.ANY)
 				.collect(Collectors.toCollection(ArrayList::new));
 
-		if (!(result.isEmpty())) {
+		if (!result.isEmpty()) {
 			Iterator<PoiRecord> i = result.iterator();
-			while (i.hasNext()) { // in 16.1, finds the point of interest.
-				PoiRecord P = i.next();
-				int disX = Math.abs(ve.blockPosition().getX() - P.getPos().getX());
-				int disZ = Math.abs(ve.blockPosition().getZ() - P.getPos().getZ());
-				if ((disX < poiDistance) && (disZ < poiDistance)) {
-					Utility.debugMsg(1, ve, "Point of Interest too Close: " + P.getPoiType().toString() + ".");
+
+			MutableBlockPos mutablePos = new MutableBlockPos();
+			int veX = ve.blockPosition().getX();
+			int veZ = ve.blockPosition().getZ();
+
+			while (i.hasNext()) { // in 16.1 + , finds the point of interest.
+				PoiRecord poi = i.next();
+				mutablePos.set(poi.getPos());
+
+				int dX = Math.abs(veX - mutablePos.getX());
+				int dZ = Math.abs(veZ - mutablePos.getZ());
+
+				if (dX < poiDistance && dZ < poiDistance) {
+					if (doDebug) {
+						Utility.debugMsg(1, ve, "Point of Interest too Close: " + poi.getPoiType().toString() + ".");
+					}
 					return true;
 				}
 			}
@@ -894,32 +951,17 @@ public class MoveEntityEvent {
 		return false;
 	}
 
-	private static boolean isNearWater(ServerLevel sLevel, BlockPos pos) {
-		// TODO This also gets lava, so change later to
-		// getFluidState(p_46802_).is(FluidTags.WATER);
-		AABB box = AABB.encapsulatingFullBlocks(pos.east(4).north(4), pos.west(4).south(4).below(1));
-		// new AABB(pos.east(4).north(4), pos.west(4).south(4).below(1));
-		if (sLevel.containsAnyLiquid(box)) {
-			return true;
-		}
-
-		// TODO Check if there is a Fabric Hydration Class.
-		// Ask Forge Farmland Manager if some other mod is hydrating the block.
-		// return FarmlandWaterManager.hasBlockWaterTicket(level, pos);
-		return false;
-	}
-
-	private static boolean isOkayToBuildWallHere(Villager ve) {
+	private static boolean isOkayToBuildWallHere(Villager ve, ServerLevel serverLevel) {
 
 		boolean okayToBuildWalls = true;
 
 		if (!(isOnGround(ve))) {
 			okayToBuildWalls = false;
 		}
-		if (!(isFootBlockOkayToBuildIn((ServerLevel) ve.level()))) {
+		if (!(isFootBlockOkayToBuildIn(serverLevel))) {
 			okayToBuildWalls = false;
 		}
-		if (!(isValidGroundBlockToBuildWallOn(ve))) {
+		if (!(isValidGroundBlockToBuildWallOn(ve.blockPosition(), serverLevel))) {
 			okayToBuildWalls = false;
 		}
 		return okayToBuildWalls;
@@ -962,9 +1004,9 @@ public class MoveEntityEvent {
 
 	}
 
-	private static boolean isValidGroundBlockToBuildWallOn(LivingEntity le) {
+	private static boolean isValidGroundBlockToBuildWallOn(BlockPos lePos, ServerLevel serverLevel) {
 
-		if (le.level().getBrightness(LightLayer.SKY, le.blockPosition()) < 13)
+		if (serverLevel.getBrightness(LightLayer.SKY, lePos) < 13)
 			return false;
 
 		if (groundBlock instanceof SnowLayerBlock)
@@ -972,33 +1014,34 @@ public class MoveEntityEvent {
 		if (groundBlock instanceof TorchBlock)
 			return false; // includes WallTorchBlock
 
-		if (le.level().getBlockState(le.blockPosition().above()).getBlock() instanceof WallBlock) {
+		if (serverLevel.getBlockState(lePos.above()).getBlock() instanceof WallBlock) {
 			return false;
 		}
-		if (le.level().getBlockState(le.blockPosition().below()).getBlock() instanceof WallBlock) {
+		if (serverLevel.getBlockState(lePos.below()).getBlock() instanceof WallBlock) {
 			return false;
 		}
-		if (le.level().getBlockState(le.blockPosition().below(1)).getBlock() instanceof WallBlock) {
+		if (serverLevel.getBlockState(lePos.below(1)).getBlock() instanceof WallBlock) {
 			return false;
 		}
-		if (le.level().getBlockState(le.blockPosition().below(2)).getBlock() instanceof TorchBlock) {
+		if (serverLevel.getBlockState(lePos.below(2)).getBlock() instanceof TorchBlock) {
 			return false;
 		}
-		if (le.level().getBlockState(le.blockPosition().above()).getBlock() instanceof TorchBlock) {
+		if (serverLevel.getBlockState(lePos.above()).getBlock() instanceof TorchBlock) {
 			return false;
 		}
-		if (le.level().getBlockState(le.blockPosition().below()).getBlock() instanceof TorchBlock) {
+		if (serverLevel.getBlockState(lePos.below()).getBlock() instanceof TorchBlock) {
 			return false;
 		}
-		if (le.level().getBlockState(le.blockPosition().below(1)).getBlock() instanceof TorchBlock) {
+		if (serverLevel.getBlockState(lePos.below(1)).getBlock() instanceof TorchBlock) {
 			return false;
 		}
-		if (le.level().getBlockState(le.blockPosition().below(2)).getBlock() instanceof TorchBlock) {
+		if (serverLevel.getBlockState(lePos.below(2)).getBlock() instanceof TorchBlock) {
 			return false;
 		}
 
 		groundBlock = groundBlockState.getBlock();
-		Utility.debugMsg(1, le, "Build Wall : gb" + groundBlock.toString() + ", fb:" + footBlock.toString());
+		if (doDebug)
+			Utility.debugMsg(1, lePos, "Build Wall : gb" + groundBlock.toString() + ", fb:" + footBlock.toString());
 		WallFoundationDataManager.wallFoundationItem currentWallFoundationItem = WallFoundationDataManager
 				.getWallFoundationInfo(Utility.getResourceLocationString(groundBlock));
 
@@ -1009,17 +1052,17 @@ public class MoveEntityEvent {
 
 	}
 
-	private static boolean isValidGroundBlockToPlaceTorchOn(Villager ve) {
-
-		String key = Utility.getResourceLocationString(groundBlock);
-		WallFoundationDataManager.wallFoundationItem currentWallFoundationItem = WallFoundationDataManager
-				.getWallFoundationInfo(key);
-		if (currentWallFoundationItem == null)
-			return false;
-
-		return true;
-
-	}
+//	private static boolean isValidGroundBlockToPlaceTorchOn(Villager ve) {
+//
+//		String key = Utility.getResourceLocationString(groundBlock);
+//		WallFoundationDataManager.wallFoundationItem currentWallFoundationItem = WallFoundationDataManager
+//				.getWallFoundationInfo(key);
+//		if (currentWallFoundationItem == null)
+//			return false;
+//
+//		return true;
+//
+//	}
 
 	private static boolean isValidTorchLocation(int wallRadius, int wallTorchSpacing, int absvx, int absvz,
 			Block wallFenceBlock) {
@@ -1047,275 +1090,292 @@ public class MoveEntityEvent {
 		return false;
 	}
 
-	// fix unfinished spots in road with 3-4 grass blocks orthogonal to them.
-	// on slopes too.
-
-	private static boolean mobEatGrassOrFlower(Entity entity, String regrowthType) {
-
-		BlockPos ePos = getAdjustedBlockPos(entity);
+	private static boolean mobEatGrassOrFlower(LivingEntity le, ServerLevel serverLevel, String regrowthType) {
+		BlockPos ePos = getAdjustedBlockPos(le);
 		if (!(isGrassOrFlower(footBlockState))) {
 			return false;
 		}
 		if (isKindOfGrassBlock(groundBlockState)) {
-			mobTrodGrassBlock(entity);
+			mobTrodGrassBlock(le, serverLevel);
 		}
-		entity.level().destroyBlock(ePos, false);
-
-		LivingEntity le = (LivingEntity) entity;
+		serverLevel.destroyBlock(ePos, false);
 		double roll = le.getRandom().nextDouble();
 		if (roll >= MyConfig.getEatingHealsOdds())
 			return false;
 
-		helperChildAgeEntity(entity);
+		helpAgeChildEntity(le); // TODO refactor to AgeChildEntity
 
 		if (le.getMaxHealth() > le.getHealth()) {
-			MobEffectInstance ei = new MobEffectInstance(MobEffects.HEAL, 1, 0, false, true);
+			MobEffectInstance ei = new MobEffectInstance(MobEffects.INSTANT_HEALTH, 1, 0, false, true);
 			le.addEffect(ei);
 		}
 		return true;
 	}
 
-	private static boolean mobEatPlantsAction(LivingEntity entity, String key, String regrowthType) {
-		if (mobEatGrassOrFlower(entity, regrowthType)) {
-			Utility.debugMsg(2, getAdjustedBlockPos(entity), key + " ate plants.");
+	private static boolean mobEatPlantsAction(LivingEntity entity, ServerLevel serverLevel, String key,
+			String regrowthType) {
+		if (mobEatGrassOrFlower(entity, serverLevel, regrowthType)) {
+			if (doDebug)
+				Utility.debugMsg(2, getAdjustedBlockPos(entity), key + " ate plants.");
 			return true;
 		}
 		return false;
 	}
 
-	private static boolean mobGrowCoralAction(LivingEntity le, String key) {
+	private static int coralBelowFindY(BlockPos pos, ServerLevel serverLevel) {
 
-		Level level = le.level();
-		int sealevel = level.getSeaLevel();
-		RandomSource rand = level.getRandom();
+		BlockPos base = pos;
+		BlockPos.MutableBlockPos mPos = new BlockPos.MutableBlockPos();
 
-		// Block bwf = Blocks.BRAIN_CORAL_WALL_FAN;
-
-		moveRand.setSeed(le.getBlockY() * 1151 + le.getBlockX() * 51 + le.getBlockZ() * 31); // "predictable" random.
-		double docoralplant = moveRand.nextDouble();
-		docoralplant = moveRand.nextDouble();
-		double docoralfan = moveRand.nextDouble();
-		int coralfanDirection = moveRand.nextInt(4);
-		int minCoraldepth = sealevel - 4 + moveRand.nextInt(2);
-		int maxCoraldepth = sealevel - 16;
-
-		if (le.getBlockY() > minCoraldepth)
-			return false;
-		if (le.getBlockY() < maxCoraldepth)
-			return false;
-
-		BlockPos pos = le.blockPosition();
-
-		// TODO might be coral or grass below?
-		if (level.getBlockState(pos.below(0)).getBlock() != Blocks.WATER)
-			return false; // should be impossible.
-		if (level.getBlockState(pos.below(1)).getBlock() != Blocks.WATER)
-			return false;
-
-// Fabric Patch Start.
-		Block b = level.getBlockState(pos.below(2)).getBlock();
-
-		if (level.getBlockState(pos.below(2)).getBlock() != Blocks.WATER) {
-			if ((b != Blocks.STONE) && (b != Blocks.GLASS)) {
-
-				Utility.debugMsg(1, pos, "Block: " + level.getBlockState(pos.below(2)).toString());
-				// iffy toString()
+		for (int ey = 1; ey <= 3; ey++) {
+			mPos.set(base.getX(), base.getY() - ey, base.getZ());
+			if (serverLevel.getBlockState(mPos).getBlock() instanceof CoralBlock) {
+				return mPos.getY();
 			}
 		}
+		return FAIL;
+	}
 
-		boolean fabpatch = false;
-		BlockPos coralPos = pos;
-		int coralBelow = 1;
-		if (level.getBlockState(pos.below(2)).getBlock() instanceof CoralBlock) {
-			coralPos = pos.below(2);
-			coralBelow = 2;
-			fabpatch = true;
-		}
-		if (level.getBlockState(pos.below(3)).getBlock() instanceof CoralBlock) {
-			coralPos = pos.below(3);
-			coralBelow = 3;
-			fabpatch = true;
-		}
-
-		if (fabpatch) {
-// Fabric Patch End.
-//			MyConfig.debugMsg(2, pos, "Coral double:" + docoralplant);
-//			MyConfig.debugMsg(2, pos, "Coral fan double:" + docoralfan);
-//			MyConfig.debugMsg(2, pos, "Coral plant opportunity:" + Utility.getResourceLocationString(le) + " .");
-
-			if (docoralfan < 0.3) { // TODO set back to 0.3
-				Direction d = Direction.from2DDataValue(coralfanDirection);
-				BlockPos fanPos = le.blockPosition().below(coralBelow).relative(d);
-				if (level.getBlockState(fanPos).getBlock() == Blocks.WATER) {
-					level.setBlockAndUpdate(fanPos, coralfans[rand.nextInt(coralfans.length)].defaultBlockState()
-							.setValue(CoralWallFanBlock.FACING, d));
+	private static int coralCount(BlockPos base, ServerLevel serverLevel) {
+		int c = 0;
+		BlockPos.MutableBlockPos mPos = new BlockPos.MutableBlockPos();
+		for (int ew = -1; ew <= 1; ew++) {
+			for (int ns = -1; ns <= 1; ns++) {
+				mPos.set(base.getX() + ew, base.getY(), base.getZ() + ns);
+				if (serverLevel.getBlockState(mPos).getBlock() instanceof CoralBlock) {
+					c++;
 				}
 			}
+		}
+		return c;
+	}
 
-			int count = helperCountCoral(le);
-			Utility.debugMsg(2, le, "CORAL count = :" + count + ", " + Utility.getResourceLocationString(le) + " .");
-			if (count > 5)
-				return false;
-			BlockState theCoralBlock = level.getBlockState(pos.below(coralBelow)); // grow same kind of coral block
-			if ((count < 6) &&  (le.getBlockY() == minCoraldepth)) {
-				if (docoralplant < 0.30)
-					return false;
-				Utility.debugMsg(0, pos,
-						"CORAL Plant grows over Coral Block:" + Utility.getResourceLocationString(le) + " .");
-				level.setBlockAndUpdate(pos.below(coralBelow-1),
-						coralPlants[rand.nextInt(coralPlants.length)].defaultBlockState());
-				level.playSound(null, pos, SoundEvents.AMBIENT_UNDERWATER_ENTER, SoundSource.AMBIENT, 0.9f, 1.4f);
-				return true;
-			} else if ((le.getBlockY() < minCoraldepth)) {
-				int ew = rand.nextInt(3) - 1;
-				int ns = rand.nextInt(3) - 1;
-				if (level.getBlockState(pos.below(1).east(ew).north(ns)).getBlock() != Blocks.WATER)
-					return false;
-				Utility.debugMsg(0, pos,
-						"CORAL Block grows over Coral Block:" + Utility.getResourceLocationString(le) + " .");
-				level.setBlockAndUpdate(pos.below(coralBelow-1).east(ew).north(ns), theCoralBlock);
-				level.playSound(null, pos, SoundEvents.CHORUS_FLOWER_GROW, SoundSource.AMBIENT, 0.9f, 1.4f);
-				Utility.debugMsg(0, pos, "CORAL:" + Utility.getResourceLocationString(le) + " new block set at near "
-						+ pos.below(1) + " .");
+	private static boolean coralBlockGrowNew(BlockPos pos, int coralFoundY, ServerLevel serverLevel) {
 
-			}
+		RandomSource rand = serverLevel.getRandom();
 
+		BlockPos.MutableBlockPos mPos = new BlockPos.MutableBlockPos();
+		mPos.set(pos.getX(), coralFoundY + 1, pos.getZ());
+
+		if (coralCount(mPos, serverLevel) > 5) {
+			return false;
+		}
+
+		int dxt = rand.nextInt(2) - 1;
+		int dzt = rand.nextInt(2) - 1;
+
+		mPos.set(pos.getX() + dxt, coralFoundY + 1, pos.getZ() + dzt);
+		if (serverLevel.getBlockState(mPos).getBlock() instanceof CoralBlock) {
+			return false;
+		}
+
+		BlockPos cPos = new BlockPos(pos.getX(), coralFoundY, pos.getZ());
+		BlockState theCoralBlockState = serverLevel.getBlockState(cPos);
+		if (doDebug)
+			Utility.debugMsg(2, pos, "Grow Coral at " + mPos);
+		serverLevel.setBlockAndUpdate(cPos, theCoralBlockState);
+		serverLevel.playSound(null, pos, SoundEvents.CHORUS_FLOWER_GROW, SoundSource.AMBIENT, 0.9f, 1.4f);
+
+		coralFanTry(serverLevel, rand, mPos);
+
+		return true;
+	}
+
+	private static void coralFanTry(ServerLevel serverLevel, RandomSource rand, BlockPos.MutableBlockPos mPos) {
+
+		if (rand.nextInt(100) > 30) {
+			return;
+		}
+
+		int d = rand.nextInt(4);
+		BlockPos fPos = new BlockPos(mPos.getX() + dx[d], mPos.getY(), mPos.getZ() + dz[d]);
+		if (serverLevel.getBlockState(fPos).getBlock() != Blocks.WATER) {
+			return;
+		}
+
+		BlockState theCoralFanBlockState = coralfans[rand.nextInt(coralfans.length)].defaultBlockState();
+		;
+		serverLevel.setBlockAndUpdate(fPos, theCoralFanBlockState);
+		serverLevel.playSound(null, fPos, SoundEvents.BOAT_PADDLE_WATER, SoundSource.AMBIENT, 0.9f, 1.4f);
+
+		return;
+
+	}
+
+	private static boolean mobGrowCoralAction(LivingEntity le, ServerLevel serverLevel, String key) {
+
+		BlockPos lePos = le.blockPosition();
+
+		int coralFoundY = coralBelowFindY(lePos, serverLevel);
+		if (coralFoundY == FAIL) {
+			return false;
+		}
+		if (coralBlockGrowNew(lePos, coralFoundY, serverLevel)) {
+			return true;
 		}
 
 		return true;
 	}
 
-	private static void mobGrowMushroomAction(LivingEntity le, String key) {
-		ServerLevel sLevel = (ServerLevel) le.level();
-		BlockPos ePos = le.blockPosition();
-		if (sLevel.getBlockState(ePos).getBlock() instanceof MushroomBlock) {
-			return;
+	private static boolean isMushroomValid(LivingEntity le, ServerLevel serverLevel, BlockPos lePos) {
+		if (serverLevel.getBlockState(lePos).getBlock() instanceof MushroomBlock) {
+			return false;
 		}
 
-		if (sLevel.canSeeSky(ePos)) {
-			return;
-		}
-		if (!(isGoodMushroomTemperature(le))) {
-			return;
+		if (serverLevel.canSeeSky(lePos)) {
+			return false;
 		}
 
-		Random mushRand = new Random(helperLongRandomSeed(le.blockPosition()));
-
-		double fertilityDouble = mushRand.nextDouble();
-		fertilityDouble = mushRand.nextDouble();
-
-		if (fertilityDouble < .75) {
-			Utility.debugMsg(1, ePos, key + " Mushroom fertility (" + fertilityDouble + ") non-growing spot.");
-			return;
+		if (!isGoodMushroomTemperature(le)) {
+			return false;
 		}
 
-		int smallMushroomCount = helperCountBlocksBB(MushroomBlock.class, 4, sLevel, ePos, 4, 1);
+		Random mushRand = new Random(helpLongRandomSeed(lePos));
+		double mushFertility = mushRand.nextDouble();
+		mushFertility = mushRand.nextDouble();
+		if (mushFertility < .75) {
+			return false;
+		}
+
+		int smallMushroomCount = helpCountBlocksInBox(MushroomBlock.class, 4, serverLevel, lePos, 4, 1);
 
 		if (smallMushroomCount > 3)
-			return;
+			return false;
 
-		int myceliumCount = helperCountBlocksBB(MyceliumBlock.class, 4, sLevel, ePos, 4, 1);
-		if (myceliumCount > 2)
-			return;
+		return true;
+	}
 
-		// dust the top of giant mushrooms with little mushrooms of the same type.
+	private static boolean mushroomDecorateGiant(ServerLevel serverLevel, BlockPos lePos) {
 
 		if (groundBlock == Blocks.RED_MUSHROOM_BLOCK) {
-			sLevel.setBlockAndUpdate(ePos, Blocks.RED_MUSHROOM.defaultBlockState());
-			return;
+			serverLevel.setBlockAndUpdate(lePos, Blocks.RED_MUSHROOM.defaultBlockState());
+			return true;
 		}
 
 		if (groundBlock == Blocks.BROWN_MUSHROOM_BLOCK) {
-			sLevel.setBlockAndUpdate(ePos, Blocks.BROWN_MUSHROOM.defaultBlockState());
-			return;
+			serverLevel.setBlockAndUpdate(lePos, Blocks.BROWN_MUSHROOM.defaultBlockState());
+			return true;
 		}
+
+		return false;
+
+	}
+
+	private static boolean mobGrowMushroomAction(LivingEntity le, ServerLevel serverLevel, String key) {
+		BlockPos lePos = le.blockPosition();
+
+		if (!isMushroomValid(le, serverLevel, lePos)) {
+			if (doDebug)
+				Utility.debugMsg(2, lePos, key + " Mushroom invalid at this location. ");
+			return false;
+		}
+
+		if (mushroomDecorateGiant(serverLevel, lePos)) {
+			return true;
+		}
+		
 		// HugeMushroomBlock in later versions.
-		int hugeMushroomCount = helperCountBlocksBB(MushroomBlock.class, 1, sLevel, ePos, 1, 1);
+		int hugeMushroomCount = helpCountBlocksInBox(MushroomBlock.class, 1, serverLevel, lePos, 1, 1);
 		if (hugeMushroomCount > 0) {
 			// if right next to a huge mushroom let it grow if it got past above density
 			// check.
 		} else {
-			int huge = helperCountBlocksBB(MushroomBlock.class, 1, sLevel, ePos, MyConfig.getMushroomDensity(), 1);
+			int huge = helpCountBlocksInBox(HugeMushroomBlock.class, 1, serverLevel, lePos,
+					MyConfig.getMushroomDensity(), 1);
 			if (huge > 0) {
-				Utility.debugMsg(1, le, key + " huge (" + huge + ") mushroom too crowded.");
-				return;
+				if (doDebug)
+					Utility.debugMsg(1, le, key + " huge (" + huge + ") mushroom too crowded.");
+				return false;
 			}
 		}
 
 		boolean growMushroom = false;
 		if (BlockTags.BASE_STONE_OVERWORLD == null) {
-			Utility.debugMsg(0, "ERROR BlockTags.BASE_STONE_OVERWORLD missing.");
+			if (doDebug)
+				Utility.debugMsg(1, "ERROR BlockTags.BASE_STONE_OVERWORLD missing.");
 			if (groundBlock == Blocks.STONE || groundBlock == Blocks.DIORITE || groundBlock == Blocks.ANDESITE
-					|| groundBlock == Blocks.GRANITE) {
+					|| groundBlock == Blocks.GRANITE || groundBlock == Blocks.DIRT) {
 				growMushroom = true;
 			}
 		} else {
-			if (!groundBlockState.is(BlockTags.BASE_STONE_OVERWORLD)) {
-				return;
+			if (!groundBlockState.is(BlockTags.BASE_STONE_OVERWORLD) && !groundBlockState.is(BlockTags.DIRT)) {
+				return false;
 			}
 			growMushroom = true;
 		}
 
-		if (sLevel.hasNearbyAlivePlayer((double) ePos.getX(), (double) ePos.getY(), (double) ePos.getZ(), 12.0)) {
+		if (serverLevel.hasNearbyAlivePlayer((double) lePos.getX(), (double) lePos.getY(), (double) lePos.getZ(),
+				12.0)) {
 			growMushroom = false;
 		}
 
 		if (growMushroom) {
 
-			BlockState saveGroundBlockState = sLevel.getBlockState(ePos.below());
-
-			double vx = le.position().x() - (ePos.getX() + 0.5d);
-			double vz = le.position().z() - (ePos.getZ() + 0.5d);
+			double vx = le.position().x() - (lePos.getX() + 0.5d);
+			double vz = le.position().z() - (lePos.getZ() + 0.5d);
 
 			Vec3 vM = new Vec3(vx, 0.0d, vz).normalize().scale(1.0d).add(0, 0.5, 0);
 			le.setDeltaMovement(le.getDeltaMovement().add(vM));
-			if (fertilityDouble > 0.9) {
-				sLevel.setBlockAndUpdate(ePos.below(), Blocks.MYCELIUM.defaultBlockState());
-			}
 
 			Block theBlock = null;
 			Block theCapBlock = null;
 
-			// TODO copy the SmallMushroom over to Forge
-			if (sLevel.random.nextDouble() * 100.0 > 75.0) {
+			if (serverLevel.random.nextDouble() * 100.0 > 75.0) {
 				theBlock = Blocks.RED_MUSHROOM;
 				theCapBlock = Blocks.RED_MUSHROOM_BLOCK;
 			} else {
 				theBlock = Blocks.BROWN_MUSHROOM;
 				theCapBlock = Blocks.BROWN_MUSHROOM_BLOCK;
 			}
-			sLevel.setBlockAndUpdate(ePos, theBlock.defaultBlockState());
+			serverLevel.setBlockAndUpdate(lePos, theBlock.defaultBlockState());
 			MushroomBlock mb = (MushroomBlock) theBlock;
+			BlockState saveGroundBlockState = serverLevel.getBlockState(lePos.below());
 
-			// TODO move this 3 block high Mushroom feature back to forge.
-			if (mushRand.nextDouble() < 0.03) {
-				mobGrowSmallMushroom(sLevel, ePos, theCapBlock);
+			if (serverLevel.getRandom().nextDouble() < 0.03) {
+				mobGrowSmallMushroom(serverLevel, lePos, theCapBlock);
+				if (doDebug)
+					Utility.debugMsg(1, le, key + " grow 4 block high mushroom.");
+				return true;
 			} else {
 				try {
-					mb.growMushroom(sLevel, ePos, theBlock.defaultBlockState(), sLevel.random);
+					serverLevel.setBlockAndUpdate(lePos.below(),Blocks.DIRT.defaultBlockState());
+					mb.growMushroom(serverLevel, lePos, theBlock.defaultBlockState(), serverLevel.random);
+					if (serverLevel.getBlockState(lePos).getBlock() == theBlock) {
+						mb.growMushroom(serverLevel, lePos, theBlock.defaultBlockState(), serverLevel.random);
+					}
+					if (serverLevel.getBlockState(lePos).getBlock() == theBlock) {
+						serverLevel.setBlockAndUpdate(lePos, Blocks.AIR.defaultBlockState());
+						serverLevel.setBlockAndUpdate(lePos.below(),saveGroundBlockState);
+					} else {
+						Utility.debugMsg(1, le, key + " grew a huge mushroom."); // TODO remove after testing.
+					}
 				} catch (Exception e) {
 					// technically an "impossible" error but it's happened so this should
 					// bulletproof it.
 				}
 
-				// light the top stem inside the cap with glowshroom.
+
+				// light the top stem inside the cap with shroomlight.
 				if (theBlock == Blocks.RED_MUSHROOM) {
 					for (int y = 9; y > 3; y--) {
-						Block b = sLevel.getBlockState(ePos.above(y)).getBlock();
+						Block b = serverLevel.getBlockState(lePos.above(y)).getBlock();
 						if (b == Blocks.MUSHROOM_STEM) {
-							sLevel.setBlockAndUpdate(ePos.above(y), Blocks.SHROOMLIGHT.defaultBlockState());
+							serverLevel.setBlockAndUpdate(lePos.above(y), Blocks.SHROOMLIGHT.defaultBlockState());
 							break;
 						}
 					}
 				}
+				if (doDebug)
+					Utility.debugMsg(2, le, key + " grow huge mushroom.");
+				return true;
 			}
-
-			Utility.debugMsg(1, le, key + " grow mushroom.");
 		}
+
+		return false;
 
 	}
 
-	private static boolean mobGrowPlantsAction(LivingEntity le, String key) {
+	private static boolean mobGrowPlantsAction(LivingEntity le, ServerLevel serverLevel, String key) {
 
 		if (footBlockState.isAir()) {
 			if (!(groundBlock instanceof BonemealableBlock)) {
@@ -1323,25 +1383,22 @@ public class MoveEntityEvent {
 			}
 			BlockPos bpos = le.blockPosition();
 			if (bpos == null) {
-				Utility.debugMsg(1, "ERROR:" + key + "grow plant null position.");
+				if (doDebug)
+					Utility.debugMsg(1, "ERROR:" + key + "grow plant null position.");
 				return false;
 			}
 			BonemealableBlock ib = (BonemealableBlock) groundBlock;
-			Utility.debugMsg(1, le, key + " growable plant found.");
 			try {
-				ServerLevel serverLevel = (ServerLevel) le.level();
-				BlockState bs = le.level().getBlockState(bpos);
+				BlockState bs = serverLevel.getBlockState(bpos);
 				ib.performBonemeal(serverLevel, serverLevel.getRandom(), bpos, bs);
 			} catch (Exception e) {
-				Utility.debugMsg(1, le, key + " caught grow attempt exception.");
+				if (doDebug)
+					Utility.debugMsg(1, le, key + " caught grow attempt exception.");
 			}
 		}
 		return true;
 	}
 
-	// fix unfinished spots in road with 3-4 grass blocks orthogonal to them.
-	// on slopes too.
-	// TODO: Move this to forge!
 	private static void mobGrowSmallMushroom(ServerLevel serverLevel, BlockPos ePos, Block theCapBlock) {
 		// TODO: Set this back to 3 afterwards.
 		if (serverLevel.getRandom().nextInt(6) < 3) {
@@ -1371,24 +1428,20 @@ public class MoveEntityEvent {
 
 	}
 
-	// fix unfinished spots in road with 3-4 grass blocks orthogonal to them.
-	@SuppressWarnings("resource")
-	private static boolean mobGrowTallAction(Entity ent, String key) {
+	private static boolean mobGrowTallAction(LivingEntity le, ServerLevel serverLevel, String key) {
 		if ((footBlock instanceof TallGrassBlock) && (footBlock instanceof BonemealableBlock)) {
-			BlockPos ePos = getAdjustedBlockPos(ent);
-			// TODO test this.
-			if (!Utility.getResourceLocationString(footBlock).contains("byg")) {
+			BlockPos ePos = getAdjustedBlockPos(le);
+			if (!Utility.getResourceLocationString(footBlock).contains("byg")) { // byg grass crashes when bonemealed.
 				try {
 					BonemealableBlock ib = (BonemealableBlock) footBlock;
-					ib.performBonemeal((ServerLevel) ent.level(), ent.level().random, ePos,
-							ent.level().getBlockState(ePos));
-// TODO FORGE					ib.performBonemeal((ServerLevel) ent.level(), ent.level().random, ePos,
-// TODO FORGE							ent.level().getBlockState(ePos));
-					Utility.debugMsg(2, ePos, key + " grew and hid in tall plant.");
+					ib.performBonemeal(serverLevel, serverLevel.random, ePos, serverLevel.getBlockState(ePos));
+					if (doDebug)
+						Utility.debugMsg(2, ePos, key + " grew and hid in tall plant.");
 					return false;
 
 				} catch (Exception e) {
-					Utility.debugMsg(1, ePos, key + " caught grow attempt exception.");
+					if (doDebug)
+						Utility.debugMsg(1, ePos, key + " caught grow attempt exception.");
 					return false;
 				}
 			}
@@ -1396,56 +1449,45 @@ public class MoveEntityEvent {
 		return false;
 	}
 
-	private static void mobHandleOverCrowding(LivingEntity le, String key) {
+	private static void mobCheckOverCrowding(LivingEntity le, ServerLevel serverLevel, String key) {
 
 		BlockPos pos = BlockPos.containing(le.getX(), le.getY(), le.getZ());
 
-		Level level = le.level();
-		if (level.isClientSide)
-			return;
-
-		ServerLevel serverLevel = (ServerLevel) le.level();
 		if (le instanceof Animal a) {
-//			if (le.level() instanceof ServerLevel world) {
+
 			AABB box = AABB.encapsulatingFullBlocks(pos.east(3).above(2).north(3), pos.west(3).below(2).south(3));
 			int excess = serverLevel.getEntities(le.getType(), box, (entity) -> true).size() - 16;
 
-			if (excess > 0) {
-				if (excess > 16) {
-					serverLevel.playLocalSound(le.getX(), le.getY(), le.getZ(), SoundEvents.COW_DEATH,
-							SoundSource.NEUTRAL, 1.1f, 0.54f, true);
-					le.setPos(le.getX(), -66, le.getZ());
-				} else {
-					float hurt = excess + (serverLevel.getRandom().nextFloat() / 6);
-					le.hurt(serverLevel.damageSources().inWall(), hurt);
-					// later version le.hurtServer(serverLevel,
-					// serverLevel.damageSources().inWall(), hurt);
-				}
-//				}
+			if (excess > 16) {
+				serverLevel.playLocalSound(le.getX(), le.getY(), le.getZ(), SoundEvents.COW_DEATH, SoundSource.NEUTRAL,
+						1.1f, 0.54f, true);
+				le.setPos(le.getX(), -66, le.getZ());
+			} else {
+				float hurt = excess + (serverLevel.getRandom().nextFloat() / 6);
+				le.hurtServer(serverLevel, serverLevel.damageSources().inWall(), hurt);
 			}
+
 		}
 	}
 
-	private static void mobReforestAction(Entity entity, String key) {
+	private static boolean mobReforestAction(LivingEntity le, ServerLevel serverLevel, String key) {
 
 		if (footBlock != Blocks.AIR)
-			return;
+			return false;
 
 		if (!(isBlockGrassOrDirt(groundBlockState)))
-			return;
+			return false;
 
-		BlockPos ePos = getAdjustedBlockPos(entity);
+		BlockPos ePos = getAdjustedBlockPos(le);
 		// only try to plant saplings in about 1/4th of blocks.
 		double sinY = Math.sin((double) ((ePos.getY() + 64) % 256) / 256);
 
-		ServerLevel serverLevel = (ServerLevel) entity.level();
-
 		if (serverLevel.random.nextDouble() > Math.abs(sinY))
-			return;
+			return false;
 
 		BlockState sapling = null;
 		// are we in a biome that has saplings in a spot a sapling can be planted?
-		sapling = helperGetSaplingState(serverLevel, ePos, localBiome, sapling);
+		sapling = helpGetSaplingState(serverLevel, ePos, localBiome, sapling);
 
 		// check if there is room for a new tree. Original trees.
 		// don't plant a sapling near another sapling
@@ -1454,8 +1496,8 @@ public class MoveEntityEvent {
 		int yval = 0;
 		int yrange = 0;
 
-		if (helperCountBlocksBB(SaplingBlock.class, 1, serverLevel, ePos, hval, yrange) > 0)
-			return;
+		if (helpCountBlocksInBox(SaplingBlock.class, 1, serverLevel, ePos, hval, yrange) > 0)
+			return false;
 
 		// check if there is room for a new tree.
 
@@ -1469,33 +1511,30 @@ public class MoveEntityEvent {
 			hval = 7;
 		}
 		// TEST: The LeavesBlock
-		leafCount = helperCountBlocksBB(LeavesBlock.class, 1, serverLevel, ePos.above(yval), hval, yrange);
+		leafCount = helpCountBlocksInBox(LeavesBlock.class, 1, serverLevel, ePos.above(yval), hval, yrange);
 		if (leafCount > 0)
-			return;
+			return false;
 
-		entity.level().setBlockAndUpdate(ePos, sapling);
-		Utility.debugMsg(1, ePos, key + " planted sapling.");
+		serverLevel.setBlockAndUpdate(ePos, sapling);
+
+		return true;
 	}
 
-	private static void mobStumbleAction(Entity entity, String key) {
-		entity.level().destroyBlock(getAdjustedBlockPos(entity), true);
-		Utility.debugMsg(2, getAdjustedBlockPos(entity), key + " stumbled over torch.");
+	private static boolean mobStumbleAction(Entity entity, ServerLevel serverLevel, String key) {
+		if ((footBlock instanceof TorchBlock) || (footBlock instanceof WallTorchBlock)) {
+			serverLevel.destroyBlock(getAdjustedBlockPos(entity), true);
+			return true;
+		}
+		return false;
 	}
 
-	private static void mobTrodGrassBlock(Entity e) {
+	private static void mobTrodGrassBlock(LivingEntity le, ServerLevel serverLevel) {
 
-		BlockPos pos = BlockPos.containing(e.getX(), e.getY(), e.getZ());
-
-		Level level = e.level();
-
-		if (level.isClientSide)
-			return;
-
-		ServerLevel serverLevel = (ServerLevel) e.level();
+		BlockPos pos = BlockPos.containing(le.getX(), le.getY(), le.getZ());
 
 		AABB box = AABB.encapsulatingFullBlocks(pos.east(2).above(2).north(2), pos.west(2).below(2).south(2));
 // TODO old way
-		List<?> entityList = serverLevel.getEntities(e.getType(), box, (entity) -> true);
+		List<?> entityList = serverLevel.getEntities(le.getType(), box, (entity) -> true);
 
 // TODO new way start when they make serverLevel.getEntities().get visible in a later version.
 //		List<Entity> l = new ArrayList<>();
@@ -1505,137 +1544,165 @@ public class MoveEntityEvent {
 //				l.add(entity);
 //			}
 //		});			
-
+//
 //		if (l.size() >= 9) {			
 // TODO new way end
 
 		if (entityList.size() >= 9) {
 			serverLevel.setBlockAndUpdate(pos.below(), Blocks.DIRT_PATH.defaultBlockState());
-			e.hurt(e.level().damageSources().inWall(), 0.25f);
+			le.hurtServer(serverLevel, serverLevel.damageSources().inWall(), 0.25F);
 		}
 	}
 
-//	}
+	private static void vBeeKeeperFlowers(Villager ve, ServerLevel serverLevel) {
 
-	private static void vBeeKeeperFlowers(Villager ve) {
-
-		if (!(ve.getVillagerData().getProfession().toString() == "beekeeper")) {
+		Optional<ResourceKey<VillagerProfession>> optRk = ve.getVillagerData().profession().unwrapKey();
+		if (optRk.isEmpty()) {
+			return;
+		}
+		String job = optRk.get().location().getPath().toString();
+		if (job != "beekeeper") {
 			return;
 		}
 
-		Utility.debugMsg(1, ve.blockPosition(), "Beekeeper checking on flowers here.");
+		if (doDebug)
+			Utility.debugMsg(1, ve.blockPosition(), "Beekeeper checking on flowers here.");
 		if ((ve.getX() % 6 == 0) && (ve.getZ() % 7 == 0)) {
 			if (isBlockGrassOrDirt(groundBlockState)) {
-				if (helperCountBlocksOrthogonalBB(Blocks.DIRT_PATH, 1, ve.level(), ve.blockPosition().below(),
+				if (helpCountBlocksOrthogonalInBox(Blocks.DIRT_PATH, 1, serverLevel, ve.blockPosition().below(),
 						0) == 1) {
 					BlockState flowerBlockState = Blocks.AZURE_BLUET.defaultBlockState();
-					ve.level().setBlockAndUpdate(adjustedPos, flowerBlockState);
+					serverLevel.setBlockAndUpdate(adjustedPos, flowerBlockState);
 				}
 			}
 		}
 	}
 
-	private static void vClericalHealing(Villager ve) {
+	private static boolean isVillagerProfession(Villager ve, ResourceKey<VillagerProfession> vc) {
+		ResourceKey<VillagerProfession> vp = ve.getVillagerData().profession().unwrapKey().get();
 
-		// this willchange to ".profession() in later minecraft versions
-		if (ve.getVillagerData().getProfession() != VillagerProfession.CLERIC) {
-			return;
+		if (vp == vc) {
+			return true;
 		}
-		long daytime = ve.level().getDayTime() % 24000;
-
-		if (daytime < 9000 || daytime > 11000) {
-			return;
-		}
-		if (ve.level() instanceof ServerLevel serverLevel) {
-			int clericalLevel = ve.getVillagerData().getLevel(); // -> .level() later
-
-			BlockPos pos = BlockPos.containing(ve.getX(), (ve.getY() + 0.99d), (ve.getZ()));
-			AABB box = AABB.encapsulatingFullBlocks(pos.east(4).above(2).north(4), pos.west(4).below(2).south(4));
-			List<Entity> l = serverLevel.getEntities((Entity) null, box, (entity) -> {
-				if (entity instanceof Villager || entity instanceof Player) {
-					return true;
-				}
-				return false;
-			});
-
-			// TODO check contents of list in test.
-
-			for (Entity e : l) {
-				boolean heal = true;
-				LivingEntity le = (LivingEntity) e;
-				if (le.getHealth() >= le.getMaxHealth()) {
-					heal = false;
-				}
-				if (le.getEffect(MobEffects.REGENERATION) != null) {
-					heal = false;
-				}
-				if (e instanceof Player pe) {
-					int rep = ve.getPlayerReputation(pe);
-					if (rep < 0) { // I was a bad bad boy.
-						heal = false;
-					}
-				}
-				if (heal) {
-					le.addEffect(new MobEffectInstance(MobEffects.REGENERATION, clericalLevel * 51, 0), ve);
-					ve.level().playSound(null, pos, SoundEvents.AMETHYST_CLUSTER_BREAK, SoundSource.NEUTRAL, 1.2f,
-							1.52f);
-					return;
-				}
-
-			}
-		}
+		return false;
 	}
 
-	// if a grassblock in village has farmland next to it on the same level- retill
-	// it.
-	// todo add hydration check before tilling land.
-	private static boolean vImproveFarm(Villager ve, String regrowthType) {
-		if (ve.getVillagerData().getProfession() != VillagerProfession.FARMER) {
+	private static boolean isClericalHealingValid(Villager ve, ServerLevel serverLevel) {
+
+		if (!isVillagerProfession(ve, VillagerProfession.CLERIC)) {
 			return false;
 		}
 
-		BlockPos vePos = getAdjustedBlockPos(ve);
-		Block groundBlock = groundBlockState.getBlock();
-		Block footBlock = footBlockState.getBlock();
-		ServerLevel serverLevel = (ServerLevel) ve.level();
-		if (helperCountBlocksOrthogonalBB(Blocks.FARMLAND, 1, serverLevel, vePos.below(1), 0) > 0) {
-			if (isNearWater(serverLevel, vePos.below(1))) {
-				if (groundBlock instanceof GrassBlock) {
-					ve.level().setBlockAndUpdate(vePos.below(), Blocks.FARMLAND.defaultBlockState());
+		long daytime = serverLevel.getDayTime() % 24000;
+		if (daytime < 9000 || daytime > 11000) {
+			return false;
+		}
+
+		return true;
+
+	}
+
+	private static List<Entity> getEntitiesNearCleric(ServerLevel serverLevel, BlockPos pos) {
+		AABB box = AABB.encapsulatingFullBlocks(pos.east(4).above(2).north(4), pos.west(4).below(2).south(4));
+		List<Entity> entityList = serverLevel.getEntities((Entity) null, box, (entity) -> {
+			if (entity instanceof Villager || entity instanceof Player) {
+				return true;
+			}
+			return false;
+		});
+		return entityList;
+	}
+
+	private static boolean vClericalHealing(Villager ve, ServerLevel serverLevel) {
+
+		if (!isClericalHealingValid(ve, serverLevel)) {
+			return false;
+		}
+
+		int clericalLevel = ve.getVillagerData().level();
+
+		BlockPos pos = BlockPos.containing(ve.getX(), (ve.getY() + 0.99d), (ve.getZ()));
+		List<Entity> listVillagersPlayers = getEntitiesNearCleric(serverLevel, pos);
+
+		for (Entity e : listVillagersPlayers) {
+			if (!(e instanceof LivingEntity le)) 
+				continue; // should be impossible
+			
+			if (le.getHealth() >= le.getMaxHealth())
+				continue; // already at max HP
+
+			if (le.hasEffect(MobEffects.REGENERATION))
+				continue; // already has regen
+
+			if (le instanceof Player pe && ve.getPlayerReputation(pe) < 0)
+				continue; // been a bad bad player
+
+			le.addEffect(new MobEffectInstance(MobEffects.REGENERATION, clericalLevel * 51, 0), ve);
+			serverLevel.playSound(null, pos, SoundEvents.AMETHYST_CLUSTER_BREAK, SoundSource.NEUTRAL, 1.2f, 1.52f);
+			return true;
+		}
+
+		return false;
+	}
+
+	private static boolean vImproveFarm(Villager ve, ServerLevel serverLevel, String regrowthType) {
+		
+		if (!isVillagerProfession(ve, VillagerProfession.FARMER)) {
+			return false;
+		}
+		if (vTryTillFarmland(ve, serverLevel)) {
+			return true;
+		}
+
+		return false;
+	}
+
+	private static boolean vTryTillFarmland(Villager ve, ServerLevel serverLevel) {
+		BlockPos pos = ve.blockPosition().below();
+		BlockState theBlockState = serverLevel.getBlockState(pos);
+		if (!(isTillable(pos, theBlockState)))
+			return false;
+		if (!(isAdjacentWetFarmland(serverLevel, pos)))
+			return false;
+
+		serverLevel.setBlockAndUpdate(pos, Blocks.FARMLAND.defaultBlockState());
+		serverLevel.playSound(/* Player */ null, /* Pos */ pos.getX(), pos.getY(), pos.getZ(),
+				/* SoundEvent */ SoundEvents.GRASS_PLACE, /* SoundSource */ SoundSource.BLOCKS, /* Volume */ 0.75f,
+				/* Pitch */ 0.75f);
+
+		return true;
+	}
+
+	private static boolean isTillable(BlockPos pos, BlockState theBlockState) {
+
+		if (theBlockState.is(BlockTags.DIRT))
+			return true;
+
+		if (theBlockState.getBlock().getDescriptionId().equals("block.byg.meadow_grass_block"))
+			return true;
+
+		return false;
+
+	}
+
+	private static boolean isAdjacentWetFarmland(ServerLevel level, BlockPos pos) {
+
+		BlockPos.MutableBlockPos mpos = new BlockPos.MutableBlockPos();
+		Block B = null;
+		for (int i = 0; i < 4; i++) {
+			mpos.set(pos.getX() + dx[i], pos.getY(), pos.getZ() + dz[i]);
+			Block theBlock = level.getBlockState(mpos).getBlock();
+			if (theBlock instanceof FarmBlock) {
+				if (level.getBlockState(mpos).getValue(FarmBlock.MOISTURE) > 1) {
 					return true;
 				}
-			}
 
-			if (!regrowthType.contains("t") || (footBlock != Blocks.AIR)) {
-				return false;
-			}
-
-			// Special farm lighting torches.
-			if (ve.level().getBrightness(LightLayer.BLOCK, vePos) > 12) {
-				return false; // block already bright enough
-			}
-
-			int veX = vePos.getX();
-			int veY = vePos.getY();
-			int veZ = vePos.getZ();
-
-			if ((lastTorchX == veX) && (lastTorchY == veY) && (lastTorchZ == veZ)) {
-				return false; // weak Anti torch-exploit
-			}
-
-			int waterValue = helperCountBlocksOrthogonalBB(Blocks.WATER, 1, ve.level(), vePos.below(), 0);
-			if ((waterValue > 0) && (groundBlockState.is(BlockTags.LOGS)) || (groundBlock == Blocks.SMOOTH_SANDSTONE)) {
-				ve.level().setBlock(vePos, Blocks.TORCH.defaultBlockState(), 3);
-				lastTorchX = veX;
-				lastTorchY = veY;
-				lastTorchZ = veZ;
-				return true;
 			}
 		}
 		return false;
 	}
 
-	private static void vImproveFences(Villager ve, String key, String regrowthType) {
+	private static void vImproveFences(Villager ve, ServerLevel serverLevel, String key, String regrowthType) {
 
 		Brain<Villager> vb = ve.getBrain();
 		Optional<GlobalPos> vMeetingPlace = vb.getMemory(MemoryModuleType.MEETING_POINT);
@@ -1643,11 +1710,11 @@ public class MoveEntityEvent {
 			return;
 		}
 
-		if (isOkayToBuildWallHere(ve)) {
+		if (isOkayToBuildWallHere(ve, serverLevel)) {
 			GlobalPos gVMP = vMeetingPlace.get();
 			BlockPos villageMeetingPlaceBlockPos = gVMP.pos();
 
-			if (!(ve.level().getBlockState(villageMeetingPlaceBlockPos.above(1)).getBlock() instanceof WallBlock)) {
+			if (!(serverLevel.getBlockState(villageMeetingPlaceBlockPos.above(1)).getBlock() instanceof WallBlock)) {
 				return;
 			}
 
@@ -1662,7 +1729,7 @@ public class MoveEntityEvent {
 				// don't build personal walls inside the village wall perimeter.
 				// don't build personal walls until the village has a meeting place.
 				if (isOutsideMeetingPlaceWall(ve, vMeetingPlace, vMeetingPlace.get().pos(), localBiome)) {
-					if (vImproveHomeFence(ve, villagerHomePos, regrowthType)) {
+					if (vImproveHomeFence(ve, serverLevel, villagerHomePos, regrowthType)) {
 					}
 				}
 			}
@@ -1675,7 +1742,8 @@ public class MoveEntityEvent {
 
 	// villagers build protective walls around their homes. currently 32 out.
 	// to do- reduce distance of wall from home.
-	private static boolean vImproveHomeFence(Villager ve, BlockPos vHomePos, String regrowthActions) {
+	private static boolean vImproveHomeFence(Villager ve, ServerLevel serverLevel, BlockPos vHomePos,
+			String regrowthActions) {
 
 		BlockPos vePos = getAdjustedBlockPos(ve);
 		String key = "minecraft:" + biomeCategory;
@@ -1694,11 +1762,9 @@ public class MoveEntityEvent {
 
 		int homeFenceDiameter = currentWallBiomeDataItem.getWallDiameter();
 		homeFenceDiameter = homeFenceDiameter / 4; // resize for personal home fence.
-
-		int wallTorchSpacing = homeFenceDiameter / 4;
 		homeFenceDiameter = (homeFenceDiameter / 2) - 1;
 
-		Collection<PoiRecord> result = ((ServerLevel) ve.level()).getPoiManager()
+		Collection<PoiRecord> result = serverLevel.getPoiManager()
 				.getInSquare(t -> t == PoiTypes.HOME, vePos, 17, Occupancy.ANY)
 				.collect(Collectors.toCollection(ArrayList::new));
 
@@ -1714,7 +1780,8 @@ public class MoveEntityEvent {
 				} else {
 					int disX = Math.abs(vePos.getX() - P.getPos().getX());
 					int disZ = Math.abs(vePos.getZ() - P.getPos().getZ());
-					Utility.debugMsg(1, P.getPos(), "extra Point of Interest Found.");
+					if (doDebug)
+						Utility.debugMsg(2, P.getPos(), "extra Point of Interest Found.");
 					if ((disX < homeFenceDiameter) && (disZ < homeFenceDiameter)) {
 						buildFence = false; // another meeting place too close. cancel wall.
 						break;
@@ -1729,15 +1796,16 @@ public class MoveEntityEvent {
 
 			BlockState fenceBlockState = currentWallBiomeDataItem.getFenceBlockState();
 
-			if (helperPlaceOneWallPiece(ve, homeFenceDiameter, wallTorchSpacing, fenceBlockState, vHomePos)) {
+			if (helpPlaceOneWallPiece(ve, serverLevel, homeFenceDiameter, fenceBlockState, vHomePos)) {
 
 				if (regrowthActions.contains("t")) {
+					int wallTorchSpacing = homeFenceDiameter / 4;
 					if (isValidTorchLocation(homeFenceDiameter, wallTorchSpacing, getAbsVX(ve, vHomePos),
-							getAbsVZ(ve, vHomePos), ve.level().getBlockState(vePos).getBlock())) {
-						ve.level().setBlockAndUpdate(vePos.above(), Blocks.TORCH.defaultBlockState());
+							getAbsVZ(ve, vHomePos), serverLevel.getBlockState(vePos).getBlock())) {
+						serverLevel.setBlockAndUpdate(vePos.above(), Blocks.TORCH.defaultBlockState());
 					}
 				}
-				helperJumpAway(ve);
+				helpJumpAway(ve);
 				return true;
 			}
 		}
@@ -1745,63 +1813,84 @@ public class MoveEntityEvent {
 		return false;
 	}
 
-	private static void vImproveLeaves(Villager ve, String key) {
+	private static void vImproveLeaves(Villager ve, ServerLevel serverLevel, String key) {
 
 		float veYaw = ve.getViewYRot(1.0f) / 45;
 
+		// when standing on a grass path, mud, soulsand - game reports you 1 block
+		// lower. Adjust.
 		BlockPos vePos = getAdjustedBlockPos(ve);
+
 		int facingNdx = Math.round(veYaw);
 		if (facingNdx < 0) {
 			facingNdx = Math.abs(facingNdx);
 		}
 		facingNdx %= 8;
 
-		// when standing on a grass path- game reports you 1 block lower. Adjust.
-
 		int dx = facingArray[facingNdx][0];
 		int dz = facingArray[facingNdx][1];
+		BlockPos.MutableBlockPos tempPos = new BlockPos.MutableBlockPos();
 
-		BlockPos tmpBP = null;
-		BlockState tempBS = null;
-		Block tempBlock = null;
-		boolean destroyBlock = false;
+		tempPos.set(vePos.getX() + dx, vePos.getY(), vePos.getZ() + dz);
+		cutLeavesOrCactus(tempPos, serverLevel);
+		tempPos.setY(tempPos.getY() + 1);
+		cutLeavesOrCactus(tempPos, serverLevel);
 
-		for (int iY = 0; iY < 2; iY++) {
-			tmpBP = new BlockPos(vePos.getX() + dx, vePos.getY() + iY, vePos.getZ() + dz);
-			tempBS = ve.level().getBlockState(tmpBP);
-			tempBlock = tempBS.getBlock();
-			if (tempBlock instanceof LeavesBlock) {
-				boolean persistantLeaves = tempBS.getValue(LeavesBlock.PERSISTENT);
-				if (!(persistantLeaves)) {
-					destroyBlock = true;
-				}
-			}
-			if ((tempBlock instanceof CactusBlock)) {
-				destroyBlock = true;
-			}
-			if (destroyBlock) {
-				ve.level().destroyBlock(tmpBP, false);
-				destroyBlock = false;
-				Utility.debugMsg(1, ve, key + " cleared " + tempBlock.getDescriptionId().toString());
+		if (ve.tickCount < 199) {
+			tempPos.set(vePos.getX(), vePos.getY(), vePos.getZ());
+			cutLeavesOrCactus(tempPos, serverLevel);
+			tempPos.setY(tempPos.getY() + 1);
+			cutLeavesOrCactus(tempPos, serverLevel);
+		}
+
+	}
+
+	private static boolean cutLeavesOrCactus(BlockPos tempPos, ServerLevel serverLevel) {
+		Block theBlock = null;
+
+		theBlock = serverLevel.getBlockState(tempPos).getBlock();
+		if (theBlock instanceof LeavesBlock) {
+			boolean persistantLeaves = serverLevel.getBlockState(tempPos).getValue(LeavesBlock.PERSISTENT);
+			if (!(persistantLeaves)) {
+				serverLevel.destroyBlock(tempPos, false);
+				if (doDebug)
+					Utility.debugMsg(1, tempPos, " removed Low Leaves. ");
+				return true;
 			}
 		}
+
+		if ((theBlock instanceof CactusBlock)) {
+			serverLevel.destroyBlock(tempPos, false);
+
+			if (doDebug)
+				Utility.debugMsg(1, tempPos, " removed Cactus. ");
+			return true;
+		}
+		return false;
+
 	}
 
 	private static int getCoalVillagerBonus(Villager ve) {
-		if (ve.getVillagerData().getProfession() == VillagerProfession.TOOLSMITH) {
-			return 10;
+
+		if (ve.getVillagerData().level() < 3)
+			return 0;
+
+		ResourceKey<VillagerProfession> vp = ve.getVillagerData().profession().unwrapKey().get();
+
+		if (vp == VillagerProfession.TOOLSMITH) {
+			return 1;
 		}
-		if (ve.getVillagerData().getProfession() == VillagerProfession.WEAPONSMITH) {
-			return 10;
+		if (vp == VillagerProfession.WEAPONSMITH) {
+			return 1;
 		}
-		if (ve.getVillagerData().getProfession() == VillagerProfession.ARMORER) {
-			return 20;
+		if (vp == VillagerProfession.ARMORER) {
+			return 1;
 		}
-		if (ve.getVillagerData().getProfession() == VillagerProfession.FISHERMAN) {
-			return 5;
+		if (vp == VillagerProfession.FISHERMAN) {
+			return 1;
 		}
-		if (ve.getVillagerData().getProfession() == VillagerProfession.BUTCHER) {
-			return 5;
+		if (vp == VillagerProfession.BUTCHER) {
+			return 1;
 		}
 
 		return 0;
@@ -1811,58 +1900,36 @@ public class MoveEntityEvent {
 	// skylight is ability to see the sky (drops by 1 per block away from where sky
 	// could be seen)
 	// net skylight is the sky value lowered by obstructions and
-	private static boolean vImproveLighting(Villager ve) {
+	private static boolean vImproveLighting(Villager ve, ServerLevel serverLevel) {
 
 		if (ve.isSleeping() || ve.isBaby()) {
 			return false;
 		}
 
-		ServerLevel serverLevel = (ServerLevel) ve.level();
+		return tryPlaceTorch(ve, getAdjustedBlockPos(ve), serverLevel);
 
-		BlockPos vePos = getAdjustedBlockPos(ve);
-		RandomSource rand = serverLevel.getRandom();
+	}
 
-		int blockLightValue = serverLevel.getBrightness(LightLayer.BLOCK, vePos);
-		if (blockLightValue > MyConfig.getTorchLightLevel())
-			return false;
-
-		int skyVisibilityValue = serverLevel.getBrightness(LightLayer.SKY, vePos);
-
-		if (serverLevel.isThundering()) {
-			skyVisibilityValue = Math.max(0, skyVisibilityValue - 10);
+	private static boolean isTooBrightForTorch(Villager ve, BlockPos pos, ServerLevel serverLevel) {
+		// is it too bright to place a torch?
+		int lightLevel = serverLevel.getBrightness(LightLayer.BLOCK, pos);
+		if (lightLevel >= MyConfig.getTorchLightLevel() + getCoalVillagerBonus(ve)) {
+			return true;
 		}
-		if (serverLevel.isNight()) {
-			skyVisibilityValue = 0;
-		}
+		return false;
+	}
 
-		if ((skyVisibilityValue > 10)) {
-			return false;
-		}
+	public static boolean tryPlaceTorch(Villager ve, BlockPos pos, ServerLevel serverLevel) {
 
-		int adjustedvillagerLevel = ve.getVillagerData().getLevel() * 10;
-		adjustedvillagerLevel += getCoalVillagerBonus(ve);
-		adjustedvillagerLevel += rand.nextInt(120);
-
-		if (adjustedvillagerLevel < 120) {
-			return false;
+		if (tryPlaceWallTorch(ve, pos, serverLevel)) {
+			if (doDebug)
+				Utility.debugMsg(2, pos, "villager placed a wall torch.");
+			return true;
 		}
 
-		BlockState blockstate = ve.level().getBlockState(vePos);
-		if (blockstate.isAir())
-			blockstate = groundBlockState;
-
-		// Block block = blockstate.getBlock();
-		if (!blockstate.isFaceSturdy(ve.level(), vePos, Direction.UP, SupportType.CENTER)) {
-			return false;
-		}
-
-		if (footBlockState.getBlock() instanceof BedBlock) {
-			return false;
-		}
-
-		if (isValidGroundBlockToPlaceTorchOn(ve) && (footBlockState.isAir())
-				|| isNatProgPebbleOrStick((ServerLevel) ve.level())) {
-			ve.level().setBlock(vePos, MyConfig.getTorchBlock().defaultBlockState(), Block.UPDATE_ALL);
+		if (tryPlaceGroundTorch(ve, pos, serverLevel)) {
+			if (doDebug)
+				Utility.debugMsg(2, pos, "villager placed a ground torch.");
 			return true;
 		}
 
@@ -1870,36 +1937,95 @@ public class MoveEntityEvent {
 
 	}
 
-	private static void vRoadImprove(Villager ve, ServerLevel serverLevel, String debugkey) {
+	public static boolean tryPlaceGroundTorch(Villager ve, BlockPos pos, ServerLevel serverLevel) {
 
-		if (vRoadFixSnow(ve, serverLevel )) {
-			Utility.debugMsg(2, ve, debugkey + "  fixed road snow.");
+		if (!footBlockState.isAir() && !isNatProgPebbleOrStick())
+			return false;
+		if (isTooBrightForTorch(ve, pos, serverLevel)) {
+			return false;
 		}
+		if (!TorchBlock.canSupportCenter(serverLevel, pos.below(), Direction.UP)) {
+			return false;
+		}
+		if (footBlockState.getBlock() instanceof BedBlock) {
+			return false;
+		}
+		serverLevel.setBlockAndUpdate(pos, MyConfig.getTorchBlock().defaultBlockState());
+		serverLevel.playSound(/* Player */ null, /* Pos */ pos.getX(), pos.getY(), pos.getZ(),
+				/* SoundEvent */ SoundEvents.WOOD_PLACE, /* SoundSource */ SoundSource.BLOCKS, /* Volume */ 0.75f,
+				/* Pitch */ 0.75f);
+		return true;
 
-		if (vRoadFixGrassPatch(ve,  serverLevel )) {
-			Utility.debugMsg(1, ve, debugkey + "  fixed road grass patch.");
-		}
-
-		if (vRoadFixBump(ve,  serverLevel )) {
-			Utility.debugMsg(1, ve, debugkey + "  fixed road bump.");
-		}
-		if (vRoadFixPotholes(ve,  serverLevel)) {
-			Utility.debugMsg(1, ve, debugkey + "  fixed roadpothole.");
-		}
-		if (vRoadSmoothHeight(ve, serverLevel )) {
-			Utility.debugMsg(2, ve, debugkey + "  fixed road smoothness.");
-		}
 	}
 
-	// Clear generated snow off of roads. Naturally falling snow doesn't stick on
-	// roads.
-	private static boolean vRoadFixSnow(Villager e, ServerLevel serverLevel ) {
-		Block biomeRoadBlock = helperBiomeRoadBlockType(Utility.GetBiomeName(localBiome)).getBlock();
+	public static boolean tryPlaceWallTorch(Villager ve, BlockPos pos, ServerLevel serverLevel) {
+
+		BlockPos veHeadPos = pos.above();
+		if (!footBlockState.isAir()) {
+			return false;
+		}
+
+		if (isTooBrightForTorch(ve, veHeadPos, serverLevel)) {
+			return false;
+		}
+
+		BlockPos.MutableBlockPos mPos = new BlockPos.MutableBlockPos();
+
+		Direction facing = Direction.fromYRot(ve.yHeadRot); // The direction the villager is facing
+		mPos.set(veHeadPos).move(facing); // Position to wall in front of villager head)
+		BlockState bs = serverLevel.getBlockState(veHeadPos);
+		bs = serverLevel.getBlockState(mPos);
+		if (!(bs.isSolid())) {
+			return false;
+		}
+
+		// Prepare the wall torch block state with correct facing
+		BlockState wallTorchState = Blocks.WALL_TORCH.defaultBlockState().setValue(WallTorchBlock.FACING,
+				facing.getOpposite());
+
+		serverLevel.setBlockAndUpdate(veHeadPos, wallTorchState);
+		serverLevel.playSound(/* Player */ null, /* Pos */ pos.getX(), pos.getY(), pos.getZ(),
+				/* SoundEvent */ SoundEvents.WOOD_PLACE, /* SoundSource */ SoundSource.BLOCKS, /* Volume */ 0.75f,
+				/* Pitch */ 0.75f);
+		return true;
+	}
+
+	private static void vRoadImprove(Villager ve, ServerLevel serverLevel, String debugkey) {
+
+		if (vRoadFixSnow(ve, serverLevel)) {
+			if (doDebug)
+				Utility.debugMsg(1, ve, debugkey + "  fixed road snow.");
+		}
+
+		if (vRoadFixGrassPatch(ve, serverLevel)) {
+			if (doDebug)
+				Utility.debugMsg(1, ve, debugkey + "  fixed road grass patch.");
+		}
+
+		if (vRoadFixBump(ve, serverLevel)) {
+			if (doDebug)
+				Utility.debugMsg(1, ve, debugkey + "  fixed road bump.");
+		}
+		if (vRoadFixPotholes(ve, serverLevel)) {
+			if (doDebug)
+				Utility.debugMsg(1, ve, debugkey + "  fixed roadpothole.");
+		}
+		if (vRoadSmoothHeight(ve, serverLevel)) {
+			if (doDebug)
+				Utility.debugMsg(1, ve, debugkey + "  fixed road smoothness.");
+		}
+
+	}
+
+	// Clear generated snow layers off of roads. Naturally falling snow doesn't
+	// stick on roads.
+	private static boolean vRoadFixSnow(Villager ve, ServerLevel serverLevel) {
+		Block biomeRoadBlock = helpBiomeRoadBlockType(Utility.GetBiomeName(localBiome)).getBlock();
 		if (groundBlock != biomeRoadBlock) {
 			return false;
 		}
 		if (footBlock instanceof SnowLayerBlock) {
-			e.level().destroyBlock(adjustedPos, false);
+			serverLevel.destroyBlock(adjustedPos, false);
 			footBlockState = Blocks.AIR.defaultBlockState();
 			footBlock = footBlockState.getBlock();
 			return true;
@@ -1907,9 +2033,9 @@ public class MoveEntityEvent {
 		return false;
 	}
 
-	private static boolean vRoadFixGrassPatch(Villager e, ServerLevel serverLevel) {
-		ServerLevel sLevel = (ServerLevel) e.level();
-		if (!sLevel.canSeeSky(e.blockPosition())) {
+	private static boolean vRoadFixGrassPatch(Villager ve, ServerLevel serverLevel) {
+
+		if (!serverLevel.canSeeSky(ve.blockPosition())) {
 			return false;
 		}
 
@@ -1921,19 +2047,20 @@ public class MoveEntityEvent {
 			return false;
 		}
 
-		BlockPos vePos = getAdjustedBlockPos(e);
+		BlockPos vePos = getAdjustedBlockPos(ve);
 
 		if (footBlock instanceof SnowLayerBlock) {
-			sLevel.destroyBlock(adjustedPos, false);
+			serverLevel.destroyBlock(adjustedPos, false);
 			footBlockState = Blocks.AIR.defaultBlockState();
 			footBlock = footBlockState.getBlock();
 		}
 
-		if (countAdjacentRoadBlocks(e, getAdjustedBlockPos(e)) >= 3) {
-			Utility.debugMsg(0, e.blockPosition().below(), " actual fix grass in road.");
-			sLevel.setBlockAndUpdate(e.blockPosition().below(),
-					helperBiomeRoadBlockType(Utility.GetBiomeName(localBiome)));
-			sLevel.playSound(/* Player */ null, /* Pos */ vePos.getX(), vePos.getY(), vePos.getZ(),
+		if (countAdjacentRoadBlocks(ve, serverLevel, getAdjustedBlockPos(ve)) >= 3) {
+			if (doDebug)
+				Utility.debugMsg(1, ve.blockPosition().below(), " actual fix grass in road.");
+			serverLevel.setBlockAndUpdate(ve.blockPosition().below(),
+					helpBiomeRoadBlockType(Utility.GetBiomeName(localBiome)));
+			serverLevel.playSound(/* Player */ null, /* Pos */ vePos.getX(), vePos.getY(), vePos.getZ(),
 					/* SoundEvent */ SoundEvents.GRASS_PLACE, /* SoundSource */ SoundSource.BLOCKS, /* Volume */ 0.75f,
 					/* Pitch */ 0.75f);
 			return true;
@@ -1942,33 +2069,33 @@ public class MoveEntityEvent {
 		return false;
 	}
 
-	private static int countAdjacentRoadBlocks(Entity e, BlockPos pos) {
+	private static int countAdjacentRoadBlocks(Entity e, ServerLevel serverLevel, BlockPos pos) {
 		int adjacentRoadBlockCount = 0;
 
-		Block biomeRoadBlock = helperBiomeRoadBlockType(Utility.GetBiomeName(localBiome)).getBlock();
-		ServerLevel sLevel = (ServerLevel) e.level();
+		Block biomeRoadBlock = helpBiomeRoadBlockType(Utility.GetBiomeName(localBiome)).getBlock();
 
-		Utility.debugMsg(1, e.blockPosition().below(), " actual fix grass in road.");
+		if (doDebug)
+			Utility.debugMsg(1, e.blockPosition().below(), " actual fix grass in road.");
 
 		BlockPos eastPos = pos.east();
 		BlockPos.MutableBlockPos mPos = new BlockPos.MutableBlockPos(eastPos.getX(), eastPos.getY(), eastPos.getZ());
-		adjacentRoadBlockCount = countRoadInColumn(e, adjacentRoadBlockCount, biomeRoadBlock, sLevel, mPos);
+		adjacentRoadBlockCount = countRoadInColumn(e, adjacentRoadBlockCount, biomeRoadBlock, serverLevel, mPos);
 
 		BlockPos westPos = pos.west();
 		mPos.set(westPos.getX(), westPos.getY(), westPos.getZ());
-		adjacentRoadBlockCount = countRoadInColumn(e, adjacentRoadBlockCount, biomeRoadBlock, sLevel, mPos);
+		adjacentRoadBlockCount = countRoadInColumn(e, adjacentRoadBlockCount, biomeRoadBlock, serverLevel, mPos);
 		if (adjacentRoadBlockCount < 1)
 			return adjacentRoadBlockCount; // mini-optimization early return
 
 		BlockPos northPos = pos.north();
 		mPos.set(northPos.getX(), northPos.getY(), northPos.getZ());
-		adjacentRoadBlockCount = countRoadInColumn(e, adjacentRoadBlockCount, biomeRoadBlock, sLevel, mPos);
+		adjacentRoadBlockCount = countRoadInColumn(e, adjacentRoadBlockCount, biomeRoadBlock, serverLevel, mPos);
 		if (adjacentRoadBlockCount < 2)
 			return adjacentRoadBlockCount; // mini-optimization early return
 
 		BlockPos southPos = pos.south();
 		mPos.set(southPos.getX(), southPos.getY(), southPos.getZ());
-		adjacentRoadBlockCount = countRoadInColumn(e, adjacentRoadBlockCount, biomeRoadBlock, sLevel, mPos);
+		adjacentRoadBlockCount = countRoadInColumn(e, adjacentRoadBlockCount, biomeRoadBlock, serverLevel, mPos);
 
 		return adjacentRoadBlockCount;
 	}
@@ -2000,7 +2127,7 @@ public class MoveEntityEvent {
 			return false;
 		}
 
-		Block biomeRoadBlock = helperBiomeRoadBlockType(Utility.GetBiomeName(localBiome)).getBlock();
+		Block biomeRoadBlock = helpBiomeRoadBlockType(Utility.GetBiomeName(localBiome)).getBlock();
 		if (groundBlock != biomeRoadBlock) {
 			return false;
 		}
@@ -2016,7 +2143,8 @@ public class MoveEntityEvent {
 
 		BlockPos vePos = getAdjustedBlockPos(ve);
 		if (isRoadBump(serverLevel, vePos)) {
-			Utility.debugMsg(0, vePos, " actual fix bumps in road.");
+			if (doDebug)
+				Utility.debugMsg(1, vePos, " actual fix bumps in road.");
 			serverLevel.setBlockAndUpdate(vePos.below(1), Blocks.AIR.defaultBlockState());
 			serverLevel.setBlockAndUpdate(vePos.below(2), groundBlock.defaultBlockState());
 			serverLevel.playSound(/* Player */ null, /* Pos */ vePos.getX(), vePos.getY(), vePos.getZ(),
@@ -2061,7 +2189,7 @@ public class MoveEntityEvent {
 
 	private static boolean vRoadFixPotholes(Villager ve, ServerLevel serverLevel) {
 
-		Block biomeRoadBlock = helperBiomeRoadBlockType(Utility.GetBiomeName(localBiome)).getBlock();
+		Block biomeRoadBlock = helpBiomeRoadBlockType(Utility.GetBiomeName(localBiome)).getBlock();
 
 		if (groundBlock != biomeRoadBlock) {
 			return false;
@@ -2076,10 +2204,11 @@ public class MoveEntityEvent {
 		}
 
 		if (isRoadPotHole(serverLevel, getAdjustedBlockPos(ve))) {
-			Utility.debugMsg(0, ve.blockPosition(), " actual fix pothole in road.");
+			if (doDebug)
+				Utility.debugMsg(1, ve.blockPosition(), " actual fix pothole in road.");
 			serverLevel.setBlockAndUpdate(adjustedPos, biomeRoadBlock.defaultBlockState());
 			serverLevel.setBlockAndUpdate(adjustedPos.below(), biomeRoadBlock.defaultBlockState());
-			helperJumpAway(ve);
+			helpJumpAway(ve);
 			int gX = groundBlockPos.getX();
 			int gY = groundBlockPos.getY();
 			int gZ = groundBlockPos.getZ();
@@ -2112,7 +2241,7 @@ public class MoveEntityEvent {
 
 	private static boolean vRoadSmoothHeight(Villager ve, ServerLevel serverLevel) {
 
-		if (serverLevel.canSeeSky(ve.blockPosition())) {
+		if (!serverLevel.canSeeSky(ve.blockPosition())) {
 			return false;
 		}
 
@@ -2126,7 +2255,7 @@ public class MoveEntityEvent {
 
 		BlockPos vePos = getAdjustedBlockPos(ve);
 
-		Block biomeRoadBlock = helperBiomeRoadBlockType(Utility.GetBiomeName(localBiome)).getBlock();
+		Block biomeRoadBlock = helpBiomeRoadBlockType(Utility.GetBiomeName(localBiome)).getBlock();
 
 		if (biomeRoadBlock == Blocks.SMOOTH_SANDSTONE) {
 			if (!isRoadPiece)
@@ -2141,12 +2270,11 @@ public class MoveEntityEvent {
 
 		// Check for nearby point of interests.
 		int poiDistance = 3;
-		// TODO later version if (Utility.GetBiomeName(localBiome).contains("desert")) {
-		if (biomeCategory == Utility.DESERT) {
+		if (Utility.GetBiomeName(localBiome).contains("desert")) {
 			poiDistance = 7;
 		}
 
-		if (isNearbyPoi(ve, localBiome, vePos, poiDistance)) {
+		if (isNearbyPoi(ve, serverLevel, localBiome, vePos, poiDistance)) {
 			return false;
 		}
 
@@ -2155,50 +2283,74 @@ public class MoveEntityEvent {
 		int veY = vePos.getY();
 		int veZ = vePos.getZ();
 		int roadY = 0;
+		MutableBlockPos mPos = new MutableBlockPos();
 
 		for (int i = 0; i < 4; i++) {
-			roadY = serverLevel.getHeight(Types.MOTION_BLOCKING_NO_LEAVES, veX + dx[i], veZ + dz[i]) - 1;
-			if (roadY > veY) {
-				Block tempBlock = ve.level().getBlockState(new BlockPos(veX + dx[i], roadY, veZ + dz[i])).getBlock();
-				if (tempBlock == biomeRoadBlock) {
-					if (ve.level().getBlockState(vePos).getBlock() instanceof AirBlock) {
-						ve.level().setBlockAndUpdate(new BlockPos(veX, veY, veZ), biomeRoadBlockState);
-						ve.setDeltaMovement(0.0, 0.4, 0.0);
-						return true;
-					}
-				}
-			}
+		    int checkX = veX + dx[i];
+		    int checkZ = veZ + dz[i];
+		    roadY = serverLevel.getHeight(Types.MOTION_BLOCKING_NO_LEAVES, checkX, checkZ) - 1;
+
+		    if (roadY > veY) {
+		        mPos.set(checkX, roadY, checkZ);
+		        Block tempBlock = serverLevel.getBlockState(mPos).getBlock();
+
+		        if (tempBlock == biomeRoadBlock) {
+		            if (serverLevel.getBlockState(vePos).getBlock() instanceof AirBlock) {
+		                mPos.set(veX, veY, veZ);
+		                serverLevel.setBlockAndUpdate(mPos, biomeRoadBlockState);
+		                ve.setDeltaMovement(0.0, 0.4, 0.0);
+		                return true;
+		            }
+		        }
+		    }
 		}
+		
 		return false;
 	}
 
-	private static boolean vImproveVillageWall(Villager ve, String regrowthActions) {
-
-		ServerLevel serverLevel = (ServerLevel) ve.level();
+	private static boolean isOkayToBuildWall(Villager ve, ServerLevel serverLevel) {
 
 		if (MyConfig.getPlayerWallControlBlock() == Blocks.AIR) {
 			return false;
 		}
 
-		if (!isOkayToBuildWallHere(ve)) {
+		Optional<GlobalPos> optMeetingPoI = ve.getBrain().getMemory(MemoryModuleType.MEETING_POINT);
+		if (optMeetingPoI.isEmpty()) {
 			return false;
 		}
 
-		if (!(ve.getBrain().getMemory(MemoryModuleType.MEETING_POINT)).isPresent()) {
-			return false;
-		}
-
-		BlockPos villageMeetingPlacePos = ve.getBrain().getMemory(MemoryModuleType.MEETING_POINT).get().pos();
-		if (serverLevel.getChunkAt(villageMeetingPlacePos).getInhabitedTime() > 199) {
-			return false;
-		}
-
+		BlockPos villageMeetingPlacePos = optMeetingPoI.get().pos();
 		if (serverLevel.getBlockState(villageMeetingPlacePos).getBlock() != Blocks.BELL) {
 			return false;
 		}
 
-		serverLevel.setBlock(villageMeetingPlacePos.above(1), MyConfig.getPlayerWallControlBlock().defaultBlockState(),
-				3);
+		return true;
+
+	}
+
+	private static void initWallPlayerControlBlock(ServerLevel serverLevel, BlockPos pos) {
+
+		if (serverLevel.getChunkAt(pos).getInhabitedTime() < 199) { // TODO set to 199
+			if (serverLevel.getBlockState(pos.above(1)).getBlock() != MyConfig.getPlayerWallControlBlock()) {
+				serverLevel.setBlockAndUpdate(pos.above(1), MyConfig.getPlayerWallControlBlock().defaultBlockState());
+			}
+		}
+
+	}
+
+	private static boolean vImproveVillageWall(Villager ve, ServerLevel serverLevel, String regrowthActions) {
+
+		if (!isOkayToBuildWall(ve, serverLevel)) {
+			return false;
+		}
+
+		if (!isOkayToBuildWallHere(ve, serverLevel)) {
+			return false;
+		}
+
+		BlockPos villageMeetingPlacePos = ve.getBrain().getMemory(MemoryModuleType.MEETING_POINT).get().pos();
+
+		initWallPlayerControlBlock(serverLevel, villageMeetingPlacePos);
 
 		if (serverLevel.getBlockState(villageMeetingPlacePos.above(1)).getBlock() != MyConfig.playerWallControlBlock) {
 			return false;
@@ -2210,24 +2362,12 @@ public class MoveEntityEvent {
 
 		WallBiomeDataManager.WallBiomeDataItem currentWallBiomeDataItem = WallBiomeDataManager
 				.getWallBiomeDataItem(key);
-
 		int wallRadius = currentWallBiomeDataItem.getWallDiameter();
-
 		wallRadius = (wallRadius / 2) - 1;
-
-		if (ve.getVillagerData().getProfession() != VillagerProfession.MASON) {
-			if ((ve.getVillagerData().getLevel() >= 3) && (isValidGroundBlockToBuildWallOn(ve))) {
-				if (tryBuildMasonWalls(serverLevel, ve, wallRadius, villageMeetingPlacePos, currentWallBiomeDataItem)) {
-					Utility.debugMsg(2, "Mason built a town wall corner and placed a lantern.");
-					serverLevel.playSound(null, ve.blockPosition(), SoundEvents.VILLAGER_WORK_MASON,
-							SoundSource.NEUTRAL, 0.5f, 0.5f);
-				}
-			}
-		}
 
 		if (isOnWallRadius(ve, wallRadius, villageMeetingPlacePos)) {
 			// check for other meeting place bells blocking wall since too close.
-			Collection<PoiRecord> result = ((ServerLevel) ve.level()).getPoiManager()
+			Collection<PoiRecord> result = serverLevel.getPoiManager()
 					.getInSquare(t -> t == PoiTypes.MEETING, ve.blockPosition(), 41, Occupancy.ANY)
 					.collect(Collectors.toCollection(ArrayList::new));
 
@@ -2256,19 +2396,23 @@ public class MoveEntityEvent {
 			}
 
 			if (buildWall) {
-				BlockState wallTypeBlockState = currentWallBiomeDataItem.getWallBlockState();
 
+				if (isVillagerProfession(ve, VillagerProfession.MASON)) {
+					tryBuildMasonWalls(serverLevel, ve, wallRadius, villageMeetingPlacePos, currentWallBiomeDataItem);
+				}
+
+				BlockState wallTypeBlockState = currentWallBiomeDataItem.getWallBlockState();
 				BlockState wallBlock = wallTypeBlockState;
 
-				int wallTorchSpacing = (wallRadius + 1) / 4;
-				if (helperPlaceOneWallPiece(ve, wallRadius, wallTorchSpacing, wallBlock, villageMeetingPlacePos)) {
+				if (helpPlaceOneWallPiece(ve, serverLevel, wallRadius, wallBlock, villageMeetingPlacePos)) {
 					if (regrowthActions.contains("t")) {
+						int wallTorchSpacing = (wallRadius + 1) / 4;
 						if (isValidTorchLocation(wallRadius, wallTorchSpacing, getAbsVX(ve, villageMeetingPlacePos),
 								getAbsVZ(ve, villageMeetingPlacePos), serverLevel.getBlockState(vePos).getBlock())) {
 							serverLevel.setBlockAndUpdate(vePos.above(), Blocks.TORCH.defaultBlockState());
 						}
 					}
-					helperJumpAway(ve);
+					helpJumpAway(ve);
 					return true;
 				}
 			}
@@ -2277,40 +2421,88 @@ public class MoveEntityEvent {
 
 	}
 
+	private static boolean isWallorLantern(ServerLevel serverLevel, BlockPos mPos, BlockState wallBs) {
+
+		BlockState bs = null;
+		BlockState ws = null;
+
+		bs = serverLevel.getBlockState(mPos.below(1));
+		if (bs.getBlock() instanceof LanternBlock) {
+			return true;
+		}
+
+		ws = serverLevel.getBlockState(mPos.below(2));
+		if (ws.getBlock() instanceof WallBlock) {
+			return true;
+		}
+
+		if (serverLevel.getBlockState(mPos.below(1)).getBlock() == wallBs.getBlock()) {
+			return true;
+		}
+
+		if (serverLevel.getBlockState(mPos.below(2)).getBlock() == wallBs.getBlock()) {
+			return true;
+		}
+
+		return false;
+	}
+
+	private static BlockPos calcSurfaceBlockPos(ServerLevel sLevel, BlockPos mPos) {
+		int x = mPos.getX();
+		int z = mPos.getZ();
+		int y = sLevel.getHeight(Types.MOTION_BLOCKING_NO_LEAVES, x, z);
+		BlockPos m1Pos = new BlockPos(x, y, z);
+		return m1Pos;
+	}
+
+	private static boolean tryBuildWallCorner(ServerLevel serverLevel, BlockPos mPos, BlockState wallBs) {
+
+		if (!(isWallorLantern(serverLevel, mPos, wallBs))) {
+			serverLevel.setBlockAndUpdate(mPos, wallBs);
+			serverLevel.setBlockAndUpdate(mPos.above(), Blocks.LANTERN.defaultBlockState());
+			return true;
+		}
+
+		return false;
+	}
+
+	// only happens when a mason build a wall section so performance hit low.
+	// TODO :enhance later to fill in a hole on the wall on that side.
 	private static boolean tryBuildMasonWalls(ServerLevel sLevel, Villager ve, int wallRadius, BlockPos meetingPlacePos,
 			WallBiomeDataManager.WallBiomeDataItem wi) {
 
-		MutableBlockPos mPos = (MutableBlockPos) meetingPlacePos.east(wallRadius).north(wallRadius);
-		mPos.setY(sLevel.getHeight(Types.MOTION_BLOCKING_NO_LEAVES, mPos.getX(), mPos.getZ())); // TODO fix this in
-																								// Forge Side too. Y
-																								// Value
+		if (doDebug)
+			Utility.debugMsg(1, "tryBuildMasonWalls from Meeting Place Pos: " + meetingPlacePos);
+
 		BlockState wallBs = wi.getWallBlockState();
-		if (sLevel.getBlockState(mPos).getBlock() != wallBs.getBlock()) {
-			sLevel.setBlock(mPos, wallBs, 3);
-			sLevel.setBlock(mPos.above(), Blocks.LANTERN.defaultBlockState(), 3);
-			return true;
-		}
-		mPos = (MutableBlockPos) meetingPlacePos.east(wallRadius).south(wallRadius);
-		mPos.setY(sLevel.getHeight(Types.MOTION_BLOCKING_NO_LEAVES, mPos.getX(), mPos.getZ()));
-		if (sLevel.getBlockState(mPos).getBlock() != wallBs.getBlock()) {
-			sLevel.setBlock(mPos, wallBs, 3);
-			sLevel.setBlock(mPos.above(), Blocks.LANTERN.defaultBlockState(), 3);
+		BlockPos mPos = null;
+
+		mPos = calcSurfaceBlockPos(sLevel, meetingPlacePos.east(wallRadius).north(wallRadius + 1));
+		if (tryBuildWallCorner(sLevel, mPos, wallBs)) {
+			if (doDebug)
+				Utility.debugMsg(1, "built north eastern corner at :" + mPos);
 			return true;
 		}
 
-		mPos = (MutableBlockPos) meetingPlacePos.west(wallRadius).north(wallRadius);
-		mPos.setY(sLevel.getHeight(Types.MOTION_BLOCKING_NO_LEAVES, mPos.getX(), mPos.getZ()));
-		if (sLevel.getBlockState(mPos).getBlock() != wallBs.getBlock()) {
-			sLevel.setBlock(mPos, wallBs, 3);
-			sLevel.setBlock(mPos.above(), Blocks.LANTERN.defaultBlockState(), 3);
+		mPos = calcSurfaceBlockPos(sLevel, meetingPlacePos.east(wallRadius).south(wallRadius));
+		if (tryBuildWallCorner(sLevel, mPos, wallBs)) {
+			if (doDebug)
+				Utility.debugMsg(1, "built south eastern corner at :" + mPos);
 			return true;
 		}
 
-		mPos = (MutableBlockPos) meetingPlacePos.west(wallRadius).south(wallRadius);
-		mPos.setY(sLevel.getHeight(Types.MOTION_BLOCKING_NO_LEAVES, mPos.getX(), mPos.getZ()));
-		if (sLevel.getBlockState(mPos).getBlock() != wallBs.getBlock()) {
-			sLevel.setBlock(mPos, wallBs, 3);
-			sLevel.setBlock(mPos.above(), Blocks.LANTERN.defaultBlockState(), 3);
+		mPos = calcSurfaceBlockPos(sLevel, meetingPlacePos.west(wallRadius + 1).north(wallRadius + 1));
+		if (tryBuildWallCorner(sLevel, mPos, wallBs)) {
+			if (doDebug)
+				Utility.debugMsg(1, "built north western corner at :" + mPos);
+			return true;
+		}
+
+		mPos = calcSurfaceBlockPos(sLevel, meetingPlacePos.west(wallRadius + 1).south(wallRadius));
+
+		if (tryBuildWallCorner(sLevel, mPos, wallBs)) {
+			if (doDebug)
+				Utility.debugMsg(1, "built south western corner at :" + mPos);
 			return true;
 		}
 
@@ -2318,15 +2510,7 @@ public class MoveEntityEvent {
 
 	}
 
-	private static int calcRandomWallSpot(ServerLevel level, int wallRadius) {
-		int rndRadius = level.getRandom().nextInt(wallRadius - 2) + 2 + 1;
-		if (level.getRandom().nextBoolean()) {
-			rndRadius = -wallRadius;
-		}
-		return rndRadius;
-	}
-
-	private static void vImproveWalls(Villager ve, String key, String regrowthType) {
+	private static void vImproveWalls(Villager ve, ServerLevel serverLevel, String key, String regrowthType) {
 
 		if (groundBlockState.isAir()) {
 			return; // ignore edge cases where villager is hanging on the edge of a block.
@@ -2335,49 +2519,49 @@ public class MoveEntityEvent {
 		if (!(ve.getBrain().getMemory(MemoryModuleType.MEETING_POINT)).isPresent())
 			return;
 
-		if (vImproveVillageWall(ve, regrowthType)) {
-			Utility.debugMsg(1, ve, "Town Wall Improved.");
+		if (vImproveVillageWall(ve, serverLevel, regrowthType)) {
+			if (doDebug)
+				Utility.debugMsg(1, ve, "Town Wall Improved.");
 		}
 	}
 
-	private static void vToolMasterHealing(Villager ve) {
+	private static void vToolMasterHealing(Villager ve, ServerLevel serverLevel) {
 
-		if (ve.getVillagerData().getProfession() != VillagerProfession.TOOLSMITH) {
+		if (!isVillagerProfession(ve, VillagerProfession.TOOLSMITH)) {
 			return;
 		}
-		long daytime = ve.level().getDayTime() % 24000;
+
+		long daytime = serverLevel.getDayTime() % 24000;
 
 		if (daytime < 9000 || daytime > 11000) {
 			return;
 		}
 
-		if (ve.level() instanceof ServerLevel varW) {
-			int villagerLevel = ve.getVillagerData().getLevel();
-			if (villagerLevel < 1)
+		int villagerLevel = ve.getVillagerData().level();
+		if (villagerLevel < 1)
+			return;
+		BlockPos pos = BlockPos.containing(ve.getX(), (ve.getY() + 0.99d), (ve.getZ()));
+		AABB box = AABB.encapsulatingFullBlocks(pos.east(6).above(3).north(6), pos.west(6).below(2).south(6));
+
+		List<IronGolem> l = serverLevel.getEntities(EntityType.IRON_GOLEM, box, e -> true);
+
+		for (IronGolem e : l) {
+			boolean heal = true;
+
+			if (e.getHealth() >= e.getMaxHealth()) {
+				heal = false;
+			}
+			if (e.getEffect(MobEffects.REGENERATION) != null) {
+				heal = false;
+			}
+			if (heal) {
+				e.addEffect(new MobEffectInstance(MobEffects.REGENERATION, villagerLevel * 51, 0), ve);
+				ve.addEffect(new MobEffectInstance(MobEffects.REGENERATION, villagerLevel * 11, 0), ve);
+				serverLevel.playSound(null, pos, SoundEvents.VILLAGER_WORK_TOOLSMITH, SoundSource.NEUTRAL, 0.5f, 0.5f);
 				return;
-			BlockPos pos = BlockPos.containing(ve.getX(), (ve.getY() + 0.99d), (ve.getZ()));
-			AABB box = AABB.encapsulatingFullBlocks(pos.east(6).above(3).north(6), pos.west(6).below(2).south(6));
-
-			List<IronGolem> l = varW.getEntities(EntityType.IRON_GOLEM, box, e -> true);
-
-			for (IronGolem e : l) {
-				boolean heal = true;
-
-				if (e.getHealth() >= e.getMaxHealth()) {
-					heal = false;
-				}
-				if (e.getEffect(MobEffects.REGENERATION) != null) {
-					heal = false;
-				}
-				if (heal) {
-					e.addEffect(new MobEffectInstance(MobEffects.REGENERATION, villagerLevel * 51, 0), ve);
-					ve.addEffect(new MobEffectInstance(MobEffects.REGENERATION, villagerLevel * 11, 0), ve);
-					ve.level().playSound(null, pos, SoundEvents.VILLAGER_WORK_TOOLSMITH, SoundSource.NEUTRAL, 0.5f,
-							0.5f);
-					return;
-				}
 			}
 		}
+
 	}
 
 }

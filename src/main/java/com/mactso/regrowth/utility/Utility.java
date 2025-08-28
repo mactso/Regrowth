@@ -1,8 +1,5 @@
 package com.mactso.regrowth.utility;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -11,14 +8,11 @@ import com.mactso.regrowth.config.MyConfig;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.BiomeTags;
-import net.minecraft.world.effect.MobEffect;
-import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
@@ -26,8 +20,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.ItemLore;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -159,27 +151,6 @@ public class Utility {
 
 	}
 	
-	public static void updateEffect(LivingEntity e, int amplifier,  Holder<MobEffect> mobEffect) {
-		MobEffectInstance ei = e.getEffect(mobEffect);
-		if (amplifier == 10) {
-			amplifier = 20;  // player "plaid" speed.
-		}
-		if (ei != null) {
-			if (amplifier > ei.getAmplifier()) {
-				e.removeEffect(mobEffect);
-			} 
-			if (amplifier == ei.getAmplifier() && ei.getDuration() > 10) {
-				return;
-			}
-			if (ei.getDuration() > 10) {
-				return;
-			}
-			e.removeEffect(mobEffect);			
-		}
-		e.addEffect(new MobEffectInstance(mobEffect, TWO_SECONDS, amplifier, true, true ));
-		return;
-	}
-
 	public static boolean populateEntityType(EntityType<?> et, ServerLevel level, BlockPos savePos, int range,
 			int modifier) {
 		boolean isBaby = false;
@@ -200,7 +171,7 @@ public class Utility {
 		if (numZP < 0)
 			return false;
 		for (int i = 0; i <= numZP; i++) {
-			// MobSpawnType changes to EntitySpawnReason in a later version.
+
 			e = (Mob) et.spawn(level, savePos, EntitySpawnReason.NATURAL);
 			if (persistant) 
 				e.setPersistenceRequired();
@@ -213,28 +184,12 @@ public class Utility {
 		Mob e;
 
 		for (int i = 0; i < X; i++) {
-			// MobSpawnType changes to EntitySpawnReason in a later version.
-			e = (Mob) et.spawn(level, savePos,EntitySpawnReason.NATURAL);
+			e = (Mob) et.spawn(level, savePos, EntitySpawnReason.NATURAL);
 			e.setBaby(isBaby);
 		}
 		return true;
 	}
 
-	// TODO Remove if unused.
-	public static void setName(ItemStack stack, String inString)
-	{
-		stack.set(DataComponents.CUSTOM_NAME, Component.literal(inString));
-	}
-	
-	
-	public static void setLore(ItemStack stack, String inString)
-	{
-		List<Component> list = new ArrayList<>();
-		list.add(Component.literal(inString));
-		stack.set(DataComponents.LORE, new ItemLore(list));
-	}
-
-	
 	public static boolean isNotNearWebs(BlockPos pos, ServerLevel serverLevel) {
 
 		if (serverLevel.getBlockState(pos).getBlock() == Blocks.COBWEB)
@@ -274,19 +229,18 @@ public class Utility {
 		}
 	}	
 	
-	@SuppressWarnings("deprecation")
-	public static String getResourceLocationString( BlockState blockState) {
-		return blockState.getBlock().builtInRegistryHolder().key().location().toString();
+	public static String getResourceLocationString(ServerLevel serverLevel, BlockState blockState) {
+		return getResourceLocationString(blockState.getBlock());
 	}
 	
 
 	@SuppressWarnings("deprecation")
-	public static String getResourceLocationString( Block block) {
+	public static String getResourceLocationString(Block block) {
 		return block.builtInRegistryHolder().key().location().toString();
 	}
 
 	@SuppressWarnings("deprecation")
-	public static String getResourceLocationString( Item item) {
+	public static String getResourceLocationString(Item item) {
 		return item.builtInRegistryHolder().key().location().toString();
 	}
 

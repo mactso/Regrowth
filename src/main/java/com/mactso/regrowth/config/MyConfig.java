@@ -17,7 +17,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 
 public class MyConfig {
-	
+
 	public static boolean CANCEL_EVENT = true;
 	public static boolean CONTINUE_EVENT = false;
 
@@ -25,12 +25,12 @@ public class MyConfig {
 
 	public static SimpleConfig CONFIG;
 	private static ModConfigProvider configs;
-	private static final String defaultActionMobList = "minecraft:cow,both,300.0;" + "minecraft:horse,eat,180.0;" + "minecraft:donkey,eat,180.0;"
-			+ "minecraft:sheep,eat,120.0;" + "minecraft:pig,reforest,450.0;" + "minecraft:bee,grow,500.0;"
-			+ "minecraft:chicken,grow,320.0;" + "minecraft:villager,chrwvt,2.0;"
-			+ "minecraft:creeper,tall,90.0;" + "minecraft:zombie,stumble, 30.0;"
-			+ "minecraft:bat,stumble, 30.0;" + "minecraft:skeleton,mushroom, 30.0;"
-			+ "minecraft:tropical_fish,coral, 15.0;"+ "minecraft:squid,coral, 15.0;";
+	private static final String defaultActionMobList = "minecraft:cow,both,300.0;" + "minecraft:horse,eat,180.0;"
+			+ "minecraft:donkey,eat,180.0;" + "minecraft:sheep,eat,120.0;" + "minecraft:pig,reforest,450.0;"
+			+ "minecraft:bee,grow,500.0;" + "minecraft:chicken,grow,320.0;" + "minecraft:villager,chrwvt,2.0;"
+			+ "minecraft:creeper,tall,90.0;" + "minecraft:zombie,stumble, 30.0;" + "minecraft:bat,stumble, 30.0;"
+			+ "minecraft:skeleton,mushroom, 30.0;" + "minecraft:tropical_fish,coral, 15.0;"
+			+ "minecraft:squid,coral, 15.0;";
 	private static final String defaultWallblockList = "minecraft:plains,48,minecraft:cobblestone_wall,minecraft:oak_fence;"
 			+ "minecraft:desert,48,minecraft:sandstone_wall,minecraft:birch_fence;"
 			+ "minecraft:extreme_hills,48,minecraft:cobblestone_wall,minecraft:spruce_fence;"
@@ -46,9 +46,8 @@ public class MyConfig {
 			+ "minecraft:nether,40,minecraft:blackstone_wall,minecraft:nether_brick_fence;";
 	private static final String defaultWallFoundationsList = "minecraft:grass_block;" + "minecraft:sand;"
 			+ "minecraft:red_sand;" + "minecraft:netherrack;" + "minecraft:sandstone;" + "minecraft:podzol;"
-			+ "minecraft:dirt;" + "minecraft:stone;" + "minecraft:coarse_dirt";	
-	
-	
+			+ "minecraft:dirt;" + "minecraft:stone;" + "minecraft:coarse_dirt";
+
 	public static String getWallblockList() {
 		return wallblockList;
 	}
@@ -56,13 +55,11 @@ public class MyConfig {
 	public static int getaDebugLevel() {
 		return getDebugLevel();
 	}
-	
+
 	public static int getDebugLevel() {
 		return debugLevel;
 	}
 
-
-	
 	public static void setDebugLevel(int debugLevel) {
 		MyConfig.debugLevel = debugLevel;
 	}
@@ -71,11 +68,15 @@ public class MyConfig {
 		return eatingHealsOdds;
 	}
 
+	public static int getAnimalCrowdingLimit() {
+		return animalCrowdingLimit;
+	}
+
 	public static Block getPlayerWallControlBlock() {
 		return playerWallControlBlock;
 	}
-	
-		public static Block getTorchBlock() {
+
+	public static Block getTorchBlock() {
 		return torchBlock;
 	}
 
@@ -86,17 +87,15 @@ public class MyConfig {
 	public static String getActionMobList() {
 		return actionMobList;
 	}
-	
+
 	public static String getWallFoundationsList() {
 		return wallFoundationsList;
 	}
-	
-
 
 	public static int getMushroomDensity() {
 		return mushroomDensity;
 	}
-	
+
 	public static int getMushroomXDensity() {
 		return mushroomXDensity;
 	}
@@ -119,6 +118,8 @@ public class MyConfig {
 
 	public static int debugLevel;
 	public static double eatingHealsOdds;
+	public static int animalCrowdingLimit;
+
 	private static int torchLightLevel;
 	private static String torchBlockString;
 	public static Block torchBlock;
@@ -167,8 +168,9 @@ public class MyConfig {
 
 	private static void createConfigs() {
 		configs.addKeyValuePair(new Pair<>("key.debugLevel", 0), "int");
-		configs.addKeyValuePair(new Pair<>("key.torchLightLevel", 7), "int");
+		configs.addKeyValuePair(new Pair<>("key.torchLightLevel", 4), "int");
 		configs.addKeyValuePair(new Pair<>("key.torchBlockString", "minecraft:torch"), "String");
+		configs.addKeyValuePair(new Pair<>("key.animalCrowdingLimit", 20), "int");
 		configs.addKeyValuePair(new Pair<>("key.eatingHeals", .99), "double");
 		configs.addKeyValuePair(new Pair<>("key.mushroomDensity", 7), "int");
 		configs.addKeyValuePair(new Pair<>("key.mushroomXDensity", 6), "int");
@@ -176,15 +178,16 @@ public class MyConfig {
 		configs.addKeyValuePair(new Pair<>("key.mushroomMinTemp", 0.2), "double");
 		configs.addKeyValuePair(new Pair<>("key.mushroomMaxTemp", 1.2), "double");
 		configs.addKeyValuePair(new Pair<>("key.playerWallControlBlockString", "minecraft:cobblestone_wall"), "String");
-		configs.addKeyValuePair(new Pair<>("key.actionMobList", defaultActionMobList),"String");
-		configs.addKeyValuePair(new Pair<>("key.wallblockList", defaultWallblockList),"String");
-		configs.addKeyValuePair(new Pair<>("key.wallFoundationsList", defaultWallFoundationsList),"String");
+		configs.addKeyValuePair(new Pair<>("key.actionMobList", defaultActionMobList), "String");
+		configs.addKeyValuePair(new Pair<>("key.wallblockList", defaultWallblockList), "String");
+		configs.addKeyValuePair(new Pair<>("key.wallFoundationsList", defaultWallFoundationsList), "String");
 	}
+
 	private static void assignConfigs() {
 
 		debugLevel = CONFIG.getOrDefault("key.debugLevel", 0);
-		torchLightLevel = CONFIG.getOrDefault("key.torchLightLevel", 7);
-		torchBlockString = CONFIG.getOrDefault("key.torchBlockString", "minecraft:torch" );
+		torchLightLevel = CONFIG.getOrDefault("key.torchLightLevel", 4);
+		torchBlockString = CONFIG.getOrDefault("key.torchBlockString", "minecraft:torch");
 		torchBlock = Blocks.TORCH;
 		try {
 			ResourceLocation id = ResourceLocation.parse(torchBlockString);
@@ -192,12 +195,12 @@ public class MyConfig {
 			if (optTorchBlock.isPresent()) {
 				torchBlock = optTorchBlock.get().value();
 			}
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			torchBlock = Blocks.TORCH;
 			Utility.debugMsg(0, "playerWallControlBlockString: '" + playerWallControlBlockString + "' is invalid");
 		}
 		eatingHealsOdds = CONFIG.getOrDefault("key.eatingHeals", .99);
+		animalCrowdingLimit = CONFIG.getOrDefault("key.eatingHeals", 20);
 		mushroomDensity = CONFIG.getOrDefault("key.mushroomDensity", 7);
 		mushroomXDensity = CONFIG.getOrDefault("key.mushroomXDensity", 6);
 		mushroomZDensity = CONFIG.getOrDefault("key.mushroomZDensity", 6);
@@ -207,34 +210,27 @@ public class MyConfig {
 				"minecraft:cobblestone_wall");
 		playerWallControlBlock = Blocks.COBBLESTONE_WALL; // default value if fail.
 		try {
-			
 			ResourceLocation id = ResourceLocation.parse(playerWallControlBlockString);
 			Optional<Reference<Block>> optPlayerWallControlBlock = BuiltInRegistries.BLOCK.get(id);
 			if (optPlayerWallControlBlock.isPresent()) {
 				playerWallControlBlock = optPlayerWallControlBlock.get().value();
 			}
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			playerWallControlBlock = Blocks.COBBLESTONE_WALL;
 			Utility.debugMsg(0, "playerWallControlBlockString: '" + playerWallControlBlockString + "' is invalid");
 		}
-		
-		// TODO This is duplicated from above.  Is that unavoidable?
+
+		// TODO This is duplicated from above. Is that unavoidable?
 		actionMobList = CONFIG.getOrDefault("key.actionMobList", defaultActionMobList);
 		RegrowthEntitiesManager.regrowthMobInit();
 
 		wallblockList = CONFIG.getOrDefault("key.wallblockList", defaultWallblockList);
 
 		wallFoundationsList = CONFIG.getOrDefault("key.wallFoundationsList", defaultWallFoundationsList);
-		
-		WallFoundationDataManager.wallFoundationsInit();
-		
-		LOGGER.info("All " + configs.getConfigsList().size() + " have been set properly");
-	}
 
-	public static void pushDebugLevel() {
-		// TODO Auto-generated method stub
-		// someday...
+		WallFoundationDataManager.wallFoundationsInit();
+
+		LOGGER.info("All " + configs.getConfigsList().size() + " have been set properly");
 	}
 
 }

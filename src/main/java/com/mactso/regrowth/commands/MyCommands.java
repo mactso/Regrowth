@@ -20,7 +20,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
-public class RegrowthCommands {
+public class MyCommands {
 	String subcommand = "";
 	String value = "";
 	
@@ -50,7 +50,7 @@ public class RegrowthCommands {
 		            		+ "\n  Looking At................:"  + objectInfo;
 					Utility.sendChat(sp, msg, ChatFormatting.DARK_GREEN);
 					return 1;
-				}
+			}
 		)));
 		System.out.println("Exit Register");
 	}

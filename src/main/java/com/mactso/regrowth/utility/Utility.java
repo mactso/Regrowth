@@ -151,32 +151,6 @@ public class Utility {
 
 	}
 	
-//	public static void updateEffect(LivingEntity e, int amplifier, MobEffect mobEffect, int duration) {
-//      MobEffect needs to be changed to a holder in Happy Trails.
-//		Holder<MobEffect> mee = MobEffects.BLINDNESS;
-//		ResourceLocation merl = BuiltInRegistries.MOB_EFFECT.getKey(mobEffect);
-//		Optional<Reference<MobEffect>> meh = BuiltInRegistries.MOB_EFFECT.getHolder(rl);
-//		if (meh.isEmpty()) return;
-//		MobEffectInstance ei = e.getEffect(meh.get());
-//		if (amplifier == 10) {
-//			amplifier = 20; // player "plaid" speed.
-//		}
-//		if (ei != null) {
-//			if (amplifier > ei.getAmplifier()) {
-//				e.removeEffect(mobEffect);
-//			}
-//			if (amplifier == ei.getAmplifier() && ei.getDuration() > 10) {
-//				return;
-//			}
-//			if (ei.getDuration() > 10) {
-//				return;
-//			}
-//			e.removeEffect(mobEffect);
-//		}
-//		e.addEffect(new MobEffectInstance(mobEffect, duration, amplifier, true, true));
-//		return;
-//	}
-
 	public static boolean populateEntityType(EntityType<?> et, ServerLevel level, BlockPos savePos, int range,
 			int modifier) {
 		boolean isBaby = false;
@@ -216,24 +190,6 @@ public class Utility {
 		return true;
 	}
 
-	
-//	public static void setName(ItemStack stack, String inString)
-//	{
-//		CompoundTag tag = stack.getOrCreateTagElement("display");
-//		ListTag list = new ListTag();
-//		list.add(StringTag.valueOf(inString));
-//		tag.put("Name", list);
-//	}
-//	
-//	
-//	public static void setLore(ItemStack stack, String inString)
-//	{
-//		CompoundTag tag = stack.getOrCreateTagElement("display");
-//		ListTag list = new ListTag();
-//		list.add(StringTag.valueOf(inString));
-//		tag.put("Lore", list);
-//	}
-//	
 	public static boolean isNotNearWebs(BlockPos pos, ServerLevel serverLevel) {
 
 		if (serverLevel.getBlockState(pos).getBlock() == Blocks.COBWEB)
@@ -274,17 +230,17 @@ public class Utility {
 	}	
 	
 	public static String getResourceLocationString(ServerLevel serverLevel, BlockState blockState) {
-		return getResourceLocationString(serverLevel,blockState.getBlock());
+		return getResourceLocationString(blockState.getBlock());
 		}
 
 
 	@SuppressWarnings("deprecation")
-	public static String getResourceLocationString(ServerLevel serverLevel, Block block) {
+	public static String getResourceLocationString(Block block) {
 		return block.builtInRegistryHolder().key().location().toString();
 	}
 
 	@SuppressWarnings("deprecation")
-	public static String getResourceLocationString(ServerLevel serverLevel, Item item) {
+	public static String getResourceLocationString(Item item) {
 		return item.builtInRegistryHolder().key().location().toString();
 	}
 
@@ -298,7 +254,9 @@ public class Utility {
 	}
 
 
-	
+	public static void warn (String dMsg) {
+		LOGGER.warn(dMsg);
+	}
 
 
 }

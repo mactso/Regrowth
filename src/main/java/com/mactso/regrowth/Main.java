@@ -1,16 +1,21 @@
 package com.mactso.regrowth;
 
+import java.nio.file.Path;
+
 import com.mactso.regrowth.commands.RegrowthCommands;
 // import com.mactso.regrowth.Commands.RegrowthCommands;
 import com.mactso.regrowth.config.MyConfig;
+import com.mactso.regrowth.managers.SaplingManager;
 
 import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.event.server.ServerAboutToStartEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.fml.loading.FMLPaths;
 
 @Mod("regrowth")
 public class Main {
@@ -40,6 +45,18 @@ public class Main {
 				System.out.println("Regrowth: Registering Command Dispatcher");
 				RegrowthCommands.register(event.getDispatcher());			
 			}
+			
+			
+	        @SubscribeEvent
+	        public static void onServerAboutToStart(final ServerAboutToStartEvent event) {
+	            System.out.println("Regrowth: Initializing SaplingManager");
+
+	            // Forge config directory
+	            Path configDir = FMLPaths.CONFIGDIR.get();
+
+	            // Initialize SaplingManager (generates files + reads CSV)
+	            SaplingManager.init(event.getServer(), configDir);
+	        }
 
 	    }
 

@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -54,185 +53,202 @@ public class SaplingManager {
 			ex.printStackTrace();
 		}
 	}
+	
+// -------------------------------
+// Helper to allow methods to be the same in 1.21.1 and 1.21.5 .
+// -------------------------------
+	public static <T> Registry<T> getRegistrySafe(RegistryAccess access, ResourceKey<Registry<T>> key) {
+    return access.registry(key).orElse(null);  // 1.21.1 pattern
+}
 
-	// -------------------------------
-	// Generate RegrowthAllSaplings.txt (vanilla + modded) if it doesn't exist
-	// -------------------------------
-	public static void generateAllSaplingsReport(MinecraftServer server, Path configDir) {
-		try {
-			Path out = configDir.resolve("RegrowthAllSaplings.txt");
-			if (Files.exists(out))
-				return;
+// -------------------------------
+// Generate RegrowthAllSaplings.txt (vanilla + modded) if it doesn't exist
+// -------------------------------
+public static void generateAllSaplingsReport(MinecraftServer server, Path configDir) {
+    try {
+        Path out = configDir.resolve("RegrowthAllSaplings.txt");
+        if (Files.exists(out))
+            return;
 
-			ALL_SAPLINGS.clear();
+        ALL_SAPLINGS.clear();
 
-			// Use registryAccess to avoid relying on BuiltInRegistries directly
-			Registry<Block> blockRegistry = server.registryAccess().registryOrThrow(Registries.BLOCK);
-			Iterator<Map.Entry<ResourceKey<Block>, Block>> iter = blockRegistry.entrySet().iterator();
+        // Use RegistryAccess with helper
+        RegistryAccess registryAccess = server.registryAccess();
+        Registry<Block> blockRegistry = getRegistrySafe(registryAccess, Registries.BLOCK);
 
-			while (iter.hasNext()) {
-				Map.Entry<ResourceKey<Block>, Block> entry = iter.next();
-				Block block = entry.getValue();
-				if (block instanceof SaplingBlock) {
-					ResourceLocation key = blockRegistry.getKey(block);
-					ALL_SAPLINGS.add(key);
-				}
-			}
+        if (blockRegistry == null) {
+            LOGGER.error("Block registry not available! Cannot generate all saplings report.");
+            return;
+        }
 
-			// Sort alphabetically
-			ALL_SAPLINGS.sort(Comparator.comparing(ResourceLocation::toString));
+        for (Map.Entry<ResourceKey<Block>, Block> entry : blockRegistry.entrySet()) {
+            Block block = entry.getValue();
+            if (block instanceof SaplingBlock) {
+                ResourceLocation key = blockRegistry.getKey(block);
+                ALL_SAPLINGS.add(key);
+            }
+        }
 
-			// Make list unmodifiable to prevent accidental changes
-			List<ResourceLocation> unmodifiableSaplings = Collections.unmodifiableList(new ArrayList<>(ALL_SAPLINGS));
-			ALL_SAPLINGS.clear();
-			ALL_SAPLINGS.addAll(unmodifiableSaplings);
+        // Sort alphabetically
+        ALL_SAPLINGS.sort(Comparator.comparing(ResourceLocation::toString));
 
-			// Write to file
-			List<String> lines = new ArrayList<>();
-			for (ResourceLocation key : ALL_SAPLINGS) {
-				lines.add(key.toString());
-			}
+        // Make list unmodifiable to prevent accidental changes
+        List<ResourceLocation> unmodifiableSaplings = Collections.unmodifiableList(new ArrayList<>(ALL_SAPLINGS));
+        ALL_SAPLINGS.clear();
+        ALL_SAPLINGS.addAll(unmodifiableSaplings);
 
-			Files.write(out, lines, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+        // Convert ResourceLocation list to String list without streams
+        List<String> lines = new ArrayList<>();
+        for (ResourceLocation key : ALL_SAPLINGS) {
+            lines.add(key.toString());
+        }
 
-		} catch (IOException ex) {
-			ex.printStackTrace();
-		}
+        Files.write(out, lines, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+
+    } catch (IOException ex) {
+        ex.printStackTrace();
+    }
+}
+
+// -------------------------------
+// Generate RegrowthBiomeSaplings.csv (default + modded detection) if it doesn't exist
+// -------------------------------
+public static void generateBiomeSaplingsConfig(MinecraftServer server, Path configDir) {
+    try {
+        Path out = configDir.resolve("RegrowthBiomeSaplings.csv");
+        if (Files.exists(out))
+            return;
+
+        List<String> lines = new ArrayList<>();
+
+        RegistryAccess registryAccess = server.registryAccess();
+        Registry<Biome> biomeRegistry = getRegistrySafe(registryAccess, Registries.BIOME);
+
+        if (biomeRegistry == null) {
+            LOGGER.error("Biome registry not available! Cannot generate biome saplings config.");
+            return;
+        }
+
+        for (Map.Entry<ResourceKey<Biome>, Biome> entry : biomeRegistry.entrySet()) {
+            Biome biome = entry.getValue();
+            ResourceLocation biomeId = biomeRegistry.getKey(biome);
+            String biomeName = biomeId.toString().toLowerCase();
+
+            String sapling = determineDefaultSapling(biomeName);
+
+            // Detect modded saplings heuristically
+            if (!sapling.isEmpty()) {
+                for (ResourceLocation saplingKey : ALL_SAPLINGS) {
+                    String path = saplingKey.getPath().toLowerCase();
+                    if (path.endsWith("_sapling"))
+                        path = path.substring(0, path.length() - "_sapling".length());
+                    if (biomeName.contains(path)) {
+                        sapling = saplingKey.toString();
+                        break;
+                    }
+                }
+            }
+
+            lines.add(biomeId + "," + sapling);
+        }
+
+        Files.write(out, lines, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+
+    } catch (IOException ex) {
+        ex.printStackTrace();
+    }
 	}
 
-	// -------------------------------
-	// Generate RegrowthBiomeSaplings.csv (default + modded detection) if it doesn't exist
-	// -------------------------------
-	public static void generateBiomeSaplingsConfig(MinecraftServer server, Path configDir) {
-		try {
 
-			// Access the registry
-			RegistryAccess registryAccess = server.registryAccess();
-			Registry<Biome> biomeRegistry = registryAccess.registryOrThrow(Registries.BIOME);
 
-			Path out = configDir.resolve("RegrowthBiomeSaplings.csv");
-			if (Files.exists(out))
-				return;
 
-			List<String> lines = new ArrayList<>();
+// -------------------------------
+// Read RegrowthBiomeSaplings.csv into map (unified 1.21.1 to 1.21.5 pattern)
+// -------------------------------
+public static void readBiomeSaplingsConfig(MinecraftServer server, Path configDir) {
+    Path csv = configDir.resolve("RegrowthBiomeSaplings.csv");
+    if (!Files.exists(csv))
+        return;
 
-			Iterator<Map.Entry<ResourceKey<Biome>, Biome>> iter = biomeRegistry.entrySet().iterator();
-			while (iter.hasNext()) {
-				Map.Entry<ResourceKey<Biome>, Biome> entry = iter.next();
-				ResourceLocation biomeId = biomeRegistry.getKey(entry.getValue());
-				String biomeName = biomeId.toString().toLowerCase();
+    try {
+        List<String> lines = Files.readAllLines(csv, StandardCharsets.UTF_8);
+        BIOME_TO_SAPLING.clear();
+        BIOME_TO_SAPLING_STATE.clear();
 
-				String sapling = determineDefaultSapling(biomeName);
+        RegistryAccess registryAccess = server.registryAccess();
 
-				// Detect modded saplings heuristically
-				// Check if biome name contains the base name of any registered sapling
-				// Allows automatic assignment for most modded saplings
-				if (!sapling.isEmpty()) {
-					for (ResourceLocation saplingKey : ALL_SAPLINGS) {
-						String path = saplingKey.getPath().toLowerCase();
-						if (path.endsWith("_sapling"))
-							path = path.substring(0, path.length() - "_sapling".length());
-						if (biomeName.contains(path)) {
-							sapling = saplingKey.toString();
-							break;
-						}
-					}
-				}
+        Registry<Block> blockRegistry  = getRegistrySafe(registryAccess, Registries.BLOCK);
+        Registry<Biome> biomeRegistry = getRegistrySafe(registryAccess, Registries.BIOME);
 
-				lines.add(biomeId + "," + sapling);
-			}
+        if (blockRegistry == null || biomeRegistry == null) {
+            LOGGER.error("One or more required registries (BLOCK, BIOME) are missing! Cannot load biome sapling config.");
+            return;
+        }
 
-			Files.write(out, lines, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+        for (int i = 0; i < lines.size(); i++) {
+            String line = lines.get(i);
 
-		} catch (IOException ex) {
-			ex.printStackTrace();
-		}
-	}
+            if (line.isBlank() || line.startsWith("#") || !line.contains(","))
+                continue;
 
-	// -------------------------------
-	// Read RegrowthBiomeSaplings.csv into map
-	// -------------------------------
-	public static void readBiomeSaplingsConfig(MinecraftServer server, Path configDir) {
-	    Path csv = configDir.resolve("RegrowthBiomeSaplings.csv");
-	    if (!Files.exists(csv))
-	        return;
+            String[] parts = line.split(",", 2);
+            if (parts.length != 2)
+                continue;
 
-	    try {
-	        List<String> lines = Files.readAllLines(csv, StandardCharsets.UTF_8);
-	        BIOME_TO_SAPLING.clear();
-	        BIOME_TO_SAPLING_STATE.clear();
+            // Safe parse of biome ResourceLocation
+            ResourceLocation biomeRL;
+            try {
+                biomeRL = ResourceLocation.parse(parts[0].trim());
+            } catch (IllegalArgumentException ex) {
+                LOGGER.error(
+                        "Line {}: Invalid biome ResourceLocation '{}'. Skipping. Error: {}",
+                        i + 1, parts[0].trim(), ex.getMessage());
+                continue;
+            }
 
-	        Registry<Block> blockRegistry = server.registryAccess().registryOrThrow(Registries.BLOCK);
-	        Registry<Biome> biomeRegistry = server.registryAccess().registryOrThrow(Registries.BIOME);
+            String saplingStr = parts[1].trim();
+            BlockState state;
+            ResourceLocation saplingRL;
 
-	        // NEW: Include line index
-	        for (int i = 0; i < lines.size(); i++) {
-	            String line = lines.get(i);
+            if (saplingStr.isEmpty()) {
+                saplingRL = NO_SAPLING;
+                state = Blocks.AIR.defaultBlockState();
+            } else {
+                try {
+                    saplingRL = ResourceLocation.parse(saplingStr);
+                } catch (IllegalArgumentException ex) {
+                    LOGGER.error(
+                            "Line {}: Invalid sapling ResourceLocation '{}' for biome '{}'. Using AIR. Error: {}",
+                            i + 1, saplingStr, biomeRL, ex.getMessage());
+                    saplingRL = NO_SAPLING;
+                    state = Blocks.AIR.defaultBlockState();
 
-	            if (line.isBlank() || line.startsWith("#") || !line.contains(","))
-	                continue;
+                    BIOME_TO_SAPLING.put(biomeRL, saplingRL);
+                    continue;
+                }
 
-	            String[] parts = line.split(",", 2);
-	            if (parts.length != 2)
-	                continue;
+                state = blockRegistry.getOptional(saplingRL)
+                        .map(Block::defaultBlockState)
+                        .orElse(Blocks.AIR.defaultBlockState());
+            }
 
-	            // NEW: safe parse of biome ResourceLocation with line number
-	            ResourceLocation biomeRL;
-	            try {
-	                biomeRL = ResourceLocation.parse(parts[0].trim());
-	            } catch (IllegalArgumentException ex) {
-	                LOGGER.error(
-	                        "Line {}: Invalid biome ResourceLocation '{}'. Skipping. Error: {}",
-	                        i + 1, parts[0].trim(), ex.getMessage());
-	                continue;
-	            }
+            BIOME_TO_SAPLING.put(biomeRL, saplingRL);
 
-	            String saplingStr = parts[1].trim();
+            // Map matching biome instances to the BlockState
+            biomeRegistry.entrySet().forEach(entry -> {
+                if (biomeRegistry.getKey(entry.getValue()).equals(biomeRL)) {
+                    BIOME_TO_SAPLING_STATE.put(entry.getValue(), state);
+                }
+            });
+        }
 
-	            BlockState state;
-	            ResourceLocation saplingRL;
+    } catch (IOException ex) {
+        ex.printStackTrace();
+    }
+}
 
-	            if (saplingStr.isEmpty()) {
-	                saplingRL = NO_SAPLING;
-	                state = Blocks.AIR.defaultBlockState();
-	            } else {
-
-	                // NEW: safe parse of sapling ResourceLocation with line number
-	                try {
-	                    saplingRL = ResourceLocation.parse(saplingStr);
-	                } catch (IllegalArgumentException ex) {
-	                    LOGGER.error(
-	                            "Line {}: Invalid sapling ResourceLocation '{}' for biome '{}'. Using AIR. Error: {}",
-	                            i + 1, saplingStr, biomeRL, ex.getMessage());
-	                    saplingRL = NO_SAPLING;
-	                    state = Blocks.AIR.defaultBlockState();
-
-	                    // still record biome → NO_SAPLING mapping
-	                    BIOME_TO_SAPLING.put(biomeRL, saplingRL);
-	                    continue;
-	                }
-
-	                state = blockRegistry.getOptional(saplingRL)
-	                        .map(Block::defaultBlockState)
-	                        .orElse(Blocks.AIR.defaultBlockState());
-	            }
-
-	            // Save mappings
-	            BIOME_TO_SAPLING.put(biomeRL, saplingRL);
-
-	            // Map all biome instances matching this ResourceLocation to the BlockState
-	            biomeRegistry.entrySet().forEach(entry -> {
-	                if (biomeRegistry.getKey(entry.getValue()).equals(biomeRL)) {
-	                    BIOME_TO_SAPLING_STATE.put(entry.getValue(), state);
-	                }
-	            });
-	        }
-
-	    } catch (IOException ex) {
-	        ex.printStackTrace();
-	    }
-	}
-
+	
+	
 	// -------------------------------
 	// Default vanilla biome → sapling mapping
 	// -------------------------------

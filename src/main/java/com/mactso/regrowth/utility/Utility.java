@@ -68,7 +68,7 @@ public class Utility {
 
 	private static final Logger LOGGER = LogManager.getLogger();
 	
-	public static String getMyBC (Holder<Biome> testBiome) {
+	public static String getMyBiomeCategory (Holder<Biome> testBiome) {
 		
 		if (testBiome.is(BiomeTags.HAS_VILLAGE_DESERT))
 			return Utility.DESERT;

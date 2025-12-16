@@ -5,6 +5,8 @@ import java.nio.file.Path;
 import com.mactso.regrowth.commands.RegrowthCommands;
 // import com.mactso.regrowth.Commands.RegrowthCommands;
 import com.mactso.regrowth.config.MyConfig;
+import com.mactso.regrowth.config.WallBiomeDataManager;
+import com.mactso.regrowth.config.WallFoundationManager;
 import com.mactso.regrowth.managers.SaplingManager;
 
 import net.minecraftforge.event.RegisterCommandsEvent;
@@ -51,6 +53,9 @@ public class Main {
 	        public static void onServerAboutToStart(final ServerAboutToStartEvent event) {
 	            System.out.println("Regrowth: Initializing SaplingManager");
 
+				WallFoundationManager.init();;
+				WallBiomeDataManager.wallBiomeDataInit(event.getServer());
+	            
 	            // Forge config directory
 	            Path configDir = FMLPaths.CONFIGDIR.get();
 

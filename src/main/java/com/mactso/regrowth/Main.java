@@ -4,6 +4,7 @@ import java.nio.file.Path;
 
 import com.mactso.regrowth.commands.RegrowthCommands;
 import com.mactso.regrowth.config.MyConfig;
+import com.mactso.regrowth.config.RegrowthEntitiesManager;
 import com.mactso.regrowth.config.WallBiomeDataManager;
 import com.mactso.regrowth.config.WallFoundationManager;
 import com.mactso.regrowth.managers.SaplingManager;
@@ -39,6 +40,8 @@ public class Main {
 		public static void onServerAboutToStart(final ServerAboutToStartEvent event) {
 			System.out.println("Regrowth: Initializing SaplingManager");
 
+	        RegrowthEntitiesManager.regrowthMobInit();
+			
 			WallFoundationManager.init();
 			;
 			WallBiomeDataManager.wallBiomeDataInit(event.getServer());

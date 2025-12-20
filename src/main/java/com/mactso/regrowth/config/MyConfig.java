@@ -116,12 +116,19 @@ public class MyConfig {
 	private static double mushroomMinTemp;
 	private static double mushroomMaxTemp;
 
+
 	@SubscribeEvent
-	public static void onModConfigEvent(final ModConfigEvent configEvent) {
-		if (configEvent.getConfig().getSpec() == MyConfig.COMMON_SPEC) {
-			bakeConfig();
-			RegrowthEntitiesManager.regrowthMobInit();
-		}
+	public static void onModConfigEvent(final ModConfigEvent.Loading event) {
+	    if (event.getConfig().getSpec() == MyConfig.COMMON_SPEC) {
+	        bakeConfig();
+	    }
+	}
+
+	@SubscribeEvent
+	public static void onModConfigEvent(final ModConfigEvent.Reloading event) {
+	    if (event.getConfig().getSpec() == MyConfig.COMMON_SPEC) {
+	        bakeConfig();
+	    }
 	}
 
 	public static void pushDebugLevel() {

@@ -28,7 +28,7 @@ public class HandleForgeEntityMoveEvent {
 		if (level == null)
 			return;
 		
-		if (level.isClientSide) {
+		if (level.isClientSide()) {
 			return;
 		}
 		

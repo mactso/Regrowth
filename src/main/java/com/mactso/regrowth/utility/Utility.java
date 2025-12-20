@@ -69,7 +69,7 @@ public class Utility {
 
 	private static final Logger LOGGER = LogManager.getLogger();
 	
-	public static String getMyBC (Holder<Biome> testBiome) {
+	public static String getMyBiomeCategory (Holder<Biome> testBiome) {
 		
 		if (testBiome.is(BiomeTags.HAS_VILLAGE_DESERT))
 			return Utility.DESERT;
@@ -230,17 +230,17 @@ public class Utility {
 	}	
 	
 	public static String getResourceLocationString(ServerLevel serverLevel, BlockState blockState) {
-		return getResourceLocationString(blockState.getBlock());
+		return getResourceLocationString(serverLevel,blockState.getBlock());
 		}
 
 
 	@SuppressWarnings("deprecation")
-	public static String getResourceLocationString(Block block) {
+	public static String getResourceLocationString(ServerLevel serverLevel, Block block) {
 		return block.builtInRegistryHolder().key().location().toString();
 	}
 
 	@SuppressWarnings("deprecation")
-	public static String getResourceLocationString(Item item) {
+	public static String getResourceLocationString(ServerLevel serverLevel, Item item) {
 		return item.builtInRegistryHolder().key().location().toString();
 	}
 
@@ -254,9 +254,7 @@ public class Utility {
 	}
 
 
-	public static void warn (String dMsg) {
-		LOGGER.warn(dMsg);
-	}
+	
 
 
 }

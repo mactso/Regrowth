@@ -11,8 +11,6 @@ import net.minecraftforge.registries.ForgeRegistries;
 
 public class RegrowthEntitiesManager {
 	public static Hashtable<String, RegrowthMobItem> regrowthMobHashtable = new Hashtable<>();
-	private static String defaultRegrowthMobString = "hbm:default";
-	private static String defaultRegrowthMobKey = defaultRegrowthMobString;
 
 	public static RegrowthMobItem getRegrowthMobInfo(String key) {
 		String iKey = key;

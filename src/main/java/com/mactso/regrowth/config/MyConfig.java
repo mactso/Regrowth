@@ -9,6 +9,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import com.mactso.regrowth.Main;
 
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.common.ForgeConfigSpec;
@@ -25,11 +26,6 @@ public class MyConfig {
 
 	public static final Common COMMON;
 	public static final ForgeConfigSpec COMMON_SPEC;
-	
-	public static boolean CANCEL_EVENT = true;
-	public static boolean CONTINUE_EVENT = false;
-	
-	public static boolean tagsInitialized = false;
 
 	static {
 		final Pair<Common, ForgeConfigSpec> specPair = new ForgeConfigSpec.Builder().configure(Common::new);
@@ -44,25 +40,25 @@ public class MyConfig {
 	public static int getDebugLevel() {
 		return debugLevel;
 	}
-	
-	public static void setaDebugLevel(int debugLevel) {
-		MyConfig.debugLevel = debugLevel;
+
+	public static void setDebugLevel(int newDebugLevel) {
+		MyConfig.debugLevel = newDebugLevel;
 	}
 
-	public static void setDebugLevel(int debugLevel) {
-		MyConfig.debugLevel = debugLevel;
-	}
-
-	public static double getEatingHealsOdds() {
-		return eatingHealsOdds;
+	public static double getEatingHeals() {
+		return aEatingHeals;
 	}
 
 	public static void setEatingHeals(double aEatingHeals) {
-		MyConfig.eatingHealsOdds = aEatingHeals;
+		MyConfig.aEatingHeals = aEatingHeals;
 	}
 
 	public static Block getPlayerWallControlBlock() {
 		return playerWallControlBlock;
+	}
+
+	public static boolean isWallBuildingOff() {
+		return getPlayerWallControlBlock().defaultBlockState().is(BlockTags.AIR);
 	}
 
 	public static void setPlayerWallControlBlock(Block playerWallControlBlock) {
@@ -77,7 +73,6 @@ public class MyConfig {
 		MyConfig.torchBlock = torchBlock;
 	}
 
-	
 	public static int getMushroomDensity() {
 		return MyConfig.mushroomDensity;
 	}
@@ -97,21 +92,19 @@ public class MyConfig {
 	public static double getMushroomMaxTemp() {
 		return MyConfig.mushroomMaxTemp;
 	}
-	
+
 	public static int getTorchLightLevel() {
 		return torchLightLevel;
 	}
-	
-	private static int debugLevel;
-	public static double eatingHealsOdds;
+
+	public static int debugLevel;
+	public static double aEatingHeals;
 	public static Block playerWallControlBlock;
 	public static Block torchBlock;
-	
+
 	public static String[] defaultRegrowthMobs;
 	public static String defaultRegrowthMobs6464;
-	public static String[]  defaultWallFoundationsArray;
-//	public static String[] defaultWallFoundations;
-//	public static String defaultWallFoundations6464;
+	public static String[] defaultWallFoundationsArray;
 	public static String[] defaultWallBiomeData;
 	public static String defaultWallBiomeData6464;
 
@@ -125,19 +118,12 @@ public class MyConfig {
 
 	@SubscribeEvent
 	public static void onModConfigEvent(final ModConfigEvent configEvent) {
-        if (configEvent instanceof ModConfigEvent.Unloading)
-            return;
-        
 		if (configEvent.getConfig().getSpec() == MyConfig.COMMON_SPEC) {
-            if (MyConfig.COMMON_SPEC.isLoaded()) {
-    			bakeConfig();
-    			RegrowthEntitiesManager.regrowthMobInit();
-    			WallFoundationDataManager.wallFoundationsInit();
-    			}
-            }
+			bakeConfig();
+			RegrowthEntitiesManager.regrowthMobInit();
+		}
 	}
-	
-	
+
 	public static void pushDebugLevel() {
 		COMMON.debugLevel.set(debugLevel);
 	}
@@ -150,9 +136,9 @@ public class MyConfig {
 
 	// remember need to push each of these values separately once we have commands.
 	public static void bakeConfig() {
-		
+
 		debugLevel = COMMON.debugLevel.get();
-		eatingHealsOdds = COMMON.eatingHeals.get();
+		aEatingHeals = COMMON.eatingHeals.get();
 		MyConfig.torchLightLevel = (int) MyConfig.COMMON.torchLightLevel.get();
 		MyConfig.mushroomDensity = (int) MyConfig.COMMON.mushroomDensity.get();
 		MyConfig.mushroomXDensity = (int) MyConfig.COMMON.mushroomXDensity.get();
@@ -161,20 +147,21 @@ public class MyConfig {
 		MyConfig.mushroomMaxTemp = (double) MyConfig.COMMON.mushroomMaxTemp.get();
 		defaultRegrowthMobs6464 = COMMON.defaultRegrowthMobsActual.get();
 		defaultWallFoundationsArray = extract(COMMON.wallFoundationsList.get());
-		WallFoundationDataManager.wallFoundationsInit();
+		WallFoundationManager.init();
 		defaultWallBiomeData6464 = COMMON.defaultBiomeWallDataActual.get();
 		try {
-			
+
 			ResourceLocation rl = ResourceLocation.parse(COMMON.playerWallControlBlockString.get());
 			playerWallControlBlock = ForgeRegistries.BLOCKS.getValue(rl);
 			ResourceLocation t1 = ResourceLocation.parse(COMMON.torchBlockString.get());
 			torchBlock = ForgeRegistries.BLOCKS.getValue(t1);
-		}
-		catch (Exception e) {
-			System.out.println("Regrowth Debug:  Player Wall Control Block Illegal Config (uPper CaSe?): " + COMMON.playerWallControlBlockString.get());
+		} catch (Exception e) {
+			System.out.println("Regrowth Debug:  Player Wall Control Block Illegal Config (uPper CaSe?): "
+					+ COMMON.playerWallControlBlockString.get());
 		}
 		if (playerWallControlBlock == Blocks.AIR) {
-			System.out.println("Regrowth Warn:  Player Wall Control Block is : " + COMMON.playerWallControlBlockString.get());
+			System.out.println(
+					"Regrowth Warn:  Player Wall Control Block is : " + COMMON.playerWallControlBlockString.get());
 		}
 
 		if (debugLevel > 0) {
@@ -182,11 +169,10 @@ public class MyConfig {
 		}
 	}
 
-	private static String[] extract(List<? extends String> value)
-	{
+	private static String[] extract(List<? extends String> value) {
 		return value.toArray(new String[value.size()]);
 	}
-	
+
 	public static class Common {
 
 		public final IntValue debugLevel;
@@ -197,31 +183,23 @@ public class MyConfig {
 		public final ForgeConfigSpec.IntValue mushroomZDensity;
 		public final ForgeConfigSpec.DoubleValue mushroomMinTemp;
 		public final ForgeConfigSpec.DoubleValue mushroomMaxTemp;
-		public final ConfigValue<String> playerWallControlBlockString;		
-		public final ConfigValue<String>  torchBlockString;		
+		public final ConfigValue<String> playerWallControlBlockString;
+		public final ConfigValue<String> torchBlockString;
 		public final ConfigValue<List<? extends String>> wallFoundationsList;
 
-		
 		// mod:mob,type(eat,cut,grow,both,tall,villagerflags),Seconds;
 		public final ConfigValue<String> defaultRegrowthMobsActual;
 		public final String defaultRegrowthMobs6464 = "minecraft:cow,both,300.0;" + "minecraft:horse,eat,180.0;"
 				+ "minecraft:donkey,eat,180.0;" + "minecraft:sheep,eat,120.0;" + "minecraft:pig,reforest,450.0;"
 				+ "minecraft:bee,grow,500.0;" + "minecraft:chicken,grow,320.0;" + "minecraft:villager,chrwvt,2.0;"
 				+ "minecraft:creeper,tall,90.0;" + "minecraft:zombie,stumble, 30.0;" + "minecraft:bat,stumble, 30.0;"
-				+ "minecraft:skeleton,mushroom, 40.0;" + "minecraft:tropical_fish,coral, 15.0;"+ "minecraft:squid,coral, 15.0;";
+				+ "minecraft:skeleton,mushroom, 40.0;" + "minecraft:tropical_fish,coral, 15.0;"
+				+ "minecraft:squid,coral, 15.0;";
 
 		// blocks walls can be built on
-		List<String> defaultWallFoundationsList = Arrays.asList(
-				"minecraft:grass_block",
-				"minecraft:sand",
-				"minecraft:red_sand",
-				"minecraft:netherrack",
-				"minecraft:sandstone",
-				"minecraft:podzol",
-				"minecraft:dirt",
-				"minecraft:stone",
-				"minecraft:coarse_dirt"
-		);	
+		List<String> defaultWallFoundationsList = Arrays.asList("minecraft:grass_block", "minecraft:sand",
+				"minecraft:red_sand", "minecraft:netherrack", "minecraft:sandstone", "minecraft:podzol",
+				"minecraft:dirt", "minecraft:stone", "minecraft:coarse_dirt");
 //		public final ConfigValue<String> defaultWallFoundationsActual;
 //		public final String defaultWallFoundations6464 = "minecraft:grass_block;" + "minecraft:sand;"
 //				+ "minecraft:red_sand;" + "minecraft:netherrack;" + "minecraft:sandstone;" + "minecraft:podzol;"
@@ -255,10 +233,10 @@ public class MyConfig {
 					.translation(Main.MODID + ".config." + "eatingHeals")
 					.defineInRange("eatingHeals", () -> .99, 0.0, 1.0);
 
-			this.torchLightLevel = builder.comment("Torch Light Level - Villagers will only place torches on blocks this dark or darker.")
-					.translation("regrowth.config.torchLightLevel ")
-					.defineInRange("torchLightLevel ", () -> 3, 0, 10);
-			
+			this.torchLightLevel = builder
+					.comment("Torch Light Level - Villagers will only place torches on blocks this dark or darker.")
+					.translation("regrowth.config.torchLightLevel ").defineInRange("torchLightLevel ", () -> 3, 0, 10);
+
 			this.mushroomDensity = builder.comment("Mushroom density - 3 dense to 11 sparse to 21 very sparse")
 					.translation("regrowth.config.mushroomXDensity ")
 					.defineInRange("mushroomXDensity ", () -> 7, 3, 21);
@@ -276,13 +254,13 @@ public class MyConfig {
 					.translation("regrowth.config.mushroomMaxTemp")
 					.defineInRange("mushroomMaxTemp", () -> 1.2, -2.0, 2.0);
 
-			this.playerWallControlBlockString = builder.comment("When block is over bell, villagers build walls. This block is created over bell when village is new.  If block is 'Air' players can't turn off wall building.")
+			this.playerWallControlBlockString = builder.comment(
+					"When block is over bell, villagers build walls. This block is created over bell when village is new.  If block is 'Air' players can't turn off wall building.")
 					.translation("regrowth.config.playerWallControlBlockString")
 					.define("playerWallControlBlockString", "minecraft:cobblestone_wall");
 
 			this.torchBlockString = builder.comment("This is the torch the villagers place.  It can be a modded torch.")
-					.translation("regrowth.config.torchBlockString")
-					.define("torchBlockString", "minecraft:torch");
+					.translation("regrowth.config.torchBlockString").define("torchBlockString", "minecraft:torch");
 
 			builder.pop();
 
@@ -295,11 +273,10 @@ public class MyConfig {
 
 			builder.push("Regrowth Wall Foundations");
 
-			wallFoundationsList = builder
-					.comment("Blocks villagers can build walls on .")
+			wallFoundationsList = builder.comment("Blocks villagers can build walls on .")
 					.translation(Main.MODID + ".config" + "wallFoundationsList")
 					.defineList("wallFoundationsList", defaultWallFoundationsList, Common::isString);
-			
+
 //			defaultWallFoundationsActual = builder.comment("WallFoundations String 6464")
 //					.translation(Main.MODID + ".config" + "defaultWallFoundationsActual")
 //					.define("defaultWallFoundationsActual", defaultWallFoundations6464);
@@ -313,9 +290,8 @@ public class MyConfig {
 			builder.pop();
 
 		}
-		
-		public static boolean isString(Object o)
-		{
+
+		public static boolean isString(Object o) {
 			return (o instanceof String);
 		}
 	}

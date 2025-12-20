@@ -11,15 +11,15 @@ import net.minecraft.core.BlockPos.MutableBlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.npc.Villager;
-import net.minecraft.world.entity.npc.VillagerProfession;
+import net.minecraft.world.entity.npc.villager.Villager;
+import net.minecraft.world.entity.npc.villager.VillagerProfession;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
@@ -241,7 +241,7 @@ public class ActionUtilities {
 			}
 		}
 
-		Utility.debugMsg(2, bPos, Utility.getResourceLocationString(serverLevel, searchBlock) + " Sparse count:" + count
+		Utility.debugMsg(2, bPos, Utility.getIdentifierString(serverLevel, searchBlock) + " Sparse count:" + count
 				+ " countBlockBB ");
 
 		return count;
@@ -327,20 +327,22 @@ public class ActionUtilities {
 	    Registry<Biome> biomeRegistry = getBiomeRegistrySafe(serverLevel.getServer(), Registries.BIOME);
 	    Registry<Block> blockRegistry = getBlockRegistrySafe(serverLevel.getServer(), Registries.BLOCK);
 
-	    ResourceLocation biomeKey = null;
-	    ResourceLocation saplingKey = null;
+	    Identifier biomeId = null;
+	    Identifier saplingId = null;
 
 	    if (biomeRegistry != null) {
-	        biomeKey = biomeRegistry.getKey(biome);
+	        biomeId = biomeRegistry.getKey(biome);
 	    }
 
 	    if (blockRegistry != null && sapling != null) {
-	        saplingKey = blockRegistry.getKey(sapling.getBlock());
+	        saplingId = blockRegistry.getKey(sapling.getBlock());
 	    }
 
-	
-		return String.format("Biome=%s, Sapling=%s", biomeKey != null ? biomeKey : "unknown_biome",
-				saplingKey != null ? saplingKey : "unknown_sapling");
+	    return String.format(
+	        "Biome=%s, Sapling=%s",
+	        biomeId != null ? biomeId : "unknown_biome",
+	        saplingId != null ? saplingId : "unknown_sapling"
+	    );
 	}
 
 	public static Registry<Block> getBlockRegistrySafe(MinecraftServer server, ResourceKey<Registry<Block>> key) {

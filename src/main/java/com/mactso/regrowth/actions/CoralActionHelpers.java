@@ -133,7 +133,7 @@ public class CoralActionHelpers {
 		serverLevel.playSound(le, newPos, SoundEvents.CHORUS_FLOWER_GROW, SoundSource.AMBIENT, 1.9f, 1.0f);
 	
 		if (rgCtx.doDebug())
-			Utility.debugMsg(2, newPos, "CORAL: " + Utility.getResourceLocationString(le) + " new block at " + newPos);
+			Utility.debugMsg(2, newPos, "CORAL: " + Utility.getIdentifierString(le) + " new block at " + newPos);
 	}
 
 	/**

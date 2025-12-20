@@ -12,68 +12,60 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 public class RegrowthCommands {
 
 	private static final String MOD_VERSION = "1.21.1 v14";
-	
+
 	private static final String DEBUG_LEVEL_ARG = "level 0-2";
-	
+
 	// ---------------------------
 	// Permission constants
 	// ---------------------------
 	public final class PermissionLevel {
-	    public static final int ALL   = 0; // All players; /say, /help, /spawnpoint
-	    public static final int MOD   = 1; // Moderators; /gamemode <mode>, /teleport <player>
-	    public static final int OP    = 2; // Operators; /setblock, /time set, /regrowth
-	    public static final int ADMIN = 3; // Admins; /stop, /ban, /kick
-	    public static final int OWNER = 4; // Server owner; /op <player>, /deop <player>, /reload
-	    // No constructor needed because the class is final and contains only static members
+		public static final int ALL = 0; // All players; /say, /help, /spawnpoint
+		public static final int MOD = 1; // Moderators; /gamemode <mode>, /teleport <player>
+		public static final int OP = 2; // Operators; /setblock, /time set, /regrowth
+		public static final int ADMIN = 3; // Admins; /stop, /ban, /kick
+		public static final int OWNER = 4; // Server owner; /op <player>, /deop <player>, /reload
+		// No constructor needed because the class is final and contains only static
+		// members
 	}
 
 	// ---------------------------
 	// Command result constants
 	// ---------------------------
 	public final class CommandResult {
-	    public static final int NONE     = 0; // Command had no effect
-	    public static final int SUCCESS  = 1; // Standard success
-	    public static final int MULTIPLE = 2; // Multiple entities/things affected
-	    // No constructor needed because the class is final and contains only static members
+		public static final int NONE = 0; // Command had no effect
+		public static final int SUCCESS = 1; // Standard success
+		public static final int MULTIPLE = 2; // Multiple entities/things affected
+		// No constructor needed because the class is final and contains only static
+		// members
 	}
 
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-	    Utility.debugMsg(0, "Registering " + Main.MODID + " commands.");
+		Utility.debugMsg(0, "Registering " + Main.MODID + " commands.");
 
-	    dispatcher.register(
-	        Commands.literal("regrowth")
-	            .requires(source -> source.hasPermission(PermissionLevel.OP))
-	            .then(
-	                Commands.literal("debugLevel")
-	                    .then(
-	                        Commands.argument(DEBUG_LEVEL_ARG, IntegerArgumentType.integer(0, 2))
-	                            .executes(ctx -> setDebugLevel(
-	                                IntegerArgumentType.getInteger(ctx, DEBUG_LEVEL_ARG)
-	                            ))
-	                    )
-	            )
-	            .then(
-	                Commands.literal("info")
-	                    .executes(ctx -> doInfoCommand(
-	                        ctx.getSource().getPlayerOrException()
-	                    ))
-	            )
-	    );
+		dispatcher.register(
+				Commands.literal(Main.MODID).requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+						.then(Commands.literal("debugLevel")
+								.then(Commands.argument(DEBUG_LEVEL_ARG, IntegerArgumentType.integer(0, 2)).executes(
+										ctx -> setDebugLevel(IntegerArgumentType.getInteger(ctx, DEBUG_LEVEL_ARG)))))
+						.then(Commands.literal("info")
+								.executes(ctx -> doInfoCommand(ctx.getSource().getPlayerOrException()))));
 	}
 
 	public static int setDebugLevel(int newDebugLevel) {
-		MyConfig.setDebugLevel(newDebugLevel); 
+		MyConfig.setDebugLevel(newDebugLevel);
 		MyConfig.pushDebugLevel();
 		return CommandResult.SUCCESS;
 	}
@@ -117,12 +109,12 @@ public class RegrowthCommands {
 		String objectInfo = target != null ? "You are looking at: " + EntityType.getKey(target.getType()).toString()
 				: "You don't see an entity.";
 
-		ResourceLocation rl = serverLevel.dimension().location();
+		ResourceKey<Level> dimensionKey = serverLevel.dimension();
+		Identifier rl = dimensionKey.registry();
 
-		Utility.sendBoldChat(sp, "Regrowth "+ MOD_VERSION +" "+ rl + "\n Current Values", ChatFormatting.DARK_GREEN);
+		Utility.sendBoldChat(sp, "Regrowth " + MOD_VERSION + " " + rl + "\n Current Values", ChatFormatting.DARK_GREEN);
 
-		String msg = "  Debug Level 0-2 : " + MyConfig.getDebugLevel() + "\n  Looking At : "
-				+ objectInfo;
+		String msg = "  Debug Level 0-2 : " + MyConfig.getDebugLevel() + "\n  Looking At : " + objectInfo;
 
 		Utility.sendChat(sp, msg, ChatFormatting.DARK_GREEN);
 

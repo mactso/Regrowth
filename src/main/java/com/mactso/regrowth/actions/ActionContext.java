@@ -11,7 +11,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ambient.Bat;
-import net.minecraft.world.entity.npc.Villager;
+import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.BedBlock;
 import net.minecraft.world.level.block.Block;
@@ -169,7 +169,7 @@ public class ActionContext {
 
 		ServerLevel serverLevel = (ServerLevel) le.level();
 		boolean doDebug = (MyConfig.getaDebugLevel() > 0);
-		String key = Utility.getResourceLocationString(le).toString();
+		String key = Utility.getIdentifierString(le).toString();
 		RegrowthMobItem mobInfo = RegrowthEntitiesManager.getRegrowthMobInfo(key);
 		if (mobInfo == null)
 			return null;

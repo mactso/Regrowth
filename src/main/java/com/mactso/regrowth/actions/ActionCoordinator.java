@@ -14,7 +14,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ambient.Bat;
-import net.minecraft.world.entity.npc.Villager;
+import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -37,7 +37,7 @@ public class ActionCoordinator {
 
 		if ((MyConfig.getDebugLevel() >= 2 && (gametime % 20 == 0))) 
 			Utility.debugMsg(2, String.format("World: %s, gametime: %d, startingTime: %d",
-					serverLevel.dimension().location(), gametime, startingTime));
+					serverLevel.dimension().registry(), gametime, startingTime));
 
 		// Return true only when the world has advanced at least one second
 		return gametime >= startingTime + TICKS_PER_SECOND;
@@ -90,7 +90,7 @@ public class ActionCoordinator {
 		if (rgCtx == null)
 			return;
 
-		String rlString = Utility.getResourceLocationString(le).toString();
+		String rlString = Utility.getIdentifierString(le).toString();
 		RegrowthMobItem currentRegrowthMobItem = RegrowthEntitiesManager.getRegrowthMobInfo(rlString);
 		if (currentRegrowthMobItem == null)
 			return;

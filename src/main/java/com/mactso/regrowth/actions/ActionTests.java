@@ -21,8 +21,8 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy;
 import net.minecraft.world.entity.ai.village.poi.PoiRecord;
 import net.minecraft.world.entity.ai.village.poi.PoiTypes;
-import net.minecraft.world.entity.animal.horse.AbstractHorse;
-import net.minecraft.world.entity.npc.Villager;
+import net.minecraft.world.entity.animal.equine.AbstractHorse;
+import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
@@ -289,7 +289,7 @@ public class ActionTests {
 	// imitate "stones".
 	static boolean isNatProgPebbleOrStick(ActionContext rgCtx) {
 
-		String rl = Utility.getResourceLocationString(rgCtx.serverLevel(), rgCtx.footBlock());
+		String rl = Utility.getIdentifierString(rgCtx.serverLevel(), rgCtx.footBlock());
 
 		if ((rl.contains("natprog")) && (rl.contains("pebble")))
 			return true;

@@ -3,12 +3,16 @@ package com.mactso.regrowth.config;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.mactso.regrowth.Main;
+import com.mactso.regrowth.utility.Utility;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.Holder.Reference;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -19,7 +23,6 @@ import net.minecraftforge.common.ForgeConfigSpec.IntValue;
 import net.minecraftforge.eventbus.api.listener.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
-import net.minecraftforge.registries.ForgeRegistries;
 
 @Mod.EventBusSubscriber(modid = Main.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public class MyConfig {
@@ -157,22 +160,35 @@ public class MyConfig {
 		WallFoundationManager.init();
 		defaultWallBiomeData6464 = COMMON.defaultBiomeWallDataActual.get();
 		try {
-
-			ResourceLocation rl = ResourceLocation.parse(COMMON.playerWallControlBlockString.get());
-			playerWallControlBlock = ForgeRegistries.BLOCKS.getValue(rl);
-			ResourceLocation t1 = ResourceLocation.parse(COMMON.torchBlockString.get());
-			torchBlock = ForgeRegistries.BLOCKS.getValue(t1);
-		} catch (Exception e) {
-			System.out.println("Regrowth Debug:  Player Wall Control Block Illegal Config (uPper CaSe?): "
-					+ COMMON.playerWallControlBlockString.get());
-		}
-		if (playerWallControlBlock == Blocks.AIR) {
-			System.out.println(
-					"Regrowth Warn:  Player Wall Control Block is : " + COMMON.playerWallControlBlockString.get());
+		    // Parse the player wall control block
+		    Identifier playerWallId = Identifier.parse(COMMON.playerWallControlBlockString.get());
+		     Optional<Reference<Block>> playerWallOpt = BuiltInRegistries.BLOCK.get(playerWallId);
+		    if (playerWallOpt.isPresent()) {
+		        playerWallControlBlock = playerWallOpt.get().value();
+		    } else {
+		        Utility.debugMsg(0, "Regrowth Debug: Player Wall Control Block not found: " 
+		                             + COMMON.playerWallControlBlockString.get());
+		        playerWallControlBlock = Blocks.AIR;
+		    }
+		    
+		    // Parse the torch block
+		    Identifier torchId = Identifier.parse(COMMON.torchBlockString.get());
+			Optional<Reference<Block>> torchOpt = BuiltInRegistries.BLOCK.get(torchId);
+		    if (torchOpt.isPresent()) {
+		        torchBlock = torchOpt.get().value();
+		    } else {
+		        Utility.debugMsg(0, "Regrowth Debug: Torch Block not found: " 
+		                             + COMMON.torchBlockString.get());
+		        torchBlock = Blocks.AIR;
+		    }
+		    
+		} catch (Exception e) {	
+		    Utility.debugMsg(0, "Regrowth Debug: Illegal block config (uPper CaSe?): " 
+                    + COMMON.playerWallControlBlockString.get());
 		}
 
 		if (debugLevel > 0) {
-			System.out.println("Regrowth Debug Level: " + debugLevel);
+			Utility.debugMsg(0,"Regrowth Debug Level: " + debugLevel);
 		}
 	}
 

@@ -229,22 +229,22 @@ public class Utility {
 		}
 	}	
 	
-	public static String getResourceLocationString(ServerLevel serverLevel, BlockState blockState) {
-		return getResourceLocationString(serverLevel,blockState.getBlock());
+	public static String getIdentifierString(ServerLevel serverLevel, BlockState blockState) {
+		return getIdentifierString(serverLevel,blockState.getBlock());
 		}
 
 
 	@SuppressWarnings("deprecation")
-	public static String getResourceLocationString(ServerLevel serverLevel, Block block) {
-		return block.builtInRegistryHolder().key().location().toString();
+	public static String getIdentifierString(ServerLevel serverLevel, Block block) {
+		return block.builtInRegistryHolder().key().registry().toString();
 	}
 
 	@SuppressWarnings("deprecation")
-	public static String getResourceLocationString(ServerLevel serverLevel, Item item) {
-		return item.builtInRegistryHolder().key().location().toString();
+	public static String getIdentifierString(ServerLevel serverLevel, Item item) {
+		return item.builtInRegistryHolder().key().registry().toString();
 	}
 
-	public static String getResourceLocationString(Entity entity) {
+	public static String getIdentifierString(Entity entity) {
 		EntityType<?> et = entity.getType();
 		return 	EntityType.getKey(et).toString();
 	}

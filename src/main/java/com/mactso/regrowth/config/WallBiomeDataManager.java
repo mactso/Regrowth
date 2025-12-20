@@ -13,7 +13,7 @@ import net.minecraft.core.HolderLookup.RegistryLookup;
 import net.minecraft.core.RegistryAccess.Frozen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.block.Block;
@@ -115,20 +115,20 @@ public class WallBiomeDataManager {
 				int wallDiameter = validatedWallDiameter(Integer.parseInt(wallDiameterString.trim()));
 
 				BlockState wallBlockState = DEFAULT_WALL_BLOCKSTATE;
-				if (BuiltInRegistries.BLOCK.containsKey(ResourceLocation.parse(wallBlockString))) {
+				if (BuiltInRegistries.BLOCK.containsKey(Identifier.parse(wallBlockString))) {
 					@NotNull
 					Optional<Holder<Block>> opt = ForgeRegistries.BLOCKS
-							.getHolder(ResourceLocation.parse(wallBlockString));
+							.getHolder(Identifier.parse(wallBlockString));
 					if (opt.isPresent()) {
 						wallBlockState = opt.get().get().defaultBlockState();
 					}
 				}
 
 				BlockState fenceBlockState = DEFAULT_FENCE_BLOCKSTATE;
-				if (BuiltInRegistries.BLOCK.containsKey(ResourceLocation.parse(wallBlockString))) {
+				if (BuiltInRegistries.BLOCK.containsKey(Identifier.parse(wallBlockString))) {
 					@NotNull
 					Optional<Holder<Block>> opt = ForgeRegistries.BLOCKS
-							.getHolder(ResourceLocation.parse(fenceBlockString));
+							.getHolder(Identifier.parse(fenceBlockString));
 					if (opt.isPresent()) {
 						fenceBlockState = opt.get().get().defaultBlockState();
 					}

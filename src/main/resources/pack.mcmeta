@@ -1,6 +1,10 @@
 {
   "pack": {
-    "description": "mod resources",
-    "pack_format": 63
+    "description": "${mod_id} resources",
+    "max_format": 94,
+    "min_format": [
+      94,
+      1
+    ]
   }
 }

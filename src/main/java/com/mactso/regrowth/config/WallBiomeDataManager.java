@@ -23,8 +23,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 
 public class WallBiomeDataManager {
 	private static Hashtable<String, WallBiomeDataItem> wallBiomeDataHashtable = new Hashtable<>();
-	private static String defaultRegrowthMobString = "regrowth:default";
-	private static String defaultRegrowthMobKey = defaultRegrowthMobString;
+
 	private static BlockState DEFAULT_WALL_BLOCKSTATE = Blocks.COBBLESTONE_WALL.defaultBlockState();
 	private static BlockState DEFAULT_FENCE_BLOCKSTATE = Blocks.OAK_FENCE.defaultBlockState();
 

@@ -2,6 +2,7 @@ package com.mactso.regrowth.actions;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -166,15 +167,23 @@ public class ActionTests {
 		BlockPos vePos = rgCtx.ve().blockPosition();
 
 		// 1. Short-range check: any very close POI blocks wall building
-		boolean hasClosePOI = serverLevel.getPoiManager().getInSquare(t -> true, vePos, SHORT_RANGE, Occupancy.ANY)
-				.findAny().isPresent();
-		if (hasClosePOI)
+		// 2. This is slower but this code doesn't work in 1.21.5
+		//		boolean hasClosePOI =
+		//		        serverLevel.getPoiManager()
+		//		                .getInSquare(t -> true, vePos, SHORT_RANGE, Occupancy.ANY)
+		//		                .findFirst()
+		//		                .isPresent();
+
+		List<PoiRecord> closePois = serverLevel.getPoiManager()
+				.getInSquare(t -> true, vePos, SHORT_RANGE, Occupancy.ANY).toList();
+
+		if (closePois.size() > 0)
 			return false;
 
 		// 2. Wall-radius check: must have exactly one meeting point at wall radius
 		// distance
 
-		Collection<PoiRecord> result = serverLevel.getPoiManager().getInSquare(t -> true, vePos, 41, Occupancy.ANY)
+		Collection<PoiRecord> result = serverLevel.getPoiManager().getInSquare(t -> true, vePos, wallRadius, Occupancy.ANY)
 				.collect(Collectors.toCollection(ArrayList::new));
 
 		int count = 0;

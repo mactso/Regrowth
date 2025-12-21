@@ -125,38 +125,38 @@ public class RoadActionHelpers {
 		return false;
 	}
 
-	// Checks if 4 road blocks are orthagonally adjacent with some Y flexibility for
+	// Checks if 3 or 4 road blocks are orthagonally adjacent with some Y flexibility for
 	// slopes.
 	// Note: Exits once it finds 3 adjacent roadblocks
 	// Note: Exits early once it finds 3+ road blocks can't happen
-	static boolean isFourAdjacentRoadBlocks(ActionContext rgCtx) {
+	static boolean isPatchAdjacentRoadBlocks(ActionContext rgCtx) {
 	
 		ServerLevel level = (ServerLevel) rgCtx.ve().level();
 		BlockPos base = rgCtx.adjustedPos();
 		Block biomeRoadBlock = rgCtx.biomeRoadBlock();
 	
 		MutableBlockPos pos = new MutableBlockPos();
+	    int count = 0;
 	
 		// EAST
 		pos.set(base.getX() + 1, base.getY(), base.getZ());
-		if (!(RoadActionHelpers.isRoadInYColumn(level, biomeRoadBlock, pos)))
-			return false;
+	    if (RoadActionHelpers.isRoadInYColumn(level, biomeRoadBlock, pos)) count++;
+
 		// WEST
 		pos.set(base.getX() - 1, base.getY(), base.getZ());
-		if (!(RoadActionHelpers.isRoadInYColumn(level, biomeRoadBlock, pos)))
-			return false;
+	    if (RoadActionHelpers.isRoadInYColumn(level, biomeRoadBlock, pos)) count++;
 	
 		// NORTH
 		pos.set(base.getX(), base.getY(), base.getZ() - 1);
-		if (!(RoadActionHelpers.isRoadInYColumn(level, biomeRoadBlock, pos)))
-			return false;
+	    if (RoadActionHelpers.isRoadInYColumn(level, biomeRoadBlock, pos)) count++;
+	    if (count == 3) return true;
 	
 		// SOUTH
 		pos.set(base.getX(), base.getY(), base.getZ() + 1);
-		if (!(RoadActionHelpers.isRoadInYColumn(level, biomeRoadBlock, pos)))
-			return false;
+	    if (RoadActionHelpers.isRoadInYColumn(level, biomeRoadBlock, pos)) count++;
+	    if (count >=3) return true;
 	
-		return true;
+	    return false;
 	}
 
 	static boolean isRoadBump(ActionContext rgCtx) {
@@ -199,22 +199,14 @@ public class RoadActionHelpers {
 		return true;
 	}
 
-	static boolean isRoadInYColumn(ServerLevel level, Block road, MutableBlockPos pos) {
+	public static boolean isRoadInYColumn(ServerLevel level, Block roadBlock, BlockPos pos) {
+	    // adjust down by 1 since road blocks are partial blocks
+		// this will be an issue if the road blocks are ever not dirt_path partial blocks.
+	    int topY = level.getHeight(Types.MOTION_BLOCKING_NO_LEAVES, pos.getX(), pos.getZ());
+	    BlockPos topPos = new BlockPos(pos.getX(), topY-1, pos.getZ());
 	
-		int baseY = pos.getY();
-	
-		if (level.getBlockState(pos.setY(baseY + 1)).getBlock() == road)
-			return true;
-		if (level.getBlockState(pos.setY(baseY + 0)).getBlock() == road)
-			return true;
-		if (level.getBlockState(pos.setY(baseY - 1)).getBlock() == road)
-			return true;
-		if (level.getBlockState(pos.setY(baseY - 2)).getBlock() == road)
-			return true;
-		if (level.getBlockState(pos.setY(baseY - 3)).getBlock() == road)
-			return true;
-	
-		return false;
+	    BlockState state = level.getBlockState(topPos);
+	    return state.is(roadBlock);
 	}
 
 	// a pothole is any air block with four orthagonal adjacent road blocks.
@@ -288,7 +280,7 @@ public class RoadActionHelpers {
 		BlockPos adjustedPos = rgCtx.adjustedPos();
 		Block biomeRoadBlock = rgCtx.biomeRoadBlock();
 	
-		if (!(RoadActionHelpers.isFourAdjacentRoadBlocks(rgCtx)))
+		if (!(RoadActionHelpers.isPatchAdjacentRoadBlocks(rgCtx)))
 			return false;
 	
 		BlockState biomeRoadBlockState = biomeRoadBlock.defaultBlockState();

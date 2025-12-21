@@ -318,11 +318,7 @@ public class VillagerActions {
 
 		Villager ve = rgCtx.ve();
 		Block fb = rgCtx.footBlock();
-
-		if (!(fb instanceof TallGrassBlock || fb instanceof DoublePlantBlock
-				|| fb.getDescriptionId().equals("block.byg.short_grass"))) {
-			return false;
-		}
+		if (isCuttable(fb)) {
 
 		MutableBlockPos tmpBP = new MutableBlockPos();
 		tmpBP.set(rgCtx.footBlockPos());
@@ -331,6 +327,29 @@ public class VillagerActions {
 		Utility.debugMsg(1, ve, rgCtx.key() + " grass cut.");
 
 		return true;
+		
+		}
+		
+		return false;
+
+	}
+
+	private static boolean isCuttable(Block b) {
+
+		// this lets the same version of the code run over 1.21.6, 1.21.7, 1.21.8
+		String className = b.getClass().getSimpleName();
+		boolean isCuttablePlant = className.equals("LeafLitterBlock") // 1.21.5
+				|| className.equals("ShortDryGrassBlock") // 1.21.8
+				|| className.equals("TallDryGrassBlock") // 1.21.8
+				|| (b instanceof TallGrassBlock) || (b instanceof DoublePlantBlock)
+				|| b.getDescriptionId().equals("block.byg.short_grass");
+
+		if (isCuttablePlant) {
+			return true;
+		}
+
+//falls through if not a cuttable plant
+		return false;
 	}
 
 	// ---------------------
@@ -542,8 +561,8 @@ public class VillagerActions {
 		if (!ActionTests.isVillageMeetingTime(level))
 			return false;
 
-		// Only Toolsmithss heal
-		ResourceKey<VillagerProfession> profession = ve.getVillagerData().profession().unwrapKey().get();
+		// Only Toolsmiths heal
+
 		if (!ve.getVillagerData().profession().is(VillagerProfession.TOOLSMITH))
 			return false;
 

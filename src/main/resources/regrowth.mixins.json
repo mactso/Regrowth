@@ -1,8 +1,8 @@
 {
   "required": true,
   "minVersion": "0.8",
-  "package": "com.mactso.regrowth.mixin",
-  "compatibilityLevel": "JAVA_16",
+	"package": "com.mactso.regrowth.modloader.mixins",
+	"compatibilityLevel": "JAVA_21",
   "mixins": [
 	"LivingEntityMixin",
 	"FarmlandBlockMixin"

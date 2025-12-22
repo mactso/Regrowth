@@ -1,33 +1,34 @@
 {
-	"schemaVersion": 1,
-	"id": "regrowth",
-	"version": "123.32.0",
-	"name": "Regrowth",
-	"description": "Creatures eat and regrow plants.  Villagers improve their villages.",
-	"authors": [
-		"Mactso, Lupicus"
-	],
-	"contact": {
-		"homepage": "https://www.curseforge.com/minecraft/mc-mods/regrowth"
-	},
-	"license": "MIT License",
-	"icon": "Regrowth.png",
-	"environment": "*",
-	"entrypoints": {
-		"main": [
-			"com.mactso.regrowth.Main"
-		]
-	},
-	"mixins": [
-		"regrowth.mixins.json"
-	],
-	"depends": {
-		"fabricloader": ">=0.16.14",
-		"minecraft": "~1.21.5",
-		"java": ">=21",
-		"fabric-api": "*"
-	},
-	"suggests": {
-		"another-mod": "*"
-	}
+  "schemaVersion": 1,
+  "id": "regrowth",
+  "version": "123.34.5",
+  "name": "Regrowth",
+  "description": "Creatures eat and regrow plants. Villagers improve their villages.",
+  "authors": [
+    "Mactso, Lupicus"
+  ],
+  "contact": {
+    "homepage": "https://www.curseforge.com/minecraft/mc-mods/regrowth"
+  },
+  "license": "MIT License",
+  "icon": "Regrowth.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.mactso.regrowth.modloader.main.RegrowthMain"
+    ]
+  },
+  "mixins": [
+    "regrowth.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.14",
+    "minecraft": "~1.21.5",
+    "java": ">=21",
+    "fabric-api": "*"
+  },
+  "suggests": {
+    "another-mod": "*"
+  }
 }
+

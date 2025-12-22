@@ -1,18 +1,25 @@
-package com.mactso.regrowth.utility;
+package com.mactso.regrowth.utilities;
+
+import java.util.Optional;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.mactso.regrowth.config.MyConfig;
+import com.mactso.regrowth.modloader.config.MyConfig;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.BiomeTags;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
@@ -27,7 +34,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap.Types;
 import net.minecraft.world.phys.Vec3;
 
-public class Utility {
+public class MyUtilities {
 	
 	public static String NONE = "none";
 	public static String BEACH = "beach";
@@ -69,38 +76,38 @@ public class Utility {
 
 	private static final Logger LOGGER = LogManager.getLogger();
 	
-	public static String getMyBC (Holder<Biome> testBiome) {
+	public static String getMyBiomeCategory (Holder<Biome> testBiome) {
 		
 		if (testBiome.is(BiomeTags.HAS_VILLAGE_DESERT))
-			return Utility.DESERT;
+			return MyUtilities.DESERT;
 		if (testBiome.is(BiomeTags.IS_FOREST))
-			return Utility.FOREST;
+			return MyUtilities.FOREST;
 		if (testBiome.is(BiomeTags.IS_BEACH))
-			return Utility.BEACH;
+			return MyUtilities.BEACH;
 		if (testBiome.is(BiomeTags.HAS_VILLAGE_SNOWY))
-			return Utility.ICY;		
+			return MyUtilities.ICY;		
 		if (testBiome.is(BiomeTags.IS_JUNGLE))
-			return Utility.JUNGLE;		
+			return MyUtilities.JUNGLE;		
 		if (testBiome.is(BiomeTags.IS_OCEAN))
-			return Utility.OCEAN;		
+			return MyUtilities.OCEAN;		
 		if (testBiome.is(BiomeTags.IS_DEEP_OCEAN))
-			return Utility.OCEAN;		
+			return MyUtilities.OCEAN;		
 		if (testBiome.is(BiomeTags.HAS_VILLAGE_PLAINS))
-			return Utility.PLAINS;		
+			return MyUtilities.PLAINS;		
 		if (testBiome.is(BiomeTags.IS_RIVER))
-			return Utility.RIVER;		
+			return MyUtilities.RIVER;		
 		if (testBiome.is(BiomeTags.IS_SAVANNA))
-			return Utility.SAVANNA;		
+			return MyUtilities.SAVANNA;		
 		if (testBiome.is(BiomeTags.ALLOWS_SURFACE_SLIME_SPAWNS))
-			return Utility.SWAMP;		
+			return MyUtilities.SWAMP;		
 		if (testBiome.is(BiomeTags.IS_TAIGA))
-			return Utility.TAIGA;		
+			return MyUtilities.TAIGA;		
 		if (testBiome.is(BiomeTags.IS_BADLANDS))
-			return Utility.BADLANDS;		
+			return MyUtilities.BADLANDS;		
 		if (testBiome.is(BiomeTags.IS_MOUNTAIN))
-			return Utility.EXTREME_HILLS;		
+			return MyUtilities.EXTREME_HILLS;		
 		if (testBiome.is(BiomeTags.IS_NETHER))
-			return Utility.NETHER;	
+			return MyUtilities.NETHER;	
 		return NONE;
 
 	}
@@ -151,6 +158,27 @@ public class Utility {
 
 	}
 	
+	public static void updateEffect(LivingEntity e, int amplifier,  Holder<MobEffect> mobEffect) {
+		MobEffectInstance ei = e.getEffect(mobEffect);
+		if (amplifier == 10) {
+			amplifier = 20;  // player "plaid" speed.
+		}
+		if (ei != null) {
+			if (amplifier > ei.getAmplifier()) {
+				e.removeEffect(mobEffect);
+			} 
+			if (amplifier == ei.getAmplifier() && ei.getDuration() > 10) {
+				return;
+			}
+			if (ei.getDuration() > 10) {
+				return;
+			}
+			e.removeEffect(mobEffect);			
+		}
+		e.addEffect(new MobEffectInstance(mobEffect, TWO_SECONDS, amplifier, true, true ));
+		return;
+	}
+
 	public static boolean populateEntityType(EntityType<?> et, ServerLevel level, BlockPos savePos, int range,
 			int modifier) {
 		boolean isBaby = false;
@@ -171,7 +199,7 @@ public class Utility {
 		if (numZP < 0)
 			return false;
 		for (int i = 0; i <= numZP; i++) {
-
+			// MobSpawnType changes to EntitySpawnReason in a later version.
 			e = (Mob) et.spawn(level, savePos, EntitySpawnReason.NATURAL);
 			if (persistant) 
 				e.setPersistenceRequired();
@@ -184,12 +212,23 @@ public class Utility {
 		Mob e;
 
 		for (int i = 0; i < X; i++) {
-			e = (Mob) et.spawn(level, savePos, EntitySpawnReason.NATURAL);
+			// MobSpawnType changes to EntitySpawnReason in a later version.
+			e = (Mob) et.spawn(level, savePos,EntitySpawnReason.NATURAL);
 			e.setBaby(isBaby);
 		}
 		return true;
 	}
 
+	public static boolean isStringValid(String s) {
+	    boolean valid = false;
+
+	    if (s != null && !s.isBlank()) {
+	        valid = true;
+	    }
+
+	    return valid;
+	}
+	
 	public static boolean isNotNearWebs(BlockPos pos, ServerLevel serverLevel) {
 
 		if (serverLevel.getBlockState(pos).getBlock() == Blocks.COBWEB)
@@ -230,17 +269,17 @@ public class Utility {
 	}	
 	
 	public static String getResourceLocationString(ServerLevel serverLevel, BlockState blockState) {
-		return getResourceLocationString(blockState.getBlock());
+		return getResourceLocationString(serverLevel,blockState.getBlock());
 	}
 	
 
 	@SuppressWarnings("deprecation")
-	public static String getResourceLocationString(Block block) {
+	public static String getResourceLocationString(ServerLevel serverLevel, Block block) {
 		return block.builtInRegistryHolder().key().location().toString();
 	}
 
 	@SuppressWarnings("deprecation")
-	public static String getResourceLocationString(Item item) {
+	public static String getResourceLocationString(ServerLevel serverLevel, Item item) {
 		return item.builtInRegistryHolder().key().location().toString();
 	}
 
@@ -254,9 +293,18 @@ public class Utility {
 	}
 
 
-	public static void warn (String dMsg) {
-		LOGGER.warn(dMsg);
+	// -------------------------------
+	// Helper to allow methods to be the same in 1.21.1 and 1.21.5 .
+	// -------------------------------
+		public static <T> Registry<T> getRegistrySafe(RegistryAccess access, ResourceKey<Registry<T>> key) {
+			Optional<Registry<T>> optRegistry = access.lookup(key);
+			if (optRegistry.isEmpty())
+				return null;
+	    return optRegistry.get();  // 1.21.4 to 1.21.5 pattern
 	}
+
+
+	
 
 
 }

@@ -382,7 +382,7 @@ public class ActionTests {
 		int wallDiameter = 64;
 		key = key.toLowerCase();
 		WallBiomeDataManager.WallBiomeDataItem currentWallBiomeDataItem = WallBiomeDataManager
-				.getWallBiomeDataItem(ve.getServer(), key);
+				.getWallBiomeDataItem(ve.level().getServer(), key);
 		if (!(currentWallBiomeDataItem == null)) {
 			wallDiameter = currentWallBiomeDataItem.getWallLength();
 		}

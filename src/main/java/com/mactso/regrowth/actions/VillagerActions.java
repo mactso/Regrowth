@@ -248,13 +248,13 @@ public class VillagerActions {
 		String biomeKey = "minecraft:" + rgCtx.biomeCategory();
 		biomeKey = biomeKey.toLowerCase();
 		WallBiomeDataManager.WallBiomeDataItem currentWallBiomeDataItem = WallBiomeDataManager
-				.getWallBiomeDataItem(ve.getServer(),biomeKey);
+				.getWallBiomeDataItem(ve.level().getServer(),biomeKey);
 		if (currentWallBiomeDataItem == null) {
 
 			biomeKey = "minecraft:" + rgCtx.biomeCategory().toLowerCase();
-			currentWallBiomeDataItem = WallBiomeDataManager.getWallBiomeDataItem(ve.getServer(),biomeKey);
+			currentWallBiomeDataItem = WallBiomeDataManager.getWallBiomeDataItem(ve.level().getServer(),biomeKey);
 			if (currentWallBiomeDataItem == null) {
-				currentWallBiomeDataItem = WallBiomeDataManager.getWallBiomeDataItem(ve.getServer(),"minecraft:plains");
+				currentWallBiomeDataItem = WallBiomeDataManager.getWallBiomeDataItem(ve.level().getServer(),"minecraft:plains");
 			}
 		}
 
@@ -518,7 +518,7 @@ public class VillagerActions {
 		BlockPos vePos = rgCtx.adjustedPos();
 		String wallKey = ("minecraft:" + rgCtx.biomeCategory()).toLowerCase();
 		WallBiomeDataManager.WallBiomeDataItem currentWallBiomeDataItem = WallBiomeDataManager
-				.getWallBiomeDataItem(ve.getServer(),wallKey);
+				.getWallBiomeDataItem(ve.level().getServer(),wallKey);
 
 		int wallRadius = (currentWallBiomeDataItem.getWallLength() / 2) - 1;
 

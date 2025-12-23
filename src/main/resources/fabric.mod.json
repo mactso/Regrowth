@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "regrowth",
-  "version": "123.34.5",
+  "version": "134.34.5",
   "name": "Regrowth",
   "description": "Creatures eat and regrow plants. Villagers improve their villages.",
   "authors": [
@@ -22,8 +22,8 @@
     "regrowth.mixins.json"
   ],
   "depends": {
-    "fabricloader": ">=0.16.14",
-    "minecraft": "~1.21.5",
+		"fabricloader": ">=0.18.3",
+		"minecraft": "~1.21.9",
     "java": ">=21",
     "fabric-api": "*"
   },
@@ -31,4 +31,3 @@
     "another-mod": "*"
   }
 }
-

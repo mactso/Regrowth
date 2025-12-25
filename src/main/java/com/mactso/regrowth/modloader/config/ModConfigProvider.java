@@ -1,9 +1,9 @@
-package com.mactso.regrowth.config;
-
-import com.mojang.datafixers.util.Pair;
+package com.mactso.regrowth.modloader.config;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import com.mojang.datafixers.util.Pair;
 
 public class ModConfigProvider implements SimpleConfig.DefaultConfig {
 

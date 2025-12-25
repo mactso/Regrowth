@@ -1,9 +1,16 @@
-// 15.2 - 1.0.0.0 regrowth
-package com.mactso.regrowth.config;
+package com.mactso.regrowth.managers;
 
 import java.util.Hashtable;
 import java.util.StringTokenizer;
 
+import com.mactso.regrowth.modloader.config.MyConfig;
+import com.mactso.regrowth.utilities.MyUtilities;
+
+/**
+ * Manages Regrowth mod entities and their associated actions.
+ * Provides initialization from config, lookup of mob info, and
+ * serialization of mob data as a string.
+ */
 
 public class RegrowthEntitiesManager {
 	public static Hashtable<String, RegrowthMobItem> regrowthMobHashtable = new Hashtable<>();
@@ -61,6 +68,8 @@ public class RegrowthEntitiesManager {
 				System.out.println("Regrowth Debug:  Bad Mob Config : " + oneMob);
 			}
 		}
+		
+        MyUtilities.debugMsg(0, "Configured Mobs initialized. Valid mob count: " + regrowthMobHashtable.size());
 
 	}
 

@@ -1,4 +1,4 @@
-package com.mactso.regrowth.config;
+package com.mactso.regrowth.modloader.config;
 /*
  * Copyright (c) 2021 magistermaks
  * Slightly modified by Kaupenjoe 2021

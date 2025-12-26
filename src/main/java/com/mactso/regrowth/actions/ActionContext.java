@@ -266,7 +266,7 @@ public class ActionContext {
 			Holder<Biome> vmpBiomeHolder = serverLevel.getBiome(this.villageMeetingPointPos().pos());
 			String vmpBiomeCategory = MyUtilities.getMyBiomeCategory(vmpBiomeHolder);
 			String wallKey = ("minecraft:" + vmpBiomeCategory.toLowerCase(Locale.ROOT))  ;
-			wallBiomeDataItem = WallBiomeDataManager.getWallBiomeDataItemx(this.server(), wallKey);
+			wallBiomeDataItem = WallBiomeDataManager.getWallBiomeDataItem(this.server(), wallKey);
 		}
 		return wallBiomeDataItem;
 	}

@@ -34,7 +34,7 @@ public class WallBiomeDataManager {
 	private static WallBiomeDataItem DEFAULT_BIOME_WALL_ITEM = new WallBiomeDataItem(36, DEFAULT_WALL_BLOCKSTATE,
 			DEFAULT_FENCE_BLOCKSTATE);
 
-	public static WallBiomeDataItem getWallBiomeDataItemx(MinecraftServer server, String key) {
+	public static WallBiomeDataItem getWallBiomeDataItem(MinecraftServer server, String key) {
 
 		String iKey = key.toLowerCase(Locale.ROOT);
 
@@ -58,14 +58,14 @@ public class WallBiomeDataManager {
 
 	public static String getWallBiomeDataHashAsString() {
 		String returnString = "";
-		int wallDiameter;
+		int wallLength;
 		BlockState wallTypeBlockState;
 		for (String key : wallBiomeDataMap.keySet()) {
-			wallDiameter = wallBiomeDataMap.get(key).wallLength;
-			if (wallDiameter < 12)
-				wallDiameter = 12;
+			wallLength = wallBiomeDataMap.get(key).wallLength;
+			if (wallLength < 12)
+				wallLength = 12;
 			wallTypeBlockState = wallBiomeDataMap.get(key).getWallBlockState();
-			String tempString = key + "," + wallDiameter + "," + wallTypeBlockState.toString() + ";";
+			String tempString = key + "," + wallLength + "," + wallTypeBlockState.toString() + ";";
 			returnString += tempString;
 		}
 		return returnString;
@@ -97,8 +97,8 @@ public class WallBiomeDataManager {
 			}
 
 			String biomeName = parts[0].trim();
-			int diameter = parseDiameter(parts[1].trim(), entry);
-			if (diameter < 0)
+			int wallLength = parseWallLength(parts[1].trim(), entry);
+			if (wallLength < 0)
 				continue;
 
 			if (!validateBiome(biomeName, biomeRegistry))
@@ -112,7 +112,7 @@ public class WallBiomeDataManager {
 			if (fenceBlock == null)
 				continue;
 
-			WallBiomeDataItem item = new WallBiomeDataItem(diameter, wallBlock.defaultBlockState(),
+			WallBiomeDataItem item = new WallBiomeDataItem(wallLength, wallBlock.defaultBlockState(),
 					fenceBlock.defaultBlockState());
 			wallBiomeDataMap.put(biomeName.toLowerCase(Locale.ROOT), item);
 		}
@@ -120,7 +120,7 @@ public class WallBiomeDataManager {
 
 	// ------------------------ Helper Methods ------------------------
 
-	private static int parseDiameter(String diameterStr, String entry) {
+	private static int parseWallLength(String diameterStr, String entry) {
 		try {
 			int diameter = Integer.parseInt(diameterStr);
 			return Math.max(24, Math.min(diameter, 80));
@@ -170,8 +170,8 @@ public class WallBiomeDataManager {
 		BlockState wallBlockState;
 		BlockState fenceBlockState;
 
-		public WallBiomeDataItem(int wallRadius, BlockState wallBlockState, BlockState fenceBlockState) {
-			this.wallLength = wallRadius;
+		public WallBiomeDataItem(int wallLength, BlockState wallBlockState, BlockState fenceBlockState) {
+			this.wallLength = wallLength;
 			this.wallBlockState = wallBlockState;
 			this.fenceBlockState = fenceBlockState;
 		}

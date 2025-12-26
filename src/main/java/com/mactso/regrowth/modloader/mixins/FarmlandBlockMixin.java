@@ -17,23 +17,20 @@ import net.minecraft.world.level.block.state.BlockState;
 @Mixin(FarmBlock.class)
 abstract class FarmlandBlockMixin {
 
-    @Inject(
-        method = "fallOn(Lnet/minecraft/world/level/Level;"
+	    @Inject(method = "fallOn(Lnet/minecraft/world/level/Level;"
                + "Lnet/minecraft/world/level/block/state/BlockState;"
                + "Lnet/minecraft/core/BlockPos;"
-               + "Lnet/minecraft/world/entity/Entity;D)V",
-        at = @At("HEAD"),
-        cancellable = true
-    )
+	    		+ "Lnet/minecraft/world/entity/Entity;F)V", at = @At("HEAD"), 
+	    		cancellable = true)
     private void onFarmlandTrampled(
             Level level,
             BlockState state,
             BlockPos pos,
             Entity entity,
-            double fallDistance,
+            float fallDistance,
             CallbackInfo ci
     ) {
-        if (TrampleAction.doTrampleAction(entity)) {
+        if (!TrampleAction.doTrampleAction(entity)) {
             ci.cancel();
         }
     }

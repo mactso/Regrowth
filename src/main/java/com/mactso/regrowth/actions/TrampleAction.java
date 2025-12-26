@@ -29,21 +29,23 @@ public class TrampleAction {
 		MyUtilities.debugMsg(1, pos, "Enter handleTrampleEvent");
 
 		if (entity instanceof Villager ve) {
-			if (!ve.getVillagerData().profession().is(VillagerProfession.FARMER)) {
-				if (ve.getVillagerData().level() >= 3) {
+			if ( VillagerActions.getVillagerLevel(ve)  < 3) {
 					return true;
 				}
+
+			if (VillagerActions.isVillagerProfession(ve, VillagerProfession.FARMER)) {
+				return false;
 			}
 
 		}
+
 		if ((entity instanceof ServerPlayer sp)) {
 			if (sp.isCreative()) {
-				return true;
+				return false;
 			}
-			MyUtilities.debugMsg(1, pos, "FarmlandTrampleCancelled");
 		}
 
-		return false;
+		return true;
 	}
 
 }

@@ -9,7 +9,6 @@ import com.mactso.regrowth.utilities.MyUtilities;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.BlockPos.MutableBlockPos;
-import net.minecraft.core.Holder;
 import net.minecraft.core.Holder.Reference;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -292,18 +291,19 @@ public class ActionUtilities {
 
 	static int getVillagerTorchPlaceOdds(Villager ve) {
 		
-	    Holder<VillagerProfession> profession = ve.getVillagerData().profession();
-	    int placeTorchOdds = ve.getVillagerData().level() * 10;
+		int placeTorchOdds = VillagerActions.getVillagerLevel(ve) * 10;
 
-	    if (profession.is(VillagerProfession.FISHERMAN) || profession.is(VillagerProfession.BUTCHER)) {
+		if (VillagerActions.isVillagerProfession(ve, VillagerProfession.FISHERMAN) ||
+			    VillagerActions.isVillagerProfession(ve, VillagerProfession.BUTCHER)) {
 	        return placeTorchOdds + 4;
 	    }
 
-	    if (profession.is(VillagerProfession.TOOLSMITH) || profession.is(VillagerProfession.WEAPONSMITH)) {
+			if (VillagerActions.isVillagerProfession(ve, VillagerProfession.TOOLSMITH) ||
+			    VillagerActions.isVillagerProfession(ve, VillagerProfession.WEAPONSMITH)) {
 	        return placeTorchOdds + 8;
 	    }
 
-	    if (profession.is(VillagerProfession.ARMORER)) {
+			if (VillagerActions.isVillagerProfession(ve, VillagerProfession.ARMORER)) {
 	        return placeTorchOdds + 16;
 	    }
 
@@ -379,11 +379,12 @@ public class ActionUtilities {
 
 	private static boolean torchBlockFailureLogged = false;
     
-    public static Block getTorchBlockFromConfig() {
+	public static Block getTorchBlockFromConfig(ActionContext ctx) {
         String torchBlockString = MyConfig.getTorchBlockString();
         
-		if (!MyUtilities.isStringValid(torchBlockString))
+	    if (!MyUtilities.isStringValid(torchBlockString)) {
 			return null;
+	    }
 
         ResourceLocation id = ResourceLocation.tryParse(torchBlockString);
         if (id == null) {
@@ -391,11 +392,19 @@ public class ActionUtilities {
             return null;
         }
 
-        Optional<Reference<Block>> optBlock = BuiltInRegistries.BLOCK.get(id);
-        if(optBlock.isEmpty())
+	    Registry<Block> blockRegistry = ctx.blockRegistry();
+	    if (blockRegistry == null) {
+	        logTorchFailureOnce("Block registry unavailable.");
         	return null;
-        Block block = optBlock.get().value();
+	    }
+
+	    // Lookup in registry
+	    Optional<Block> optBlock = blockRegistry.getOptional(id);
+	    if (optBlock.isEmpty()) {
+	        return null;
+	    }
         
+	    Block block = optBlock.get();
         if (block == null || block.defaultBlockState().is(BlockTags.AIR)) {
             logTorchFailureOnce("Torch block '" + torchBlockString + "' is not a Block or resolves to AIR.");
             return null;

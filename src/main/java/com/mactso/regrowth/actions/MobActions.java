@@ -267,6 +267,7 @@ public class MobActions {
 		ServerLevel serverLevel = rgCtx.serverLevel();
 		BlockPos aPos = rgCtx.adjustedPos();
 
+		// TODO reenable after testing.
 		if (!CoralActionHelpers.isGoodCoralBiome(serverLevel, aPos)) {
 		    return;
 		}

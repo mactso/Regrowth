@@ -271,7 +271,6 @@ public class MobActions {
 		if (!CoralActionHelpers.isGoodCoralBiome(serverLevel, aPos)) {
 		    return;
 		}
-
 		
 		// Create predictable random source for placement decisions
 		RandomSource pRand = ActionUtilities.createPredictableRandom(le);

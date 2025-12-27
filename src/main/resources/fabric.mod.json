@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "regrowth",
-  "version": "134.34.5",
+  "version": "134.34.6",
   "name": "Regrowth",
   "description": "Creatures eat and regrow plants. Villagers improve their villages.",
   "authors": [

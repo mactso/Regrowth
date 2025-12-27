@@ -22,7 +22,7 @@ import net.minecraft.world.phys.Vec3;
 
 public class RegrowthCommands {
 
-	private static final String MOD_VERSION = "Fabric Regrowth CC 1.21.4 to 5\n Version 34.5";
+	private static final String MOD_VERSION = "Fabric Regrowth CC 1.21.9-10 Version 34.6";
 
 	private static final String DEBUG_LEVEL_ARG = "level 0-2";
 	

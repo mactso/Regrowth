@@ -284,7 +284,7 @@ public class RoadActionHelpers {
 			return false;
 	
 		BlockState biomeRoadBlockState = biomeRoadBlock.defaultBlockState();
-		serverLevel.setBlockAndUpdate(adjustedPos.below(), biomeRoadBlockState); // TODO: Fix in 1.21.1-1.21.4
+		serverLevel.setBlockAndUpdate(adjustedPos.below(), biomeRoadBlockState); 
 		serverLevel.playSound(ve, ve.blockPosition(), SoundEvents.GRASS_PLACE, SoundSource.BLOCKS, /* Volume */ 0.75f,
 				/* Pitch */ 0.75f);
 		roadFixSnow(rgCtx); // now we are on a road.

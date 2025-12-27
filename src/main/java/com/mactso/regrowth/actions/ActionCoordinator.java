@@ -113,7 +113,7 @@ public class ActionCoordinator {
 			regrowthEventOdds *= 20; // 20x odds when eating animation
 		}
 		double randomD100Roll = serverLevel.random.nextDouble();
-		// randomD100Roll = regrowthEventOdds; // TODO remove this after testing.
+		// randomD100Roll = regrowthEventOdds; // TODO turn off randomD100Roll Testing Override
 		if (randomD100Roll <= regrowthEventOdds) {
 			nudgeEntityTowardsCenter(rgCtx);
 			if (le instanceof Villager ve) {
@@ -237,10 +237,6 @@ public class ActionCoordinator {
 			MyUtilities.debugMsg(1, ve, " tried to build town wall.");
 		}
 	
-		if (rgCtx.hasVillagerAction(VillagerActions.ACTION_BUILD_FENCES)) {
-			VillagerActions.vImproveFences(rgCtx);
-			MyUtilities.debugMsg(1, ve, key + " tried to build personal fence.");
-		}
 	
 		if (rgCtx.hasVillagerAction(VillagerActions.ACTION_IMPROVE_LIGHTING)) {
 			if (VillagerActions.vImproveLighting(rgCtx)) {

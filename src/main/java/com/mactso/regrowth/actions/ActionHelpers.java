@@ -1,8 +1,7 @@
 package com.mactso.regrowth.actions;
 
-import com.mactso.regrowth.config.MyConfig;
-import com.mactso.regrowth.config.WallBiomeDataManager;
-import com.mactso.regrowth.utility.Utility;
+import com.mactso.regrowth.modloader.config.MyConfig;
+import com.mactso.regrowth.utilities.MyUtilities;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -10,7 +9,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.tags.BlockTags;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.AgeableMob;
@@ -20,19 +18,9 @@ import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.level.block.BedBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.DoublePlantBlock;
-import net.minecraft.world.level.block.FenceGateBlock;
-import net.minecraft.world.level.block.FlowerBlock;
-import net.minecraft.world.level.block.HorizontalDirectionalBlock;
-import net.minecraft.world.level.block.SaplingBlock;
-import net.minecraft.world.level.block.SnowLayerBlock;
-import net.minecraft.world.level.block.TallGrassBlock;
 import net.minecraft.world.level.block.TorchBlock;
 import net.minecraft.world.level.block.WallTorchBlock;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.properties.BooleanProperty;
-import net.minecraft.world.level.block.state.properties.EnumProperty;
-import net.minecraft.world.level.levelgen.Heightmap.Types;
 
 //-----------------------
 //Action Helpers help do detailed fiddly work and they all modify the world in some way.   
@@ -40,12 +28,9 @@ import net.minecraft.world.level.levelgen.Heightmap.Types;
 
 public class ActionHelpers {
 	
-	public static final EnumProperty<Direction> FACING = HorizontalDirectionalBlock.FACING;
-	public static final BooleanProperty OPEN = FenceGateBlock.OPEN;
-	static final int WALL_CENTER = 0;
-	static final int FENCE_CENTER = 0;
-	static final int WALL_TYPE_WALL = -1;
-	static final int WALL_TYPE_FENCE = -2;
+
+
+
 
 	public static void jumpUp(Entity e) {
 		e.setDeltaMovement(0, 0.62, 0);
@@ -86,147 +71,17 @@ public class ActionHelpers {
 		}
 	}
 
-	// only happens when a mason build a wall section so performance hit low.
-	// TODO :enhance later to fill in a hole on the wall on that side.
-	public static boolean tryBuildMasonWalls(ActionContext rgCtx, int wallRadius, BlockPos meetingPlacePos,
-			WallBiomeDataManager.WallBiomeDataItem wi) {
-
-		ServerLevel serverLevel = rgCtx.serverLevel();
-		Boolean doDebug = rgCtx.doDebug();
-		if (doDebug)
-			Utility.debugMsg(1, "tryBuildMasonWalls from Meeting Place Pos: " + meetingPlacePos);
-
-		BlockState wallBs = wi.getWallBlockState();
-		BlockPos mPos = null;
-
-		mPos = calcSurfaceBlockPos(serverLevel, meetingPlacePos.east(wallRadius).north(wallRadius + 1));
-		if (tryBuildWallCorner(serverLevel, mPos, wallBs)) {
-			if (doDebug)
-				Utility.debugMsg(1, "built north eastern corner at :" + mPos);
-			return true;
-		}
-
-		mPos = calcSurfaceBlockPos(serverLevel, meetingPlacePos.east(wallRadius).south(wallRadius));
-		if (tryBuildWallCorner(serverLevel, mPos, wallBs)) {
-			if (doDebug)
-				Utility.debugMsg(1, "built south eastern corner at :" + mPos);
-			return true;
-		}
-
-		mPos = calcSurfaceBlockPos(serverLevel, meetingPlacePos.west(wallRadius + 1).north(wallRadius + 1));
-		if (tryBuildWallCorner(serverLevel, mPos, wallBs)) {
-			if (doDebug)
-				Utility.debugMsg(1, "built north western corner at :" + mPos);
-			return true;
-		}
-
-		mPos = calcSurfaceBlockPos(serverLevel, meetingPlacePos.west(wallRadius + 1).south(wallRadius));
-
-		if (tryBuildWallCorner(serverLevel, mPos, wallBs)) {
-			if (doDebug)
-				Utility.debugMsg(1, "built south western corner at :" + mPos);
-			return true;
-		}
-
-		return false;
-
-	}
-
-	public static BlockPos calcSurfaceBlockPos(ServerLevel sLevel, BlockPos mPos) {
-		int x = mPos.getX();
-		int z = mPos.getZ();
-		int y = sLevel.getHeight(Types.MOTION_BLOCKING_NO_LEAVES, x, z);
-		BlockPos m1Pos = new BlockPos(x, y, z);
-		return m1Pos;
-	}
-
-	static boolean tryBuildWallCorner(ServerLevel serverLevel, BlockPos mPos, BlockState wallBs) {
-
-		if (!(ActionTests.isWallorLantern(serverLevel, mPos, wallBs))) {
-			serverLevel.setBlockAndUpdate(mPos, wallBs);
-			serverLevel.setBlockAndUpdate(mPos.above(), Blocks.LANTERN.defaultBlockState());
-			return true;
-		}
-
-		return false;
-	}
-
 	static void applyRegeneration(LivingEntity le, int regenDuration, Villager ve, ServerLevel level, BlockPos pos) {
 		le.addEffect(new MobEffectInstance(MobEffects.REGENERATION, regenDuration, 0), ve);
 		level.playSound(null, pos, SoundEvents.AMETHYST_CLUSTER_BREAK, SoundSource.NEUTRAL, 1.2f, 1.52f);
 	}
 
-	static boolean tryPlaceOneWallPiece(ActionContext rgCtx, int wallRadius, int wallTorchSpacing,
-			BlockState wallBlockState, BlockPos gVMPPos) {
 
-		Villager ve = rgCtx.ve();
 
-		// Build East and West Walls (and corners)
-		BlockState gateBlockState = Blocks.OAK_FENCE_GATE.defaultBlockState()
-				.setValue(FACING, Direction.EAST).setValue(OPEN, true);
-		Direction d = null;
-		if (ActionUtilities.getAbsVX(ve, gVMPPos) == wallRadius) {
-			if (ActionUtilities.getAbsVZ(ve, gVMPPos) <= wallRadius) {
-				d = (ActionUtilities.getVX(ve, gVMPPos) > 0) ? Direction.EAST : Direction.WEST;
-				return placeTheWallPiece(rgCtx, wallBlockState, gateBlockState.setValue(FACING, d),
-						ActionUtilities.getVZ(ve, gVMPPos));
-			}
-		}
-		// Build North and South Walls (and corners)
-		if (ActionUtilities.getAbsVZ(ve, gVMPPos) == wallRadius) {
-			if (ActionUtilities.getAbsVX(ve, gVMPPos) <= wallRadius) {
-				d = (ActionUtilities.getVZ(ve, gVMPPos) > 0) ? Direction.NORTH : Direction.SOUTH;
-				return placeTheWallPiece(rgCtx, wallBlockState, gateBlockState.setValue(FACING, d),
-						ActionUtilities.getVX(ve, gVMPPos));
-			}
-		}
 
-		return false;
-	}
-
-	static boolean placeTheWallPiece(ActionContext rgCtx, BlockState wallBlockState, BlockState gateBlockState,
-			int va) {
-
-		Villager ve = rgCtx.ve();
-		ServerLevel serverLevel = rgCtx.serverLevel();
-		BlockPos vePos = ActionUtilities.getAdjustedPos(ve);
-		Block footBlock = rgCtx.footBlock();
-
-		if (footBlock instanceof SnowLayerBlock) {
-			serverLevel.destroyBlock(vePos, false);
-		}
-
-		if (ActionTests.isNatProgPebbleOrStick(rgCtx)) {
-			serverLevel.destroyBlock(vePos, true);
-		}
-
-		if ((footBlock instanceof SaplingBlock) || (footBlock instanceof TallGrassBlock)
-				|| (footBlock instanceof FlowerBlock) || (footBlock instanceof DoublePlantBlock)) {
-			serverLevel.destroyBlock(vePos, true);
-		}
-
-		int absva = Math.abs(va);
-		if (absva == WALL_CENTER) {
-			serverLevel.setBlockAndUpdate(vePos, gateBlockState);
-			serverLevel.updateNeighborsAt(vePos, gateBlockState.getBlock());
-			return true;
-		}
-
-		serverLevel.setBlockAndUpdate(vePos, wallBlockState);
-		serverLevel.updateNeighborsAt(vePos, gateBlockState.getBlock());
-
-		if (rgCtx.doDebug()) {
-			if (serverLevel.getBlockState(vePos).is(BlockTags.AIR)) {
-				return false;
-			}
-		}
-
-		return true;
-
-	}
 
 	// ---------------------
-	// Try to place a wall torch
+	// Try to place a torch on the side of a village building wall, cliff wall, or tree.
 	// ---------------------
 	@SuppressWarnings("deprecation")
 	static boolean tryPlaceWallTorch(ActionContext rgCtx) {
@@ -265,6 +120,9 @@ public class ActionHelpers {
 	// Try to place a torch on the ground
 	// ---------------------
 	static boolean tryPlaceGroundTorch(ActionContext rgCtx) {
+		
+		if (!MyUtilities.isStringValid(MyConfig.getTorchBlock()))
+			return false;
 
 		ServerLevel sLevel = rgCtx.serverLevel();
 		BlockPos pos = rgCtx.adjustedPos();
@@ -278,8 +136,12 @@ public class ActionHelpers {
 
 		if (footBlockState.getBlock() instanceof BedBlock)
 			return false;
+		
+		Block torchBlock = ActionUtilities.getTorchBlockFromConfig(rgCtx);
+		if (torchBlock == null)
+			return false;
 
-		sLevel.setBlockAndUpdate(pos, MyConfig.getTorchBlock().defaultBlockState());
+		sLevel.setBlockAndUpdate(pos, torchBlock.defaultBlockState());
 		sLevel.playSound(null, pos.getX(), pos.getY(), pos.getZ(), SoundEvents.WOOD_PLACE, SoundSource.BLOCKS, 0.75f,
 				0.75f);
 		return true;
@@ -296,13 +158,13 @@ public class ActionHelpers {
 
 		if (tryPlaceWallTorch(rgCtx)) {
 			if (rgCtx.doDebug())
-				Utility.debugMsg(2, ve, rgCtx.key() + " placed a wall torch.");
+				MyUtilities.debugMsg(2, ve, rgCtx.key() + " placed a wall torch.");
 			return true;
 		}
 
 		if (tryPlaceGroundTorch(rgCtx)) {
 			if (rgCtx.doDebug())
-				Utility.debugMsg(2, ve, rgCtx.key() + " placed a ground torch.");
+				MyUtilities.debugMsg(2, ve, rgCtx.key() + " placed a ground torch.");
 			return true;
 		}
 
@@ -325,8 +187,8 @@ public class ActionHelpers {
 		rgCtx.serverLevel().destroyBlock(rgCtx.adjustedPos(), false);
 		double roll = rgCtx.getRand().nextDouble();
 		ageIfBaby(le);
-		if (le.getMaxHealth() > le.getHealth() && (MyConfig.getEatingHeals() > roll)) {
-			MobEffectInstance ei = new MobEffectInstance(MobEffects.HEAL, 1, 0, false, true);
+		if (le.getMaxHealth() > le.getHealth() && (MyConfig.getEatingHealsOdds() > roll)) {
+			MobEffectInstance ei = new MobEffectInstance(MobEffects.REGENERATION, 25, 0, false, true);
 			le.addEffect(ei);
 		}
 		return true;

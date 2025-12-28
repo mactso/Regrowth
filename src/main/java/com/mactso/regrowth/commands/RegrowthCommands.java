@@ -3,9 +3,9 @@ package com.mactso.regrowth.commands;
 import java.util.List;
 import java.util.Optional;
 
-import com.mactso.regrowth.Main;
-import com.mactso.regrowth.config.MyConfig;
-import com.mactso.regrowth.utility.Utility;
+import com.mactso.regrowth.modloader.config.MyConfig;
+import com.mactso.regrowth.modloader.main.RegrowthMain;
+import com.mactso.regrowth.utilities.MyUtilities;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 
@@ -15,14 +15,14 @@ import net.minecraft.commands.Commands;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 public class RegrowthCommands {
 
-	private static final String MOD_VERSION = "1.21.1 v14";
+	private static final String MOD_VERSION = "Forge Regrowth 1.21.4 CC 36.4";
 	
 	private static final String DEBUG_LEVEL_ARG = "level 0-2";
 	
@@ -49,7 +49,7 @@ public class RegrowthCommands {
 	}
 
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-	    Utility.debugMsg(0, "Registering " + Main.MODID + " commands.");
+	    MyUtilities.debugMsg(0, "Registering " + RegrowthMain.MODID + " commands.");
 
 	    dispatcher.register(
 	        Commands.literal("regrowth")
@@ -85,6 +85,7 @@ public class RegrowthCommands {
 		Vec3 lookVec = player.getLookAngle();
 		Vec3 reachVec = eyePos.add(lookVec.scale(range));
 
+//		// Bounding box along line of sight
 		AABB searchBox = player.getBoundingBox().expandTowards(lookVec.scale(range)).inflate(1.0D);
 
 		List<LivingEntity> entities = level.getEntitiesOfClass(LivingEntity.class, searchBox,
@@ -94,8 +95,8 @@ public class RegrowthCommands {
 		double closestDistSq = range * range;
 
 		for (LivingEntity entity : entities) {
-			AABB bb = entity.getBoundingBox().inflate(0.3D);
-			Optional<Vec3> optionalHit = bb.clip(eyePos, reachVec);
+			AABB bb = entity.getBoundingBox().inflate(0.3D); // make hitbox a bit more forgiving
+			Optional<Vec3> optionalHit = bb.clip(eyePos, reachVec); // note: before 1.21.5, clip returns a nullable Vec3.
 			if (optionalHit.isEmpty())
 				continue;
 
@@ -115,16 +116,16 @@ public class RegrowthCommands {
 
 		LivingEntity target = getLookedAtEntity(sp, 8.0D);
 		String objectInfo = target != null ? "You are looking at: " + EntityType.getKey(target.getType()).toString()
-				: "You don't see an entity.";
+				: "You see no entity at all.";
 
 		ResourceLocation rl = serverLevel.dimension().location();
 
-		Utility.sendBoldChat(sp, "Regrowth "+ MOD_VERSION +" "+ rl + "\n Current Values", ChatFormatting.DARK_GREEN);
+		MyUtilities.sendBoldChat(sp, "Regrowth "+ MOD_VERSION +" in "+ rl + "\n Current Values", ChatFormatting.DARK_GREEN);
 
 		String msg = "  Debug Level 0-2 : " + MyConfig.getDebugLevel() + "\n  Looking At : "
 				+ objectInfo;
 
-		Utility.sendChat(sp, msg, ChatFormatting.DARK_GREEN);
+		MyUtilities.sendChat(sp, msg, ChatFormatting.DARK_GREEN);
 
 		return CommandResult.SUCCESS;
 	}

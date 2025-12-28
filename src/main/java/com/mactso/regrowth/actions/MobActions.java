@@ -1,7 +1,7 @@
 package com.mactso.regrowth.actions;
 
 import com.mactso.regrowth.managers.SaplingManager;
-import com.mactso.regrowth.utility.Utility;
+import com.mactso.regrowth.utilities.MyUtilities;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -57,7 +57,7 @@ public class MobActions {
 		if ((rgCtx.footBlock() instanceof TorchBlock) || (rgCtx.footBlock() instanceof WallTorchBlock)) {
 			rgCtx.serverLevel().destroyBlock(rgCtx.adjustedPos(), true);
 			if (rgCtx.doDebug())
-				Utility.debugMsg(2, rgCtx.livingEntity() + " " + rgCtx.adjustedPos() + " stumbled over torch.");
+				MyUtilities.debugMsg(2, rgCtx.livingEntity() + " " + rgCtx.adjustedPos() + " stumbled over torch.");
 		}
 
 	}
@@ -189,7 +189,7 @@ public class MobActions {
 		serverLevel.setBlockAndUpdate(aPos, sapling);
 
 		if (rgCtx.doDebug()) {
-			Utility.debugMsg(1, aPos, String.format("%s planted sapling. %s", rgCtx.key(),
+			MyUtilities.debugMsg(1, aPos, String.format("%s planted sapling. %s", rgCtx.key(),
 					ActionUtilities.debugSaplingInfo(serverLevel, rgCtx.localBiome(), sapling)));
 		}
 
@@ -211,15 +211,15 @@ public class MobActions {
 				return false;
 			}
 			if (aPos == null) { // "impossible" but it happened once in production.
-				Utility.debugMsg(0, "ERROR:" + key + "grow plant null position.");
+				MyUtilities.debugMsg(0, "ERROR:" + key + "grow plant null position.");
 				return false;
 			}
 			BonemealableBlock ib = (BonemealableBlock) groundBlock;
-			Utility.debugMsg(1, le, key + " growable plant found.");
+			MyUtilities.debugMsg(1, le, key + " growable plant found.");
 			try {
 				ib.performBonemeal(serverLevel, serverLevel.getRandom(), aPos, footBlockState);
 			} catch (Exception e) {
-				Utility.debugMsg(1, le, key + " caught grow plant attempt exception.");
+				MyUtilities.debugMsg(1, le, key + " caught grow plant attempt exception.");
 			}
 		}
 		return true;
@@ -242,16 +242,19 @@ public class MobActions {
 		if (!MushroomActionHelpers.isValidMushroomPosition(rgCtx, growthFilterValue))
 			return;
 
+		if (groundBlock instanceof HugeMushroomBlock) {
 		// Dust the top of existing huge mushrooms with little mushrooms
-		if (groundBlock instanceof HugeMushroomBlock)
+		    if (predictableRand.nextDouble() < 0.8) {
 			MushroomActionHelpers.tryDustMushroomTop(rgCtx);
+		        return;
+		    }
+		}
 
-		// Grow a huge mushroom either on the ground or on top of an existing huge
-		// mushroom
+		// Otherwise try to grow a huge mushroom here and cleanup if it doesn't grow.
 		MushroomActionHelpers.tryGrowHugeMushroom(rgCtx, growthFilterValue);
 
 		if (rgCtx.doDebug())
-			Utility.debugMsg(1, le, key + " exit grow mushroom.");
+			MyUtilities.debugMsg(1, le, key + " exit grow mushroom.");
 	}
 
 	// If there is a coral block 2 or 3 blocks below the aquatic entity
@@ -268,7 +271,6 @@ public class MobActions {
 		if (!CoralActionHelpers.isGoodCoralBiome(serverLevel, aPos)) {
 		    return;
 		}
-
 		
 		// Create predictable random source for placement decisions
 		RandomSource pRand = ActionUtilities.createPredictableRandom(le);
@@ -289,7 +291,7 @@ public class MobActions {
 
 		boolean eaten = ActionHelpers.tryEatGrassOrFlower(rgCtx);
 		if ((eaten) && (rgCtx.doDebug()))
-			Utility.debugMsg(2, ActionUtilities.getAdjustedPos(rgCtx.livingEntity()), rgCtx.key() + " ate plants.");
+			MyUtilities.debugMsg(2, ActionUtilities.getAdjustedPos(rgCtx.livingEntity()), rgCtx.key() + " ate plants.");
 		return eaten;
 	}
 
@@ -303,15 +305,15 @@ public class MobActions {
 
 		if ((footBlock instanceof TallGrassBlock) && (footBlock instanceof BonemealableBlock)) {
 			BlockPos ePos = ActionUtilities.getAdjustedPos(le);
-			if (!Utility.getResourceLocationString(serverLevel, footBlock).contains("byg")) {
+			if (!MyUtilities.getResourceLocationString(serverLevel, footBlock).contains("byg")) {
 				try {
 					BonemealableBlock ib = (BonemealableBlock) footBlock;
 					ib.performBonemeal(serverLevel, serverLevel.random, ePos, le.level().getBlockState(ePos));
-					Utility.debugMsg(2, ePos, key + " grew and hid in tall plant.");
+					MyUtilities.debugMsg(2, ePos, key + " grew and hid in tall plant.");
 					return false;
 
 				} catch (Exception e) {
-					Utility.debugMsg(1, ePos, key + " caught grow tall attempt exception.");
+					MyUtilities.debugMsg(1, ePos, key + " caught grow tall attempt exception.");
 					return false;
 				}
 			}

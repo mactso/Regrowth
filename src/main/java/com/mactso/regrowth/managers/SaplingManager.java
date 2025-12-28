@@ -11,13 +11,15 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.mactso.regrowth.utilities.MyUtilities;
+
 import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -41,42 +43,34 @@ public class SaplingManager {
 	private static final Map<ResourceLocation, ResourceLocation> BIOME_TO_SAPLING = new HashMap<>();
 	private static final List<ResourceLocation> ALL_SAPLINGS = new ArrayList<>();
 
-	/** Initialize both sapling and biome reports */
-	public static void init(MinecraftServer server, Path configDir) {
-		try {
+	/**
+	 * Initializes the sapling manager, generating reports and loading biome-sapling mappings.
+	 * Idempotent: calling multiple times has no additional effect.
+	 */
+	public static void saplingManagerInit(MinecraftServer server, Path configDir) {
 
-			generateAllSaplingsReport(server, configDir);
-			generateBiomeSaplingsConfig(server, configDir);
-			readBiomeSaplingsConfig(server, configDir); // populate map after CSV is created
+	    try {
+	        generateAllSaplingsReport(server, configDir);
+	    } catch (Exception ex) {
+	        ex.printStackTrace();
+	        MyUtilities.debugMsg(0, "Error generating all saplings report: " + ex.getMessage());
+	    }
 
-		} catch (Exception ex) {
-			ex.printStackTrace();
-		}
+	    try {
+	        generateBiomeSaplingsConfig(server, configDir);
+	    } catch (Exception ex) {
+	        ex.printStackTrace();
+	        MyUtilities.debugMsg(0, "Error generating biome saplings config: " + ex.getMessage());
+	    }
+
+	    try {
+	        readBiomeSaplingsConfig(server, configDir); // populate map after CSV is created
+	    } catch (Exception ex) {
+	        ex.printStackTrace();
+	        MyUtilities.debugMsg(0, "Error reading biome saplings config: " + ex.getMessage());
+	    }
 	}
 	
-// -------------------------------
-// Helper to allow methods to be the same across versions.  This is the 1.21.4 version..
-// -------------------------------
-	public static Registry<Block> getBlockRegistrySafe(MinecraftServer server, ResourceKey<Registry<Block>> key) {
-	    // server.registryAccess() returns RegistryAccess.Frozen
-		Optional<Registry<Block>> optRegistry = server.registryAccess().lookup(key);
-		if (optRegistry.isEmpty())
-			return null;
-		//Registry<T> test = optRegistry.get();
-		
-	    return optRegistry.get();
-	}
-	
-	public static Registry<Biome> getBiomeRegistrySafe(MinecraftServer server, ResourceKey<Registry<Biome>> key) {
-	    // server.registryAccess() returns RegistryAccess.Frozen
-		Optional<Registry<Biome>> optRegistry = server.registryAccess().lookup(key);
-		if (optRegistry.isEmpty())
-			return null;
-		//Registry<T> test = optRegistry.get();
-		
-	    return optRegistry.get();
-	}
-
 // -------------------------------
 // Generate RegrowthAllSaplings.txt (vanilla + modded) if it doesn't exist
 // -------------------------------
@@ -89,7 +83,8 @@ public static void generateAllSaplingsReport(MinecraftServer server, Path config
         ALL_SAPLINGS.clear();
 
         // Use RegistryAccess with helper
-        Registry<Block> blockRegistry = getBlockRegistrySafe(server, Registries.BLOCK);
+        RegistryAccess registryAccess = server.registryAccess();
+        Registry<Block> blockRegistry = MyUtilities.getRegistrySafe(registryAccess, Registries.BLOCK);
 
         if (blockRegistry == null) {
             LOGGER.error("Block registry not available! Cannot generate all saplings report.");
@@ -136,8 +131,8 @@ public static void generateBiomeSaplingsConfig(MinecraftServer server, Path conf
 
         List<String> lines = new ArrayList<>();
 
-        Registry<Biome> biomeRegistry = getBiomeRegistrySafe(server, Registries.BIOME) ;
-     		
+        RegistryAccess registryAccess = server.registryAccess();
+        Registry<Biome> biomeRegistry = MyUtilities.getRegistrySafe(registryAccess, Registries.BIOME);
 
         if (biomeRegistry == null) {
             LOGGER.error("Biome registry not available! Cannot generate biome saplings config.");
@@ -181,6 +176,7 @@ public static void generateBiomeSaplingsConfig(MinecraftServer server, Path conf
 // Read RegrowthBiomeSaplings.csv into map (unified 1.21.1 to 1.21.5 pattern)
 // -------------------------------
 public static void readBiomeSaplingsConfig(MinecraftServer server, Path configDir) {
+    int saplingsLoaded = 0;
     Path csv = configDir.resolve("RegrowthBiomeSaplings.csv");
     if (!Files.exists(csv))
         return;
@@ -190,8 +186,10 @@ public static void readBiomeSaplingsConfig(MinecraftServer server, Path configDi
         BIOME_TO_SAPLING.clear();
         BIOME_TO_SAPLING_STATE.clear();
 
-        Registry<Block> blockRegistry  = getBlockRegistrySafe(server, Registries.BLOCK);
-        Registry<Biome> biomeRegistry = getBiomeRegistrySafe(server, Registries.BIOME);
+        RegistryAccess registryAccess = server.registryAccess();
+
+        Registry<Block> blockRegistry  = MyUtilities.getRegistrySafe(registryAccess, Registries.BLOCK);
+        Registry<Biome> biomeRegistry = MyUtilities.getRegistrySafe(registryAccess, Registries.BIOME);
 
         if (blockRegistry == null || biomeRegistry == null) {
             LOGGER.error("One or more required registries (BLOCK, BIOME) are missing! Cannot load biome sapling config.");
@@ -253,7 +251,11 @@ public static void readBiomeSaplingsConfig(MinecraftServer server, Path configDi
                     BIOME_TO_SAPLING_STATE.put(entry.getValue(), state);
                 }
             });
+            
+            saplingsLoaded++;
         }
+        
+        MyUtilities.debugMsg(0, "Biome saplings loaded: " + saplingsLoaded);
 
     } catch (IOException ex) {
         ex.printStackTrace();

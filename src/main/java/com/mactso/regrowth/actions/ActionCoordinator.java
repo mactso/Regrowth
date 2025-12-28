@@ -3,12 +3,10 @@ package com.mactso.regrowth.actions;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-import javax.annotation.Nullable;
-
-import com.mactso.regrowth.config.MyConfig;
-import com.mactso.regrowth.config.RegrowthEntitiesManager;
-import com.mactso.regrowth.config.RegrowthEntitiesManager.RegrowthMobItem;
-import com.mactso.regrowth.utility.Utility;
+import com.mactso.regrowth.managers.RegrowthEntitiesManager;
+import com.mactso.regrowth.managers.RegrowthEntitiesManager.RegrowthMobItem;
+import com.mactso.regrowth.modloader.config.MyConfig;
+import com.mactso.regrowth.utilities.MyUtilities;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -36,7 +34,7 @@ public class ActionCoordinator {
 		long startingTime = startingTimes.get(serverLevel);
 
 		if ((MyConfig.getDebugLevel() >= 2 && (gametime % 20 == 0))) 
-			Utility.debugMsg(2, String.format("World: %s, gametime: %d, startingTime: %d",
+			MyUtilities.debugMsg(2, String.format("World: %s, gametime: %d, startingTime: %d",
 					serverLevel.dimension().location(), gametime, startingTime));
 
 		// Return true only when the world has advanced at least one second
@@ -44,7 +42,7 @@ public class ActionCoordinator {
 
 	}
 	
-	@Nullable
+	@org.jetbrains.annotations.Nullable
 	private static ServerLevel validateAndGetServerLevel(LivingEntity le) {
 
 	    Level level = le.level(); // redundant protection
@@ -80,7 +78,7 @@ public class ActionCoordinator {
 	public static void coordinateLivingEntityActions (LivingEntity le) {
 
 		if (MyConfig.getDebugLevel() > 0)
-			Utility.debugMsg(1, "Enter DoRegrowthSwitchboard");
+			MyUtilities.debugMsg(1, "Enter DoRegrowthSwitchboard");
 
 		ServerLevel serverLevel = validateAndGetServerLevel(le);
 		if (serverLevel == null)
@@ -90,7 +88,7 @@ public class ActionCoordinator {
 		if (rgCtx == null)
 			return;
 
-		String rlString = Utility.getResourceLocationString(le).toString();
+		String rlString = MyUtilities.getResourceLocationString(le).toString();
 		RegrowthMobItem currentRegrowthMobItem = RegrowthEntitiesManager.getRegrowthMobInfo(rlString);
 		if (currentRegrowthMobItem == null)
 			return;
@@ -115,8 +113,13 @@ public class ActionCoordinator {
 			regrowthEventOdds *= 20; // 20x odds when eating animation
 		}
 		double randomD100Roll = serverLevel.random.nextDouble();
-		// randomD100Roll = regrowthEventOdds; // TODO remove this after testing.
+		// randomD100Roll = regrowthEventOdds; // TODO turn off randomD100Roll Testing Override
+//		if (le instanceof Villager ve && VillagerActions.isVillagerProfession(ve, VillagerProfession.MASON)) {
+//		    randomD100Roll = regrowthEventOdds; // override for testing / guaranteed action
+//		} 
+		
 		if (randomD100Roll <= regrowthEventOdds) {
+			nudgeEntityTowardsCenter(rgCtx);
 			if (le instanceof Villager ve) {
 				ActionCoordinator.doVillagerActions(rgCtx);
 			} else {
@@ -124,7 +127,31 @@ public class ActionCoordinator {
 			}
 		}
 		if (rgCtx.doDebug())
-			Utility.debugMsg(1, "fall out of doRegrowthSwitchBoard");
+			MyUtilities.debugMsg(1, "fall out of doRegrowthSwitchBoard");
+	}
+	
+	/**
+	 * Gently nudges a LivingEntity toward the horizontal center of a block
+	 * to reduce edge-case positioning near block edges.
+	 *
+	 * @param entity The living entity to move
+	 * @param pos The target block position
+	 */
+	public static void nudgeEntityTowardsCenter(ActionContext rgCtx) {
+	    final double CURRENT_WEIGHT = 5.0; // weight for entity's current position
+	    final double CENTER_WEIGHT = 1.0;  // weight for block center
+	    final double TOTAL_WEIGHT = CURRENT_WEIGHT + CENTER_WEIGHT;
+
+	    LivingEntity le = rgCtx.livingEntity();
+	    BlockPos pos = le.blockPosition();
+	    double blockCenterX = pos.getX() + 0.5;
+	    double blockCenterZ = pos.getZ() + 0.5;
+
+	    double newX = (le.getX() * CURRENT_WEIGHT + blockCenterX * CENTER_WEIGHT) / TOTAL_WEIGHT;
+	    double newZ = (le.getZ() * CURRENT_WEIGHT + blockCenterZ * CENTER_WEIGHT) / TOTAL_WEIGHT;
+	    double newY = le.getY(); // keep vertical position
+
+	    le.teleportTo(newX, newY, newZ);
 	}
 
 	// -------------------------
@@ -167,7 +194,7 @@ public class ActionCoordinator {
 		// note all villagers may not have a home. poor homeless villagers.
 		// Universal villager action: farmland maintenance
 		if (VillagerActions.vImproveFarm(rgCtx)) {
-			Utility.debugMsg(1, ve, rgCtx.key() + " farm improved.");
+			MyUtilities.debugMsg(1, ve, rgCtx.key() + " farm improved.");
 		}
 	
 		// 'h'eal villagers and players
@@ -176,7 +203,7 @@ public class ActionCoordinator {
 			VillagerActions.vClericalHealing(rgCtx);
 	
 			if (VillagerActions.vToolMasterHealing(rgCtx)) {
-				Utility.debugMsg(1, ve, rgCtx.key() + " Iron Golem healed");
+				MyUtilities.debugMsg(1, ve, rgCtx.key() + " Iron Golem healed");
 			}
 	
 		}
@@ -191,19 +218,19 @@ public class ActionCoordinator {
 
 		if (rgCtx.hasVillagerAction(VillagerActions.ACTION_IMPROVE_LEAVES)) {
 			if (VillagerActions.vImproveLeavesOrCactus(rgCtx))
-				Utility.debugMsg(1, ve, key + " leaves cut.");
+				MyUtilities.debugMsg(1, ve, key + " leaves cut.");
 	
 		}
 	
 		if (rgCtx.hasVillagerAction(VillagerActions.ACTION_CUT_GRASS)) {
 			if (VillagerActions.vImproveGrass(rgCtx)) {
-				Utility.debugMsg(1, ve, key + " grass cut.");
+				MyUtilities.debugMsg(1, ve, key + " grass cut.");
 			}
 		}
 	
 		if (rgCtx.hasVillagerAction(VillagerActions.ACTION_IMPROVE_ROADS)) {
 			VillagerActions.vImproveRoads(rgCtx, key);
-			Utility.debugMsg(1, ve, key + " tried to road improve.");
+			MyUtilities.debugMsg(1, ve, key + " tried to road improve.");
 			if (rgCtx.footBlock() == rgCtx.biomeRoadBlock()) {
 				return; // villager now inside road jumping out.. skip further actions.
 			}
@@ -211,22 +238,18 @@ public class ActionCoordinator {
 	
 		if (rgCtx.hasVillagerAction(VillagerActions.ACTION_BUILD_WALLS)) {
 			VillagerActions.vImproveVillageWalls(rgCtx);
-			Utility.debugMsg(1, ve, " tried to build town wall.");
+			MyUtilities.debugMsg(1, ve, " tried to build town wall.");
 		}
 	
-		if (rgCtx.hasVillagerAction(VillagerActions.ACTION_BUILD_FENCES)) {
-			VillagerActions.vImproveFences(rgCtx);
-			Utility.debugMsg(1, ve, key + " tried to build personal fence.");
-		}
-	
+
 		if (rgCtx.hasVillagerAction(VillagerActions.ACTION_IMPROVE_LIGHTING)) {
 			if (VillagerActions.vImproveLighting(rgCtx)) {
-				Utility.debugMsg(1, ve, key + "-" + rgCtx.footBlock() + ", " + rgCtx.groundBlock() + " pitch: "
+				MyUtilities.debugMsg(1, ve, key + "-" + rgCtx.footBlock() + ", " + rgCtx.groundBlock() + " pitch: "
 						+ ve.getXRot() + " lighting improved.");
 			}
 		}
 	
-		Utility.debugMsg(1, "exit Village Events");
+		MyUtilities.debugMsg(1, "exit Village Events");
 	}
 	
 	private static void doYoungChunkVillagerBonusActions(ActionContext rgCtx) {
@@ -256,7 +279,7 @@ public class ActionCoordinator {
 	
 		LivingEntity le = rgCtx.livingEntity();
 	
-		Utility.debugMsg(1, le, "enter doMobRegrowthActions");
+		MyUtilities.debugMsg(1, le, "enter doMobRegrowthActions");
 		// this may hurt or kill entities.
 		MobActions.mobHandleOverCrowding(rgCtx);
 		if (!rgCtx.livingEntity().isAlive())
@@ -314,7 +337,7 @@ public class ActionCoordinator {
 			MobActions.mobGrowPlantsAction(rgCtx);
 		}
 	
-		Utility.debugMsg(1, le, "fall out of doMobRegrowthActions");
+		MyUtilities.debugMsg(1, le, "fall out of doMobRegrowthActions");
 	}
 
 }

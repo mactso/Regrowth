@@ -4,7 +4,7 @@ license="MIT"
 
 [[mods]]
 modId="regrowth"
-version="59.34.3"
+version="59.34.6"
 displayName="Regrowth"
 displayURL="https://www.curseforge.com/minecraft/mc-mods/regrowth"
 updateJSONURL="https://github.com/mactso/Regrowth/raw/main/update.json"

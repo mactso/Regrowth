@@ -1,7 +1,7 @@
-package com.mactso.regrowth.events;
+package com.mactso.regrowth.modloader.events;
 
 import com.mactso.regrowth.actions.ActionCoordinator;
-import com.mactso.regrowth.utility.Utility;
+import com.mactso.regrowth.utilities.MyUtilities;
 
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -37,7 +37,7 @@ public class HandleForgeEntityMoveEvent {
 		    return;
 		}
 
-		Utility.debugMsg(1, "enter serverside Handle Entity Move Events");
+		MyUtilities.debugMsg(1, "enter serverside Handle Entity Move Events");
 		ActionCoordinator.coordinateLivingEntityActions(le);
 	}
 }

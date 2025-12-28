@@ -1,6 +1,6 @@
 package com.mactso.regrowth.actions;
 
-import com.mactso.regrowth.utility.Utility;
+import com.mactso.regrowth.utilities.MyUtilities;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.BlockPos.MutableBlockPos;
@@ -130,32 +130,32 @@ public class RoadActionHelpers {
 	// Note: Exits once it finds 3 adjacent roadblocks
 	// Note: Exits early once it finds 3+ road blocks can't happen
 	static boolean isPatchAdjacentRoadBlocks(ActionContext rgCtx) {
-
-	    ServerLevel level = (ServerLevel) rgCtx.ve().level();
-	    BlockPos base = rgCtx.adjustedPos();
-	    Block biomeRoadBlock = rgCtx.biomeRoadBlock();
-
-	    MutableBlockPos pos = new MutableBlockPos();
+	
+		ServerLevel level = (ServerLevel) rgCtx.ve().level();
+		BlockPos base = rgCtx.adjustedPos();
+		Block biomeRoadBlock = rgCtx.biomeRoadBlock();
+	
+		MutableBlockPos pos = new MutableBlockPos();
 	    int count = 0;
-
-	    // EAST
-	    pos.set(base.getX() + 1, base.getY(), base.getZ());
+	
+		// EAST
+		pos.set(base.getX() + 1, base.getY(), base.getZ());
 	    if (RoadActionHelpers.isRoadInYColumn(level, biomeRoadBlock, pos)) count++;
 
-	    // WEST
-	    pos.set(base.getX() - 1, base.getY(), base.getZ());
+		// WEST
+		pos.set(base.getX() - 1, base.getY(), base.getZ());
 	    if (RoadActionHelpers.isRoadInYColumn(level, biomeRoadBlock, pos)) count++;
-
-	    // NORTH
-	    pos.set(base.getX(), base.getY(), base.getZ() - 1);
+	
+		// NORTH
+		pos.set(base.getX(), base.getY(), base.getZ() - 1);
 	    if (RoadActionHelpers.isRoadInYColumn(level, biomeRoadBlock, pos)) count++;
 	    if (count == 3) return true;
-	    
-	    // SOUTH
-	    pos.set(base.getX(), base.getY(), base.getZ() + 1);
+	
+		// SOUTH
+		pos.set(base.getX(), base.getY(), base.getZ() + 1);
 	    if (RoadActionHelpers.isRoadInYColumn(level, biomeRoadBlock, pos)) count++;
 	    if (count >=3) return true;
-
+	
 	    return false;
 	}
 
@@ -204,7 +204,7 @@ public class RoadActionHelpers {
 		// this will be an issue if the road blocks are ever not dirt_path partial blocks.
 	    int topY = level.getHeight(Types.MOTION_BLOCKING_NO_LEAVES, pos.getX(), pos.getZ());
 	    BlockPos topPos = new BlockPos(pos.getX(), topY-1, pos.getZ());
-	    
+	
 	    BlockState state = level.getBlockState(topPos);
 	    return state.is(roadBlock);
 	}
@@ -249,7 +249,7 @@ public class RoadActionHelpers {
 	
 		if (RoadActionHelpers.isRoadBump(rgCtx)) {
 			if (doDebug)
-				Utility.debugMsg(1, ve, " actual fix bumps in road.");
+				MyUtilities.debugMsg(1, ve, " actual fix bumps in road.");
 			serverLevel.setBlockAndUpdate(adjustedPos.below(1), Blocks.AIR.defaultBlockState());
 			serverLevel.setBlockAndUpdate(adjustedPos.below(2), biomeRoadBlock.defaultBlockState());
 			serverLevel.playSound(ve, ve.blockPosition(), SoundEvents.GRASS_PLACE, SoundSource.BLOCKS,
@@ -284,7 +284,7 @@ public class RoadActionHelpers {
 			return false;
 	
 		BlockState biomeRoadBlockState = biomeRoadBlock.defaultBlockState();
-		serverLevel.setBlockAndUpdate(adjustedPos.below(), biomeRoadBlockState); // TODO: Fix in 1.21.1-1.21.4
+		serverLevel.setBlockAndUpdate(adjustedPos.below(), biomeRoadBlockState); 
 		serverLevel.playSound(ve, ve.blockPosition(), SoundEvents.GRASS_PLACE, SoundSource.BLOCKS, /* Volume */ 0.75f,
 				/* Pitch */ 0.75f);
 		roadFixSnow(rgCtx); // now we are on a road.
@@ -315,7 +315,7 @@ public class RoadActionHelpers {
 		}
 	
 		if (rgCtx.doDebug())
-			Utility.debugMsg(2, ve, " fixed a pothole in the road.");
+			MyUtilities.debugMsg(2, ve, " fixed a pothole in the road.");
 	
 		// Fix the pothole:
 		// 1. Replace the foot block with biomeRoadBlock

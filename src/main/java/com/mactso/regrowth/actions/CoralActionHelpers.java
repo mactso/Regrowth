@@ -1,6 +1,6 @@
 package com.mactso.regrowth.actions;
 
-import com.mactso.regrowth.utility.Utility;
+import com.mactso.regrowth.utilities.MyUtilities;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -133,7 +133,7 @@ public class CoralActionHelpers {
 		serverLevel.playSound(le, newPos, SoundEvents.CHORUS_FLOWER_GROW, SoundSource.AMBIENT, 1.9f, 1.0f);
 	
 		if (rgCtx.doDebug())
-			Utility.debugMsg(2, newPos, "CORAL: " + Utility.getResourceLocationString(le) + " new block at " + newPos);
+			MyUtilities.debugMsg(2, newPos, "CORAL: " + MyUtilities.getResourceLocationString(le) + " new block at " + newPos);
 	}
 
 	/**

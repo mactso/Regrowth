@@ -6,10 +6,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import com.mactso.regrowth.config.MyConfig;
-import com.mactso.regrowth.config.WallBiomeDataManager;
-import com.mactso.regrowth.config.WallFoundationManager;
-import com.mactso.regrowth.utility.Utility;
+import com.mactso.regrowth.managers.WallBiomeDataManager;
+import com.mactso.regrowth.managers.WallFoundationManager;
+import com.mactso.regrowth.modloader.adapters.ModloaderAdapters;
+import com.mactso.regrowth.modloader.config.MyConfig;
+import com.mactso.regrowth.utilities.MyUtilities;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
@@ -33,7 +34,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CactusBlock;
 import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.DoublePlantBlock;
-import net.minecraft.world.level.block.FenceBlock;
+import net.minecraft.world.level.block.FenceGateBlock;
 import net.minecraft.world.level.block.FlowerBlock;
 import net.minecraft.world.level.block.GrassBlock;
 import net.minecraft.world.level.block.LanternBlock;
@@ -43,6 +44,7 @@ import net.minecraft.world.level.block.SaplingBlock;
 import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.SnowLayerBlock;
 import net.minecraft.world.level.block.StairBlock;
+import net.minecraft.world.level.block.TallFlowerBlock;
 import net.minecraft.world.level.block.TallGrassBlock;
 import net.minecraft.world.level.block.TorchBlock;
 import net.minecraft.world.level.block.TrapDoorBlock;
@@ -52,10 +54,9 @@ import net.minecraft.world.level.block.WoolCarpetBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.SlabType;
 import net.minecraft.world.phys.AABB;
-import net.minecraftforge.common.FarmlandWaterManager;
 
 //-----------------------
-//Action Tests answer true/false questions
+//Action Tests answer true/false questions related to regrowth logic
 //-----------------------
 public class ActionTests {
 
@@ -67,44 +68,64 @@ public class ActionTests {
 		return false;
 	}
 
-	public static boolean isGrassOrFlower(BlockState footBlockState) {
+	public static boolean isWallBuildingOn() {
+
+		if (ActionUtilities.getPlayerWallControlBlockFromConfig() == null)
+			return false;
+		if (ActionUtilities.getPlayerWallControlBlockFromConfig().defaultBlockState().is(BlockTags.AIR))
+			return false;
+
+		return true;
+	}
+
+	static boolean isGrassOrFlower(BlockState footBlockState) {
 		Block footBlock = footBlockState.getBlock();
 
-		if (footBlock instanceof TallGrassBlock) {
+		if (footBlock instanceof TallGrassBlock)
+			return true;
+
+		// DoublePlantBlock includes tall grass and ferns now in later releases
+		if (footBlock instanceof DoublePlantBlock)
+			return true;
+
+//		String blockClassName = footBlock.getClass().getSimpleName();
+
+//		if ("ShortDryGrassBlock".equals(blockClassName))
+//			return true;
+//
+//		if ("TallDryGrassBlock".equals(blockClassName))
+//			return true;
+
+		if (footBlock instanceof FlowerBlock)
+			return true;
+
+		if (footBlock instanceof TallFlowerBlock)
+			return true;
+
+		if (footBlock == Blocks.FERN)
+			return true;
+
+		if (footBlock == Blocks.LARGE_FERN)
+			return true;
+
+		// "biomes you'll go" grass compatibility
+		if (footBlock.getDescriptionId().equals("block.byg.short_grass")) {
 			return true;
 		}
-		if (footBlock instanceof FlowerBlock) {
-			return true;
-		}
-		if (footBlock instanceof DoublePlantBlock) {
-			return true;
-		}
-		if (footBlock == Blocks.FERN) {
-			return true;
-		}
-		if (footBlock == Blocks.LARGE_FERN) {
-			return true;
-		}
-		// compatibility with other biome mods.
+
+		// check for vanilla and most modded flowers
 		try {
 			if (footBlockState.is(BlockTags.FLOWERS)) {
 				return true;
 			}
-			if (footBlockState.is(BlockTags.TALL_FLOWERS)) {
-				return true;
-			}
 		} catch (Exception e) {
-			if (MyConfig.getDebugLevel() > 0) {
-				System.out.println("Tag Exception 1009-1014:" + footBlock.getDescriptionId() + ".");
-			}
+			if (MyConfig.getDebugLevel() > 0)
+				MyUtilities.debugMsg(0, "ERROR: Tag Exception 1009-1014:" + footBlock.getDescriptionId() + ".");
 		}
-		// biomes you'll go grass compatibility
-		if (footBlock.getDescriptionId().equals("block.byg.short_grass")) {
-			return true;
-		}
-		if (MyConfig.getDebugLevel() > 0) {
-			System.out.println("Not grass or Flower:" + footBlock.getDescriptionId() + ".");
-		}
+
+		if (MyConfig.getDebugLevel() > 0)
+			MyUtilities.debugMsg(2, "Not grass or Flower:" + footBlock.getDescriptionId() + ".");
+
 		return false;
 	}
 
@@ -141,7 +162,6 @@ public class ActionTests {
 		return false;
 	}
 
-
 	public static boolean isNearWater(LevelReader level, BlockPos pos) {
 		// TODO This also gets lava, so change later to
 		// getFluidState(p_46802_).is(FluidTags.WATER);
@@ -151,8 +171,11 @@ public class ActionTests {
 			return true;
 		}
 
-		// Ask Forge Farmland Manager if some other mod is hydrating the block.
-		return FarmlandWaterManager.hasBlockWaterTicket(level, pos);
+		// Modloader abstraction: calls the correct implementation for Forge, Fabric, or
+		// NeoForge
+		boolean hydrated = ModloaderAdapters.isLandHydrated(level, pos);
+
+		return hydrated;
 	}
 
 	public static boolean isOnGround(Entity e) {
@@ -160,11 +183,14 @@ public class ActionTests {
 	}
 
 	static int SHORT_RANGE = 2;
-
-	public static boolean isWallBuildAllowedByPOIs(ActionContext rgCtx, int wallRadius) {
+	static int NORMAL_RANGE = 48; // default minecraft villager looking distance.
+	
+	public static boolean isWallBuildAllowedByPOIs(ActionContext rgCtx) {
 
 		ServerLevel serverLevel = rgCtx.serverLevel();
 		BlockPos vePos = rgCtx.ve().blockPosition();
+		BlockPos vmpPos = rgCtx.villageMeetingPointPos().pos();
+		int wallRadius = rgCtx.wallBiomeDataItem().getWallRadius();
 
 		// 1. Short-range check: any very close POI blocks wall building
 		// 2. This is slower but this code doesn't work in 1.21.5
@@ -180,37 +206,55 @@ public class ActionTests {
 		if (closePois.size() > 0)
 			return false;
 
-		// 2. Wall-radius check: must have exactly one meeting point at wall radius
-		// distance
-
-		Collection<PoiRecord> result = serverLevel.getPoiManager().getInSquare(t -> true, vePos, wallRadius, Occupancy.ANY)
-				.collect(Collectors.toCollection(ArrayList::new));
+		// 2. Wall-radius check: must have exactly one meeting point at distance <= wallRadius
+		
+		Collection<PoiRecord> result = serverLevel.getPoiManager()
+				
+		        .getInSquare(t -> true
+		        		, vePos, NORMAL_RANGE, Occupancy.ANY)
+		        .collect(Collectors.toCollection(ArrayList::new));
 
 		int count = 0;
 		for (PoiRecord rec : result) {
+
+//		    rec.getPoiType().unwrapKey().ifPresent(key ->
+//		        MyUtilities.debugMsg(0, "Found POI: " + key.location()) // TODO remove in production
+//		    );
+			
+			// Only MEETING POIs are relevant for wall-build validation.
+			// We must ensure that exactly one valid meeting point (the villager's own)
+			// is associated with this wall segment.
 			if (rec.getPoiType().is(PoiTypes.MEETING)) {
-				if (++count > 1)
-					return false;
+			    BlockPos poiPos = rec.getPos();
+			    if (poiPos.equals(vmpPos)) { 
+			        count++;
+			        if (count > 1)
+			            break;
+			    } else {
+			    	// if a village meeting point is too far away, don't count it.
+			    	// if a village meeting point is too close count it.
+			    	// if a village meeting point is exactly the radius don't count it
+			    	// to preserve "inner corners"
+			        int dx = Math.abs(poiPos.getX() - vePos.getX());
+			        int dz = Math.abs(poiPos.getZ() - vePos.getZ());
+			        if (dx < wallRadius && dz < wallRadius) {
+			            count++;
+			        }
+			        if (count > 1)
+			            break;
+			    }
 			}
 		}
 
-		if (count != 1)
-			return false;
-
-		return true;
+		if (count == 1) 
+			return true;
+		return false;
 	}
 
 	public static boolean isValidTorchLocation(int wallRadius, int wallTorchSpacing, int absvx, int absvz,
-			Block wallFenceBlock) {
+			Block wallBlock) {
 
-		boolean hasAWallUnderIt = false;
-		if (wallFenceBlock instanceof WallBlock) {
-			hasAWallUnderIt = true;
-		}
-		if (wallFenceBlock instanceof FenceBlock) {
-			hasAWallUnderIt = true;
-		}
-		if (!(hasAWallUnderIt)) {
+		if (wallBlock instanceof WallBlock) { 
 			return false;
 		}
 		if ((absvx == wallRadius) && ((absvz % wallTorchSpacing) == 1)) {
@@ -232,7 +276,8 @@ public class ActionTests {
 		Block groundBlock = rgCtx.groundBlock();
 		Block footBlock = rgCtx.footBlock();
 
-		Utility.debugMsg(1, ve, "isFoundationValid? : gb" + groundBlock.toString() + ", fb:" + footBlock.toString());
+		MyUtilities.debugMsg(1, ve,
+				"isFoundationValid? : gb" + groundBlock.toString() + ", fb:" + footBlock.toString());
 
 		if (WallFoundationManager.isValid(groundBlock))
 			return true;
@@ -277,6 +322,14 @@ public class ActionTests {
 	static boolean isFootBlockOkayToBuildIn(ActionContext rgCtx) {
 
 		BlockState footBlockState = rgCtx.footBlockState();
+
+		if (footBlockState.getBlock() instanceof TorchBlock) {
+			return true;
+		}
+		
+		if (footBlockState.getBlock() instanceof FenceGateBlock)
+			return false;
+
 		if ((footBlockState.isAir()) || (isGrassOrFlower(footBlockState))) {
 			return true;
 		}
@@ -293,7 +346,7 @@ public class ActionTests {
 	// imitate "stones".
 	static boolean isNatProgPebbleOrStick(ActionContext rgCtx) {
 
-		String rl = Utility.getResourceLocationString(rgCtx.serverLevel(), rgCtx.footBlock());
+		String rl = MyUtilities.getResourceLocationString(rgCtx.serverLevel(), rgCtx.footBlock());
 
 		if ((rl.contains("natprog")) && (rl.contains("pebble")))
 			return true;
@@ -352,12 +405,12 @@ public class ActionTests {
 			Biome localBiome) {
 
 		BlockPos vePos = ActionUtilities.getAdjustedPos(ve);
-		String key = "minecraft:" + localBiome.toString(); // TODO probably broken.
+		String key = "minecraft:" + localBiome.toString(); 
 
 		int wallDiameter = 64;
 		key = key.toLowerCase();
 		WallBiomeDataManager.WallBiomeDataItem currentWallBiomeDataItem = WallBiomeDataManager
-				.getWallBiomeDataItem(key);
+				.getWallBiomeDataItem(ve.getServer(), key);
 		if (!(currentWallBiomeDataItem == null)) {
 			wallDiameter = currentWallBiomeDataItem.getWallLength();
 		}
@@ -496,17 +549,17 @@ public class ActionTests {
 	}
 
 	/**
-	 * Returns true if the given block is a valid ocean floor block
-	 * suitable for placement checks (e.g., sand, gravel, clay, or magma).
+	 * Returns true if the given block is a valid ocean floor block suitable for
+	 * placement checks (e.g., sand, gravel, clay, or magma).
 	 *
 	 * @param bs the block state to check
 	 * @return true if the block is sand, gravel, clay, or magma; false otherwise
 	 */
 	static boolean isOceanFloorBlock(BlockState bs) {
-	    return bs.is(BlockTags.SAND) || bs.is(Blocks.GRAVEL) || bs.is(Blocks.CLAY) || bs.is(Blocks.MAGMA_BLOCK);
+		return bs.is(BlockTags.SAND) || bs.is(Blocks.GRAVEL) || bs.is(Blocks.CLAY) || bs.is(Blocks.MAGMA_BLOCK);
 	}
 
-	 static boolean hasAdjacentDoor(ServerLevel serverLevel, BlockPos pos) {
+	static boolean hasAdjacentDoor(ServerLevel serverLevel, BlockPos pos) {
 		if (serverLevel.getBlockState(pos.offset(-1, 0, 0)).getBlock() instanceof DoorBlock)
 			return true;
 		if (serverLevel.getBlockState(pos.offset(1, 0, 0)).getBlock() instanceof DoorBlock)

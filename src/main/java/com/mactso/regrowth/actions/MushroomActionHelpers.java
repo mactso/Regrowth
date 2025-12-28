@@ -1,7 +1,7 @@
 package com.mactso.regrowth.actions;
 
-import com.mactso.regrowth.config.MyConfig;
-import com.mactso.regrowth.utility.Utility;
+import com.mactso.regrowth.modloader.config.MyConfig;
+import com.mactso.regrowth.utilities.MyUtilities;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -86,6 +86,15 @@ public class MushroomActionHelpers {
 		try {
 			((MushroomBlock) mushroomBlock).growMushroom(serverLevel, pos, mushroomBlock.defaultBlockState(),
 					serverLevel.random);
+			// Re-check the block after growth
+			Block newBlock  = serverLevel.getBlockState(pos).getBlock();
+
+			// If growth failed (still a small mushroom), remove it
+		    if (!(newBlock instanceof HugeMushroomBlock)) {
+				if (newBlock instanceof MushroomBlock) {
+			        serverLevel.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+				}
+		    }
 		} catch (Exception ignored) {
 			// technically an "impossible" error but it's happened so this should
 			// bulletproof it.
@@ -113,7 +122,7 @@ public class MushroomActionHelpers {
 	
 		// Fertility check
 		if (growthFilterValue < 0.75) {
-			Utility.debugMsg(1, pos, key + " Mushroom fertility (" + growthFilterValue + ") non-growing spot.");
+			MyUtilities.debugMsg(1, pos, key + " Mushroom fertility (" + growthFilterValue + ") non-growing spot.");
 			return false;
 		}
 	
@@ -169,7 +178,7 @@ public class MushroomActionHelpers {
 		float biomeTemp = biome.value().getBaseTemperature();
 	
 		if (rgCtx.doDebug()) {
-			Utility.debugMsg(1, le, "Mushroom Biome temp: " + biomeTemp + ".");
+			MyUtilities.debugMsg(1, le, "Mushroom Biome temp: " + biomeTemp + ".");
 		}
 	
 		if (biomeTemp < MyConfig.getMushroomMinTemp())

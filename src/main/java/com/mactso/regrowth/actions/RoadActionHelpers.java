@@ -1,6 +1,6 @@
 package com.mactso.regrowth.actions;
 
-import com.mactso.regrowth.utility.Utility;
+import com.mactso.regrowth.utilities.MyUtilities;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.BlockPos.MutableBlockPos;
@@ -249,7 +249,7 @@ public class RoadActionHelpers {
 	
 		if (RoadActionHelpers.isRoadBump(rgCtx)) {
 			if (doDebug)
-				Utility.debugMsg(1, ve, " actual fix bumps in road.");
+				MyUtilities.debugMsg(1, ve, " actual fix bumps in road.");
 			serverLevel.setBlockAndUpdate(adjustedPos.below(1), Blocks.AIR.defaultBlockState());
 			serverLevel.setBlockAndUpdate(adjustedPos.below(2), biomeRoadBlock.defaultBlockState());
 			serverLevel.playSound(ve, ve.blockPosition(), SoundEvents.GRASS_PLACE, SoundSource.BLOCKS,
@@ -284,7 +284,7 @@ public class RoadActionHelpers {
 			return false;
 	
 		BlockState biomeRoadBlockState = biomeRoadBlock.defaultBlockState();
-		serverLevel.setBlockAndUpdate(adjustedPos.below(), biomeRoadBlockState); // TODO: Fix in 1.21.1-1.21.4
+		serverLevel.setBlockAndUpdate(adjustedPos.below(), biomeRoadBlockState); 
 		serverLevel.playSound(ve, ve.blockPosition(), SoundEvents.GRASS_PLACE, SoundSource.BLOCKS, /* Volume */ 0.75f,
 				/* Pitch */ 0.75f);
 		roadFixSnow(rgCtx); // now we are on a road.
@@ -315,7 +315,7 @@ public class RoadActionHelpers {
 		}
 	
 		if (rgCtx.doDebug())
-			Utility.debugMsg(2, ve, " fixed a pothole in the road.");
+			MyUtilities.debugMsg(2, ve, " fixed a pothole in the road.");
 	
 		// Fix the pothole:
 		// 1. Replace the foot block with biomeRoadBlock

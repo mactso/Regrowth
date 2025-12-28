@@ -1,6 +1,8 @@
-package com.mactso.regrowth.events;
+package com.mactso.regrowth.modloader.events;
 
-import com.mactso.regrowth.utility.Utility;
+
+
+import com.mactso.regrowth.utilities.MyUtilities;
 
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
@@ -15,10 +17,10 @@ public class TrampleEventHandler {
 
 	@SubscribeEvent
 	public static void handleTrampleEvents(FarmlandTrampleEvent event) {
-		Utility.debugMsg(0,"enter Handle Trample Events");		
+		MyUtilities.debugMsg(0,"enter Handle Trample Events");		
 
 		if (event.getEntity() instanceof LivingEntity le) {
-			Utility.debugMsg(1, le, "FarmlandTrampleEvent");
+			MyUtilities.debugMsg(1, le, "FarmlandTrampleEvent");
 			if (event.isCancelable()) {
 				if (le instanceof Villager ve) {
 					if (ve.getVillagerData().getProfession() != VillagerProfession.FARMER) {
@@ -37,7 +39,7 @@ public class TrampleEventHandler {
 				}
 			}
 		}
-		Utility.debugMsg(1,"fall out of Handle Trample Events");		
+		MyUtilities.debugMsg(1,"fall out of Handle Trample Events");		
 
 	}
 	

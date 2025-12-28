@@ -1,20 +1,27 @@
 package com.mactso.regrowth.actions;
 
-import com.mactso.regrowth.config.MyConfig;
-import com.mactso.regrowth.config.RegrowthEntitiesManager;
-import com.mactso.regrowth.config.RegrowthEntitiesManager.RegrowthMobItem;
-import com.mactso.regrowth.utility.Utility;
+import java.util.Locale;
+
+import com.mactso.regrowth.managers.RegrowthEntitiesManager;
+import com.mactso.regrowth.managers.RegrowthEntitiesManager.RegrowthMobItem;
+import com.mactso.regrowth.managers.WallBiomeDataManager;
+import com.mactso.regrowth.modloader.config.MyConfig;
+import com.mactso.regrowth.utilities.MyUtilities;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.GlobalPos;
 import net.minecraft.core.Holder;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ambient.Bat;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.BedBlock;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.TorchBlock;
 import net.minecraft.world.level.block.WallBlock;
 import net.minecraft.world.level.block.WallTorchBlock;
@@ -24,11 +31,16 @@ public class ActionContext {
 	private LivingEntity entity;
 	private Villager ve;
 	private ServerLevel serverLevel;
+	private final MinecraftServer server;
 	private final Block biomeRoadBlock;
 	private RandomSource rand;
 	private Boolean doDebug;
 	private String key;
 	private String regrowthActions; // e.g., "stumble grow eat"
+	private GlobalPos villagerMeetingPointPos = null;
+	private boolean hasMeetingPoint = false;
+	private boolean isAtAValidWallSpot = false;
+	private boolean isAtAValidGateSpot = false;
 	private BlockPos adjustedPos;
 	private BlockPos footBlockPos;
 	private BlockState groundBlockState;
@@ -38,15 +50,17 @@ public class ActionContext {
 	private Holder<Biome> biomeHolder;
 	private Biome localBiome;
 	private String biomeCategory;
+	private WallBiomeDataManager.WallBiomeDataItem wallBiomeDataItem = null;
 
-	public ActionContext(LivingEntity entity, Villager ve, ServerLevel serverlevel, Boolean doDebug, String key,
-			String regrowthActions, BlockPos adjustedPos, BlockPos footBlockPos, BlockState groundBlockState,
-			Block groundBlock, BlockState footBlockState, Block footBlock, Holder<Biome> biomeHolder, Biome localBiome,
-			Block biomeRoadBlock, String biomeCategory) {
+	public ActionContext(LivingEntity entity, Villager ve, ServerLevel serverLevel, MinecraftServer server,
+			Boolean doDebug, String key, String regrowthActions, BlockPos adjustedPos, BlockPos footBlockPos,
+			BlockState groundBlockState, Block groundBlock, BlockState footBlockState, Block footBlock,
+			Holder<Biome> biomeHolder, Biome localBiome, Block biomeRoadBlock, String biomeCategory) {
 		this.entity = entity;
 		this.ve = ve;
-		this.serverLevel = serverlevel;
-		this.rand = serverlevel.getRandom();
+		this.serverLevel = serverLevel;
+		this.server = server;
+		this.rand = serverLevel.getRandom();
 		this.doDebug = doDebug;
 		this.key = key;
 		this.regrowthActions = regrowthActions;
@@ -77,6 +91,10 @@ public class ActionContext {
 		return serverLevel;
 	}
 
+	public MinecraftServer server() {
+		return server;
+	}
+
 	public Holder<Biome> getBiomeHolder() {
 		return biomeHolder;
 	}
@@ -95,6 +113,60 @@ public class ActionContext {
 
 	public String regrowthActions() {
 		return regrowthActions;
+	}
+
+	public GlobalPos villageMeetingPointPos() {
+
+		if (villagerMeetingPointPos != null)
+			return villagerMeetingPointPos;
+
+		// Load the villager's meeting point
+		villagerMeetingPointPos = ve.getBrain().getMemory(MemoryModuleType.MEETING_POINT).orElse(null);
+
+		// If we got a meeting point, compute wall/gate distances
+		if (villagerMeetingPointPos == null)
+			return null;
+
+		BlockPos mpPos = villagerMeetingPointPos.pos();
+		if (serverLevel.getBlockState(mpPos).getBlock() != Blocks.BELL)
+			return null;
+
+		BlockPos controlWallPos = villagerMeetingPointPos.pos().above();
+		Block configuredWallControlBlock = ActionUtilities.getPlayerWallControlBlockFromConfig();
+		if (ActionTests.isNewChunk(serverLevel, villagerMeetingPointPos.pos())) {
+			serverLevel.setBlockAndUpdate(controlWallPos, configuredWallControlBlock.defaultBlockState());
+		}
+
+		if (serverLevel.getBlockState(controlWallPos).getBlock() != configuredWallControlBlock)
+			return villagerMeetingPointPos;
+
+		hasMeetingPoint = true;
+
+		if (!ActionTests.isWallBuildingOn())
+			return villagerMeetingPointPos;
+
+		BlockPos vePos = adjustedPos();
+
+		int wallRadius = wallBiomeDataItem().getWallRadius(); // (wallLength / 2) + 1;
+
+		// Overall wall validity
+		isAtAValidWallSpot = WallActionHelpers.isAtValidWallSpot(vePos, mpPos, wallRadius);
+
+		isAtAValidGateSpot = WallActionHelpers.isAtValidGateSpot(vePos, villagerMeetingPointPos.pos(), wallBiomeDataItem.getWallRadius());
+
+		return villagerMeetingPointPos;
+	}
+
+	public boolean hasMeetingPoint() {
+		return hasMeetingPoint;
+	}
+
+	public boolean isAtAValidWallSpot() {
+		return isAtAValidWallSpot;
+	}
+
+	public boolean isAtAValidGateSpot() {
+		return isAtAValidGateSpot;
 	}
 
 	public BlockPos adjustedPos() {
@@ -137,6 +209,16 @@ public class ActionContext {
 		return biomeCategory;
 	}
 
+	// lazy initialization; villagers rarely on wall perimeter.
+	public WallBiomeDataManager.WallBiomeDataItem wallBiomeDataItem() {
+		if (wallBiomeDataItem == null) {
+			// Use Locale.ROOT to ensure consistent lower-casing
+			String wallKey = ("minecraft:" + this.biomeCategory()).toLowerCase(Locale.ROOT);
+			wallBiomeDataItem = WallBiomeDataManager.getWallBiomeDataItem(this.server(), wallKey);
+		}
+		return wallBiomeDataItem;
+	}
+
 // ---------------------
 // Setters for mutable fields
 // ---------------------
@@ -168,8 +250,9 @@ public class ActionContext {
 		}
 
 		ServerLevel serverLevel = (ServerLevel) le.level();
+		MinecraftServer server = serverLevel.getServer();
 		boolean doDebug = (MyConfig.getaDebugLevel() > 0);
-		String key = Utility.getResourceLocationString(le).toString();
+		String key = MyUtilities.getResourceLocationString(le).toString();
 		RegrowthMobItem mobInfo = RegrowthEntitiesManager.getRegrowthMobInfo(key);
 		if (mobInfo == null)
 			return null;
@@ -179,13 +262,12 @@ public class ActionContext {
 		BlockPos adjustedPos = ActionUtilities.getAdjustedPos(le);
 		BlockPos footPos = adjustedPos; // air, partial blocks, blocks with no hit box (like tall_grass, flowers)
 		BlockPos groundPos = footPos.below();
-		
+
 		BlockState footBlockState = serverLevel.getBlockState(adjustedPos);
 		Block footBlock = footBlockState.getBlock();
-		
+
 		BlockState groundBlockState = serverLevel.getBlockState(groundPos);
 		Block groundBlock = groundBlockState.getBlock();
-
 
 		// Early exit checks
 		if ((groundBlockState.isAir()) && !(le instanceof Bat))
@@ -197,10 +279,10 @@ public class ActionContext {
 
 		Holder<Biome> biomeHolder = serverLevel.getBiome(le.blockPosition());
 		Biome localBiome = biomeHolder.value();
-		Block biomeRoadBlock = ActionUtilities.getBiomeRoadBlockType(Utility.GetBiomeName(localBiome)).getBlock();
-		String biomeCategory = Utility.getMyBiomeCategory(biomeHolder);
+		Block biomeRoadBlock = ActionUtilities.getBiomeRoadBlockType(MyUtilities.GetBiomeName(localBiome)).getBlock();
+		String biomeCategory = MyUtilities.getMyBiomeCategory(biomeHolder);
 
-		return new ActionContext(le, ve, serverLevel, doDebug, key, regrowthActions, adjustedPos, footPos,
+		return new ActionContext(le, ve, serverLevel, server, doDebug, key, regrowthActions, adjustedPos, footPos,
 				groundBlockState, groundBlock, footBlockState, footBlock, biomeHolder, localBiome, biomeRoadBlock,
 				biomeCategory);
 	}

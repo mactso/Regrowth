@@ -2,18 +2,23 @@ package com.mactso.regrowth.actions;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.mactso.regrowth.utility.Utility;
+import com.mactso.regrowth.modloader.config.MyConfig;
+import com.mactso.regrowth.utilities.MyUtilities;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.BlockPos.MutableBlockPos;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.npc.Villager;
-import net.minecraft.world.entity.npc.VillagerData;
 import net.minecraft.world.entity.npc.VillagerProfession;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
@@ -236,7 +241,7 @@ public class ActionUtilities {
 			}
 		}
 
-		Utility.debugMsg(2, bPos, Utility.getResourceLocationString(serverLevel, searchBlock) + " Sparse count:" + count
+		MyUtilities.debugMsg(2, bPos, MyUtilities.getResourceLocationString(serverLevel, searchBlock) + " Sparse count:" + count
 				+ " countBlockBB ");
 
 		return count;
@@ -267,7 +272,7 @@ public class ActionUtilities {
 			}
 		}
 
-		Utility.debugMsg(2, bPos, searchBlock.getSimpleName() + " Sparse count:" + count + " countBlockBB ");
+		MyUtilities.debugMsg(2, bPos, searchBlock.getSimpleName() + " Sparse count:" + count + " countBlockBB ");
 
 		return count;
 	}
@@ -283,22 +288,22 @@ public class ActionUtilities {
 
 	static int getVillagerTorchPlaceOdds(Villager ve) {
 		
-		VillagerData data = ve.getVillagerData();
-		VillagerProfession profession = data.getProfession();
-
 		int placeTorchOdds = ve.getVillagerData().getLevel() * 10;
 
-		if (profession == VillagerProfession.FISHERMAN || profession == VillagerProfession.BUTCHER) {
-			return placeTorchOdds + 4;
-		}
+		if (VillagerActions.isVillagerProfession(ve, VillagerProfession.FISHERMAN) ||
+			    VillagerActions.isVillagerProfession(ve, VillagerProfession.BUTCHER)) {
+			    return placeTorchOdds + 4;
+			}
 
-		if (profession == VillagerProfession.TOOLSMITH || profession == VillagerProfession.WEAPONSMITH) {
-			return placeTorchOdds + 8;
-		}
-		if (profession == VillagerProfession.ARMORER) {
-			return placeTorchOdds + 16;
-		}
+			if (VillagerActions.isVillagerProfession(ve, VillagerProfession.TOOLSMITH) ||
+			    VillagerActions.isVillagerProfession(ve, VillagerProfession.WEAPONSMITH)) {
+			    return placeTorchOdds + 8;
+			}
 
+			if (VillagerActions.isVillagerProfession(ve, VillagerProfession.ARMORER)) {
+			    return placeTorchOdds + 16;
+			}
+			
 		return placeTorchOdds;
 	}
 
@@ -320,13 +325,122 @@ public class ActionUtilities {
 	}
 
 	static String debugSaplingInfo(ServerLevel serverLevel, Biome biome, BlockState sapling) {
-		ResourceLocation biomeKey = serverLevel.registryAccess().registryOrThrow(Registries.BIOME).getKey(biome);
+	    // Get registries using your safe helpers
+	    Registry<Biome> biomeRegistry = getBiomeRegistrySafe(serverLevel.getServer(), Registries.BIOME);
+	    Registry<Block> blockRegistry = getBlockRegistrySafe(serverLevel.getServer(), Registries.BLOCK);
+
+	    ResourceLocation biomeKey = null;
+	    ResourceLocation saplingKey = null;
+
+	    if (biomeRegistry != null) {
+	        biomeKey = biomeRegistry.getKey(biome);
+	    }
+
+	    if (blockRegistry != null && sapling != null) {
+	        saplingKey = blockRegistry.getKey(sapling.getBlock());
+	    }
 	
-		ResourceLocation saplingKey = serverLevel.registryAccess().registryOrThrow(Registries.BLOCK)
-				.getKey(sapling.getBlock());
 	
 		return String.format("Biome=%s, Sapling=%s", biomeKey != null ? biomeKey : "unknown_biome",
 				saplingKey != null ? saplingKey : "unknown_sapling");
 	}
+	
+	public static Registry<Block> getBlockRegistrySafe(MinecraftServer server, ResourceKey<Registry<Block>> key) {
+	    try {
+	        // registryOrThrow returns Registry<T> directly in 1.21.1+
+	        return server.registryAccess().registryOrThrow(key);
+	    } catch (IllegalStateException e) {
+	        // Registry not found
+	        MyUtilities.debugMsg(0, "Block registry not found: " + key.location());
+	        return null;
+	    }
+	}
+	
+	public static Registry<Biome> getBiomeRegistrySafe(MinecraftServer server, ResourceKey<Registry<Biome>> key) {
+	    try {
+	        // registryOrThrow returns Registry<T> directly in 1.21.1+
+	        return server.registryAccess().registryOrThrow(key);
+	    } catch (IllegalStateException e) {
+	        // Registry not found
+	        MyUtilities.debugMsg(0, "Biome registry not found: " + key.location());
+	        return null;
+	    }
+	}
+	
 
+
+    /**
+     * Safely gets the torch block from MyConfig.
+     * 
+     * Returns null if any step fails or if the config string is empty.
+     * Logs a debug message on the first failure only.
+     */
+
+	private static boolean torchBlockFailureLogged = false;
+    
+    public static Block getTorchBlockFromConfig() {
+        String torchBlockString = MyConfig.getTorchBlock();
+        
+		if (!MyUtilities.isStringValid(torchBlockString))
+			return null;
+
+        ResourceLocation id = ResourceLocation.tryParse(torchBlockString);
+        if (id == null) {
+            logTorchFailureOnce("Failed to parse torch block string: " + torchBlockString);
+            return null;
+        }
+
+        Block block = BuiltInRegistries.BLOCK.get(id);
+        if (block == null || block.defaultBlockState().is(BlockTags.AIR)) {
+            logTorchFailureOnce("Torch block '" + torchBlockString + "' is not a Block or resolves to AIR.");
+            return null;
+        }
+
+        return block;
+    }
+
+    private static void logTorchFailureOnce(String message) {
+        if (!torchBlockFailureLogged) {
+            torchBlockFailureLogged = true;
+            MyUtilities.debugMsg(0, message);
+        }
+    }
+
+
+
+    /**
+     * Safely gets the player wall control block from MyConfig.
+     * 
+     * Returns null if any step fails or if the config string is empty.
+     * Logs a debug message on the first failure only.
+     */
+    private static boolean playerWallBlockFailureLogged = false;
+    public static Block getPlayerWallControlBlockFromConfig() {
+        String wallBlockString = MyConfig.getPlayerWallControlBlock();
+
+        if (!MyUtilities.isStringValid(wallBlockString))
+            return null;
+
+        ResourceLocation id = ResourceLocation.tryParse(wallBlockString);
+        if (id == null) {
+            logPlayerWallFailureOnce("Failed to parse player wall block string: " + wallBlockString);
+            return null;
+        }
+
+        Block block = BuiltInRegistries.BLOCK.get(id);
+        if (block == null || block.defaultBlockState().is(BlockTags.AIR)) {
+            logPlayerWallFailureOnce("Player wall block '" + wallBlockString + "' is not a Block or resolves to AIR.");
+            return null;
+        }
+
+        return block;
+    }
+
+    private static void logPlayerWallFailureOnce(String message) {
+        if (!playerWallBlockFailureLogged) {
+            playerWallBlockFailureLogged = true;
+            MyUtilities.debugMsg(0, message);
+        }
+    }
+    
 }

@@ -1,17 +1,25 @@
-package com.mactso.regrowth.utility;
+package com.mactso.regrowth.utilities;
+
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.mactso.regrowth.config.MyConfig;
+import com.mactso.regrowth.modloader.config.MyConfig;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.BiomeTags;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -26,7 +34,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap.Types;
 import net.minecraft.world.phys.Vec3;
 
-public class Utility {
+public class MyUtilities {
 	
 	public static String NONE = "none";
 	public static String BEACH = "beach";
@@ -48,6 +56,29 @@ public class Utility {
 	public static String SWAMP = "swamp";
 	public static String TAIGA = "taiga";
 	public static String UNDERGROUND = "underground";
+	
+	public static final Set<String> VALID_BIOME_CATEGORIES = Set.of(
+		    NONE,
+		    BEACH,
+		    BADLANDS,
+		    DESERT,
+		    EXTREME_HILLS,
+		    ICY,
+		    JUNGLE,
+		    THEEND,
+		    FOREST,
+		    MESA,
+		    MUSHROOM,
+		    MOUNTAIN,
+		    NETHER,
+		    OCEAN,
+		    PLAINS,
+		    RIVER,
+		    SAVANNA,
+		    SWAMP,
+		    TAIGA,
+		    UNDERGROUND
+		);
 	
 	public final static int FOUR_SECONDS = 80;
 	public final static int TWO_SECONDS = 40;
@@ -71,35 +102,35 @@ public class Utility {
 	public static String getMyBiomeCategory (Holder<Biome> testBiome) {
 		
 		if (testBiome.is(BiomeTags.HAS_VILLAGE_DESERT))
-			return Utility.DESERT;
+			return MyUtilities.DESERT;
 		if (testBiome.is(BiomeTags.IS_FOREST))
-			return Utility.FOREST;
+			return MyUtilities.FOREST;
 		if (testBiome.is(BiomeTags.IS_BEACH))
-			return Utility.BEACH;
+			return MyUtilities.BEACH;
 		if (testBiome.is(BiomeTags.HAS_VILLAGE_SNOWY))
-			return Utility.ICY;		
+			return MyUtilities.ICY;		
 		if (testBiome.is(BiomeTags.IS_JUNGLE))
-			return Utility.JUNGLE;		
+			return MyUtilities.JUNGLE;		
 		if (testBiome.is(BiomeTags.IS_OCEAN))
-			return Utility.OCEAN;		
+			return MyUtilities.OCEAN;		
 		if (testBiome.is(BiomeTags.IS_DEEP_OCEAN))
-			return Utility.OCEAN;		
+			return MyUtilities.OCEAN;		
 		if (testBiome.is(BiomeTags.HAS_VILLAGE_PLAINS))
-			return Utility.PLAINS;		
+			return MyUtilities.PLAINS;		
 		if (testBiome.is(BiomeTags.IS_RIVER))
-			return Utility.RIVER;		
+			return MyUtilities.RIVER;		
 		if (testBiome.is(BiomeTags.IS_SAVANNA))
-			return Utility.SAVANNA;		
+			return MyUtilities.SAVANNA;		
 		if (testBiome.is(BiomeTags.ALLOWS_SURFACE_SLIME_SPAWNS))
-			return Utility.SWAMP;		
+			return MyUtilities.SWAMP;		
 		if (testBiome.is(BiomeTags.IS_TAIGA))
-			return Utility.TAIGA;		
+			return MyUtilities.TAIGA;		
 		if (testBiome.is(BiomeTags.IS_BADLANDS))
-			return Utility.BADLANDS;		
+			return MyUtilities.BADLANDS;		
 		if (testBiome.is(BiomeTags.IS_MOUNTAIN))
-			return Utility.EXTREME_HILLS;		
+			return MyUtilities.EXTREME_HILLS;		
 		if (testBiome.is(BiomeTags.IS_NETHER))
-			return Utility.NETHER;	
+			return MyUtilities.NETHER;	
 		return NONE;
 
 	}
@@ -132,7 +163,7 @@ public class Utility {
 
 	}
 
-	public static void sendBoldChat(Player p, String chatMessage, ChatFormatting textColor) {
+	public static void sendBoldChat(ServerPlayer p, String chatMessage, ChatFormatting textColor) {
 
 		MutableComponent component = Component.literal(chatMessage);
 		component.setStyle(component.getStyle().withBold(true));
@@ -142,7 +173,7 @@ public class Utility {
 
 	}
 
-	public static void sendChat(Player p, String chatMessage, ChatFormatting textColor) {
+	public static void sendChat(ServerPlayer p, String chatMessage, ChatFormatting textColor) {
 
 		MutableComponent component = Component.literal(chatMessage);
 		component.setStyle(component.getStyle().withColor(textColor));
@@ -150,31 +181,26 @@ public class Utility {
 
 	}
 	
-//	public static void updateEffect(LivingEntity e, int amplifier, MobEffect mobEffect, int duration) {
-//      MobEffect needs to be changed to a holder in Happy Trails.
-//		Holder<MobEffect> mee = MobEffects.BLINDNESS;
-//		ResourceLocation merl = BuiltInRegistries.MOB_EFFECT.getKey(mobEffect);
-//		Optional<Reference<MobEffect>> meh = BuiltInRegistries.MOB_EFFECT.getHolder(rl);
-//		if (meh.isEmpty()) return;
-//		MobEffectInstance ei = e.getEffect(meh.get());
-//		if (amplifier == 10) {
-//			amplifier = 20; // player "plaid" speed.
-//		}
-//		if (ei != null) {
-//			if (amplifier > ei.getAmplifier()) {
-//				e.removeEffect(mobEffect);
-//			}
-//			if (amplifier == ei.getAmplifier() && ei.getDuration() > 10) {
-//				return;
-//			}
-//			if (ei.getDuration() > 10) {
-//				return;
-//			}
-//			e.removeEffect(mobEffect);
-//		}
-//		e.addEffect(new MobEffectInstance(mobEffect, duration, amplifier, true, true));
-//		return;
-//	}
+	public static void updateEffect(LivingEntity e, int amplifier,  Holder<MobEffect> mobEffect) {
+		MobEffectInstance ei = e.getEffect(mobEffect);
+		if (amplifier == 10) {
+			amplifier = 20;  // player "plaid" speed.
+		}
+		if (ei != null) {
+			if (amplifier > ei.getAmplifier()) {
+				e.removeEffect(mobEffect);
+			} 
+			if (amplifier == ei.getAmplifier() && ei.getDuration() > 10) {
+				return;
+			}
+			if (ei.getDuration() > 10) {
+				return;
+			}
+			e.removeEffect(mobEffect);			
+		}
+		e.addEffect(new MobEffectInstance(mobEffect, TWO_SECONDS, amplifier, true, true ));
+		return;
+	}
 
 	public static boolean populateEntityType(EntityType<?> et, ServerLevel level, BlockPos savePos, int range,
 			int modifier) {
@@ -209,30 +235,23 @@ public class Utility {
 		Mob e;
 
 		for (int i = 0; i < X; i++) {
+			// MobSpawnType changes to EntitySpawnReason in a later version.
 			e = (Mob) et.spawn(level, savePos, MobSpawnType.NATURAL);
 			e.setBaby(isBaby);
 		}
 		return true;
 	}
 
+	public static boolean isStringValid(String s) {
+	    boolean valid = false;
+
+	    if (s != null && !s.isBlank()) {
+	        valid = true;
+	    }
+
+	    return valid;
+	}
 	
-//	public static void setName(ItemStack stack, String inString)
-//	{
-//		CompoundTag tag = stack.getOrCreateTagElement("display");
-//		ListTag list = new ListTag();
-//		list.add(StringTag.valueOf(inString));
-//		tag.put("Name", list);
-//	}
-//	
-//	
-//	public static void setLore(ItemStack stack, String inString)
-//	{
-//		CompoundTag tag = stack.getOrCreateTagElement("display");
-//		ListTag list = new ListTag();
-//		list.add(StringTag.valueOf(inString));
-//		tag.put("Lore", list);
-//	}
-//	
 	public static boolean isNotNearWebs(BlockPos pos, ServerLevel serverLevel) {
 
 		if (serverLevel.getBlockState(pos).getBlock() == Blocks.COBWEB)
@@ -274,8 +293,8 @@ public class Utility {
 	
 	public static String getResourceLocationString(ServerLevel serverLevel, BlockState blockState) {
 		return getResourceLocationString(serverLevel,blockState.getBlock());
-		}
-
+	}
+	
 
 	@SuppressWarnings("deprecation")
 	public static String getResourceLocationString(ServerLevel serverLevel, Block block) {
@@ -295,6 +314,16 @@ public class Utility {
 	public static String GetBiomeName(Biome b) {
 		return b.toString();
 	}
+
+
+	// -------------------------------
+	// Helper to allow methods to be the same in 1.21.1 and 1.21.5 .
+	// -------------------------------
+		public static <T> Registry<T> getRegistrySafe(RegistryAccess access, ResourceKey<Registry<T>> key) {
+	    return access.registry(key).orElse(null);  // 1.21.1 pattern
+	}
+
+
 
 
 	

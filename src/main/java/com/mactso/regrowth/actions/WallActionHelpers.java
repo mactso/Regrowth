@@ -198,27 +198,17 @@ public class WallActionHelpers {
 		BlockPos vmpPos = rgCtx.villageMeetingPointPos().pos();
 		ServerLevel serverLevel = rgCtx.serverLevel();
 		BlockPos vePos = ActionUtilities.getAdjustedPos(ve);
-		Block footBlock = rgCtx.footBlock();
 		WallBiomeDataItem tmpWbdi = rgCtx.wallBiomeDataItem();
 		BlockState wallBlockState = tmpWbdi.getWallBlockState();
 		BlockState gateBlockState = Blocks.OAK_FENCE_GATE.defaultBlockState().setValue(OPEN, true).setValue(FACING, d);
 
-		if (footBlock instanceof SnowLayerBlock) {
-			serverLevel.destroyBlock(vePos, false);
-		}
-
-		if (ActionTests.isNatProgPebbleOrStick(rgCtx)) {
-			serverLevel.destroyBlock(vePos, true);
-		}
-
-		if ((footBlock instanceof SaplingBlock) || (footBlock instanceof TallGrassBlock)
-				|| (footBlock instanceof FlowerBlock) || (footBlock instanceof DoublePlantBlock)) {
-			serverLevel.destroyBlock(vePos, true);
-		}
+		// if standing inside a plant, snow layer, which have no hit box, clear it and update footblock
+		clearAndUpdateFootBlockIfNeeded(rgCtx);
 
 		if (isAtValidGateSpot(vePos, vmpPos, tmpWbdi.getWallRadius())) {
-			serverLevel.setBlockAndUpdate(vePos, gateBlockState);
-			serverLevel.neighborChanged(vePos, gateBlockState.getBlock(), vePos);
+			if (!hasValidGateBase(serverLevel, vePos)) 
+				return false;
+			serverLevel.setBlock(vePos, gateBlockState, Block.UPDATE_ALL); 
 			serverLevel.playSound(null, // player: null for all nearby
 					vePos.above(), // position
 					SoundEvents.WOOD_PLACE, // sound event
@@ -227,8 +217,7 @@ public class WallActionHelpers {
 			return true;
 		}
 
-		serverLevel.setBlockAndUpdate(vePos, wallBlockState);
-		serverLevel.neighborChanged(vePos, wallBlockState.getBlock(), vePos);
+		serverLevel.setBlock(vePos, wallBlockState, Block.UPDATE_ALL); 
 		serverLevel.playSound(null, // player: null for all nearby
 				vePos.above(), // position
 				SoundEvents.STONE_PLACE, // sound event
@@ -242,6 +231,41 @@ public class WallActionHelpers {
 
 		return true;
 
+	}
+	
+	/**
+	 * Clears the block the villager is standing in if it is snow, a natural pebble/stick, or a small plant.
+	 * Drops items if appropriate and updates the ActionContext to reflect that the foot block is now air.
+	 */
+	static void clearAndUpdateFootBlockIfNeeded(ActionContext rgCtx) {
+	    ServerLevel serverLevel = rgCtx.serverLevel();
+	    BlockPos vePos = ActionUtilities.getAdjustedPos(rgCtx.ve());
+	    Block footBlock = rgCtx.footBlock();
+
+	    boolean shouldDestroy = false;
+	    boolean shouldDrop = false;
+
+	    // Check each condition
+	    if (footBlock instanceof SnowLayerBlock) {
+	        shouldDestroy = true;
+	        shouldDrop = false;
+	    } else if (ActionTests.isNatProgPebbleOrStick(rgCtx)) {
+	        shouldDestroy = true;
+	        shouldDrop = true;
+	    } else if (footBlock instanceof SaplingBlock
+	            || footBlock instanceof TallGrassBlock
+	            || footBlock instanceof FlowerBlock
+	            || footBlock instanceof DoublePlantBlock) {
+	        shouldDestroy = true;
+	        shouldDrop = true;
+	    }
+
+	    if (shouldDestroy) {
+	        serverLevel.destroyBlock(vePos, shouldDrop);
+	        // Always refresh rgCtx
+	        rgCtx.setFootBlockState(Blocks.AIR.defaultBlockState());
+	        rgCtx.setFootBlock(Blocks.AIR);
+	    }
 	}
 
 	// only happens when a mason build a wall section so performance hit low.
@@ -312,7 +336,7 @@ public class WallActionHelpers {
 	static boolean tryBuildWallCorner(ServerLevel serverLevel, BlockPos mPos, BlockState wallBs) {
 
 		if (!(ActionTests.isWallorLantern(serverLevel, mPos, wallBs))) {
-			serverLevel.setBlockAndUpdate(mPos, wallBs);
+			serverLevel.setBlock(mPos, wallBs, Block.UPDATE_ALL); 
 			serverLevel.setBlockAndUpdate(mPos.above(), Blocks.LANTERN.defaultBlockState());
 			serverLevel.playSound(null, // player: null for all nearby
 					mPos, // position
@@ -326,6 +350,8 @@ public class WallActionHelpers {
 		return false;
 	}
 
+	
+	
 	// Helper methods
 	public static boolean isOnValidEastWall(BlockPos pos, BlockPos meetingPos, int wallRadius) {
 		int dx = pos.getX() - meetingPos.getX();
@@ -365,6 +391,30 @@ public class WallActionHelpers {
 
 		return (Math.abs(dx) == wallRadius && dz == 0) // East-West gate
 				|| (Math.abs(dz) == wallRadius && dx == 0); // North-South gate
+	}
+	
+	static boolean hasValidGateBase(ServerLevel level, BlockPos gatePos) {
+
+	    BlockPos below = gatePos.below();
+	    BlockState belowState = level.getBlockState(below);
+
+	    // Cannot place gate on air / fluids / replaceables
+	    if (belowState.isAir() || belowState.canBeReplaced()) {
+	        return false;
+	    }
+
+	    // Prevent gate-on-gate
+	    if (level.getBlockState(gatePos).getBlock() instanceof FenceGateBlock) {
+	        return false;
+	    }
+
+	    // Prevent gate-on-gate
+	    if (belowState.getBlock() instanceof FenceGateBlock) {
+	        return false;
+	    }
+
+	    // Must support a block on top (true "ground")
+	    return belowState.isFaceSturdy(level, below, Direction.UP);
 	}
 
 }

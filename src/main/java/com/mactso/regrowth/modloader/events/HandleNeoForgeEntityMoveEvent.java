@@ -6,20 +6,25 @@ import com.mactso.regrowth.utilities.MyUtilities;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.event.entity.living.LivingEvent.LivingTickEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.tick.EntityTickEvent;
 
-// this is the only Forge Specific Code.
-@Mod.EventBusSubscriber()
-public class HandleForgeEntityMoveEvent {
 
+
+// this is the only NeoForge Specific Code.
+
+public class HandleNeoForgeEntityMoveEvent {
+
+    public static void register() {
+        NeoForge.EVENT_BUS.register(new HandleNeoForgeEntityMoveEvent());
+    }
 
 	@SubscribeEvent
-	public static void handleEntityMoveEvents(LivingTickEvent event) {
+	public void handleEntityMoveEvents(EntityTickEvent.Pre event) {
 		
-		
-		LivingEntity le = event.getEntity();
+		if (!(event.getEntity() instanceof LivingEntity le))
+			return;
 
 		if (le instanceof Player)
 			return;

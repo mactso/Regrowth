@@ -4,22 +4,24 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import com.mactso.regrowth.modloader.main.RegrowthMain;
 
-import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.common.ForgeConfigSpec.ConfigValue;
-import net.minecraftforge.common.ForgeConfigSpec.DoubleValue;
-import net.minecraftforge.common.ForgeConfigSpec.IntValue;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.config.ModConfigEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.common.EventBusSubscriber.Bus;
+import net.neoforged.fml.event.config.ModConfigEvent;
+import net.neoforged.neoforge.common.ModConfigSpec;
+import net.neoforged.neoforge.common.ModConfigSpec.ConfigValue;
+import net.neoforged.neoforge.common.ModConfigSpec.DoubleValue;
+import net.neoforged.neoforge.common.ModConfigSpec.IntValue;
 
-@Mod.EventBusSubscriber(modid = RegrowthMain.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
+@EventBusSubscriber(modid = RegrowthMain.MODID, bus = Bus.MOD)
 public class MyConfig {
 
 	public static final Common COMMON;
-	public static final ForgeConfigSpec COMMON_SPEC;
+	public static final ModConfigSpec COMMON_SPEC;
+	
 
 	static {
-		final Pair<Common, ForgeConfigSpec> specPair = new ForgeConfigSpec.Builder().configure(Common::new);
+		final Pair<Common, ModConfigSpec> specPair = new ModConfigSpec.Builder().configure(Common::new);
 		COMMON_SPEC = specPair.getRight();
 		COMMON = specPair.getLeft();
 	}
@@ -140,11 +142,11 @@ public class MyConfig {
 		public final IntValue debugLevel;
 		public final DoubleValue eatingHeals;
 		public final IntValue torchLightLevel;
-		public final ForgeConfigSpec.IntValue mushroomDensity;
-		public final ForgeConfigSpec.IntValue mushroomXDensity;
-		public final ForgeConfigSpec.IntValue mushroomZDensity;
-		public final ForgeConfigSpec.DoubleValue mushroomMinTemp;
-		public final ForgeConfigSpec.DoubleValue mushroomMaxTemp;
+		public final IntValue mushroomDensity;
+		public final IntValue mushroomXDensity;
+		public final IntValue mushroomZDensity;
+		public final DoubleValue mushroomMinTemp;
+		public final DoubleValue mushroomMaxTemp;
 		public final ConfigValue<String> playerWallControlBlockString;
 		public final ConfigValue<String> torchBlockString;
 
@@ -181,7 +183,7 @@ public class MyConfig {
 				+ "minecraft:nether,40,minecraft:blackstone_wall,minecraft:nether_brick_fence;"
 				+ "Regrowth:minimum,32,regrowth:minimum_wall_size,regrowth:fence_placeholder";
 
-		public Common(ForgeConfigSpec.Builder builder) {
+		public Common(ModConfigSpec.Builder builder) {
 			builder.push("Regrowth Control Values");
 
 			debugLevel = builder.comment("Debug Level: 0 = Off, 1 = Log, 2 = Chat+Log")

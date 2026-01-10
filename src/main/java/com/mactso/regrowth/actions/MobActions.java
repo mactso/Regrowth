@@ -305,7 +305,7 @@ public class MobActions {
 
 		if ((footBlock instanceof TallGrassBlock) && (footBlock instanceof BonemealableBlock)) {
 			BlockPos ePos = ActionUtilities.getAdjustedPos(le);
-			if (!MyUtilities.getResourceLocationString(serverLevel, footBlock).contains("byg")) {
+			if (!MyUtilities.getIdentifierString(serverLevel, footBlock).contains("byg")) {
 				try {
 					BonemealableBlock ib = (BonemealableBlock) footBlock;
 					ib.performBonemeal(serverLevel, serverLevel.random, ePos, le.level().getBlockState(ePos));

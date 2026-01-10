@@ -9,7 +9,7 @@ import com.mactso.regrowth.utilities.MyUtilities;
 
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -53,7 +53,7 @@ public class WallFoundationManager {
 
     private static Block parseFoundationBlock(String entry, Registry<Block> blockRegistry) {
             try {
-                ResourceLocation id = ResourceLocation.parse(entry);
+            Identifier id = Identifier.parse(entry);
             Optional<Block> optBlock = blockRegistry.getOptional(id);
             if (optBlock.isEmpty()) return null;
 

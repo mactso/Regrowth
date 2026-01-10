@@ -12,8 +12,8 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
-import net.minecraft.world.entity.npc.Villager;
-import net.minecraft.world.entity.npc.VillagerProfession;
+import net.minecraft.world.entity.npc.villager.Villager;
+import net.minecraft.world.entity.npc.villager.VillagerProfession;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.DoublePlantBlock;
@@ -397,6 +397,9 @@ public class WallActionHelpers {
 
 		int torchSpacing = wbdi.getTorchSpacing();
 
+//		int dxTsp = dx % torchSpacing;
+//		int dzTsp = dz % torchSpacing;
+		
 		return (Math.abs(dx) == wbdi.getWallRadius() && dz % torchSpacing == 1) // East-West gate
 				|| (Math.abs(dz) == wbdi.getWallRadius() && dx % torchSpacing == 1); // North-South gate
 	}

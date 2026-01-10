@@ -12,17 +12,19 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 public class RegrowthCommands {
 
-	private static final String MOD_VERSION = "NeoForge Regrowth 1.21.5 CC 36.6";
+	private static final String MOD_VERSION = "NeoForge Regrowth CC 1.21.11\n Version 34.5";
 	
 	private static final String DEBUG_LEVEL_ARG = "level 0-2";
 	
@@ -52,24 +54,12 @@ public class RegrowthCommands {
 	    MyUtilities.debugMsg(0, "Registering " + RegrowthMain.MODID + " commands.");
 
 	    dispatcher.register(
-	        Commands.literal("regrowth")
-	            .requires(source -> source.hasPermission(PermissionLevel.OP))
-	            .then(
-	                Commands.literal("debugLevel")
-	                    .then(
-	                        Commands.argument(DEBUG_LEVEL_ARG, IntegerArgumentType.integer(0, 2))
-	                            .executes(ctx -> setDebugLevel(
-	                                IntegerArgumentType.getInteger(ctx, DEBUG_LEVEL_ARG)
-	                            ))
-	                    )
-	            )
-	            .then(
-	                Commands.literal("info")
-	                    .executes(ctx -> doInfoCommand(
-	                        ctx.getSource().getPlayerOrException()
-	                    ))
-	            )
-	    );
+				Commands.literal(RegrowthMain.MODID).requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+						.then(Commands.literal("debugLevel")
+								.then(Commands.argument(DEBUG_LEVEL_ARG, IntegerArgumentType.integer(0, 2)).executes(
+										ctx -> setDebugLevel(IntegerArgumentType.getInteger(ctx, DEBUG_LEVEL_ARG)))))
+						.then(Commands.literal("info")
+								.executes(ctx -> doInfoCommand(ctx.getSource().getPlayerOrException()))));
 	}
 
 	public static int setDebugLevel(int newDebugLevel) {
@@ -118,7 +108,8 @@ public class RegrowthCommands {
 		String objectInfo = target != null ? "You are looking at: " + EntityType.getKey(target.getType()).toString()
 				: "You see no entity at all.";
 
-		ResourceLocation rl = serverLevel.dimension().location();
+		ResourceKey<Level> dimensionKey = serverLevel.dimension();
+		Identifier rl = dimensionKey.registry();
 
 		MyUtilities.sendBoldChat(sp, "Regrowth "+ MOD_VERSION +" in "+ rl + "\n Current Values", ChatFormatting.DARK_GREEN);
 

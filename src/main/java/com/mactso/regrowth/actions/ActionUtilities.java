@@ -13,14 +13,15 @@ import net.minecraft.core.Holder.Reference;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.npc.Villager;
-import net.minecraft.world.entity.npc.VillagerProfession;
+import net.minecraft.world.entity.npc.villager.Villager;
+import net.minecraft.world.entity.npc.villager.VillagerProfession;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
@@ -242,7 +243,7 @@ public class ActionUtilities {
 			}
 		}
 
-		MyUtilities.debugMsg(2, bPos, MyUtilities.getResourceLocationString(serverLevel, searchBlock) + " Sparse count:" + count
+		MyUtilities.debugMsg(2, bPos, MyUtilities.getIdentifierString(serverLevel, searchBlock) + " Sparse count:" + count
 				+ " countBlockBB ");
 
 		return count;
@@ -330,22 +331,34 @@ public class ActionUtilities {
         Registry<Biome> biomeRegistry = MyUtilities.getRegistrySafe(serverLevel.getServer().registryAccess(), Registries.BIOME);
         Registry<Block> blockRegistry = MyUtilities.getRegistrySafe(serverLevel.getServer().registryAccess(), Registries.BLOCK);
 
-	    ResourceLocation biomeKey = null;
-	    ResourceLocation saplingKey = null;
+        ResourceKey<Biome> biomeKey = null;
+        ResourceKey<Block> saplingKey = null;
 
 	    if (biomeRegistry != null) {
-	        biomeKey = biomeRegistry.getKey(biome);
+	        biomeKey = biomeRegistry.getResourceKey(biome).orElse(null);
 	    }
 
 	    if (blockRegistry != null && sapling != null) {
-	        saplingKey = blockRegistry.getKey(sapling.getBlock());
+	        saplingKey = blockRegistry.getResourceKey(sapling.getBlock()).orElse(null);
 	    }
 	
-	
-		return String.format("Biome=%s, Sapling=%s", biomeKey != null ? biomeKey : "unknown_biome",
-				saplingKey != null ? saplingKey : "unknown_sapling");
+	    // Convert to strings for debug output
+	    String biomeString;
+	    if (biomeKey != null) {
+	        biomeString = biomeKey.identifier().toString();
+	    } else {
+	        biomeString = "unknown_biome";
+	    }
+
+	    String saplingString;
+	    if (saplingKey != null) {
+	        saplingString = saplingKey.identifier().toString();
+	    } else {
+	        saplingString = "unknown_sapling";
 	}
 	
+	    return "Biome=" + biomeString + ", Sapling=" + saplingString;
+	}
 
 
     /**
@@ -364,8 +377,10 @@ public class ActionUtilities {
 			return null;
 	    }
 
-        ResourceLocation id = ResourceLocation.tryParse(torchBlockString);
-        if (id == null) {
+	    Identifier id;
+	    try {
+	        id = Identifier.parse(torchBlockString);
+	    } catch (Exception e) {
             logTorchFailureOnce("Failed to parse torch block string: " + torchBlockString);
             return null;
         }
@@ -376,11 +391,10 @@ public class ActionUtilities {
 	        return null;
 	    }
 
-	    // Lookup in registry
-	    Optional<Block> optBlock = blockRegistry.getOptional(id);
-	    if (optBlock.isEmpty()) {
+	    Optional<Block> optBlock =
+	            blockRegistry.getOptional(ResourceKey.create(Registries.BLOCK, id));
+	    if (optBlock.isEmpty())
 	        return null;
-	    }
 
 	    Block block = optBlock.get();
         if (block == null || block.defaultBlockState().is(BlockTags.AIR)) {
@@ -413,9 +427,13 @@ public class ActionUtilities {
         if (!MyUtilities.isStringValid(wallBlockString))
             return null;
 
-        ResourceLocation id = ResourceLocation.tryParse(wallBlockString);
-        if (id == null) {
-            logPlayerWallFailureOnce("Failed to parse player wall block string: " + wallBlockString);
+	    Identifier id;
+	    try {
+	        id = Identifier.parse(wallBlockString);
+	    } catch (Exception e) {
+	        logPlayerWallFailureOnce(
+	            "Failed to parse player wall block string: " + wallBlockString
+	        );
             return null;
         }
 

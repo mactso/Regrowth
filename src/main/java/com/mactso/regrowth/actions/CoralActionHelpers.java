@@ -64,7 +64,7 @@ public class CoralActionHelpers {
 	
 	}
 
-	public static void tryPlaceSeaPickleOnCoral(LivingEntity le, ServerLevel serverLevel, BlockPos theCoralBlockPos) {
+	public static void tryPlaceSeaPickleOnCoral(LivingEntity le, ServerLevel serverLevel, BlockPos theCoralBlockPos, RandomSource pRand) {
 	
 		// Don't place sea pickle if too bright.
 		int brightness = serverLevel.getBrightness(LightLayer.BLOCK, theCoralBlockPos);
@@ -78,18 +78,21 @@ public class CoralActionHelpers {
 		}
 	
 		// Random number of pickles: 1-4
-		RandomSource rand = RandomSource.create();
-		rand.nextInt(4);
-		int pickleCount = 1 + rand.nextInt(2) + rand.nextInt(2);
+		int pickleCount = 1 + pRand.nextInt(2) + pRand.nextInt(2);
 	
 		// Place the sea pickle block
 		BlockState seaPickleState = Blocks.SEA_PICKLE.defaultBlockState().setValue(SeaPickleBlock.PICKLES, pickleCount);
 		serverLevel.setBlock(theCoralBlockPos.above(), seaPickleState, 3);
 	
 		// Optional: play placement sound
-		serverLevel.playLocalSound(theCoralBlockPos.getX() + 0.5, theCoralBlockPos.getY() + 0.5,
-				theCoralBlockPos.getZ() + 0.5, SoundEvents.BUBBLE_COLUMN_BUBBLE_POP, SoundSource.BLOCKS, 1.0f, 1.0f,
-				false);
+		serverLevel.playSound(
+			    null, // null = send only to nearby players
+			    theCoralBlockPos,
+			    SoundEvents.BUBBLE_COLUMN_BUBBLE_POP,
+			    SoundSource.BLOCKS,
+			    0.95f,
+			    1.0f
+			);
 	
 	}
 
@@ -133,7 +136,7 @@ public class CoralActionHelpers {
 		serverLevel.playSound(le, newPos, SoundEvents.CHORUS_FLOWER_GROW, SoundSource.AMBIENT, 1.9f, 1.0f);
 	
 		if (rgCtx.doDebug())
-			MyUtilities.debugMsg(2, newPos, "CORAL: " + MyUtilities.getResourceLocationString(le) + " new block at " + newPos);
+			MyUtilities.debugMsg(2, newPos, "CORAL: " + MyUtilities.getIdentifierString(le) + " new block at " + newPos);
 	}
 
 	/**
@@ -173,14 +176,14 @@ public class CoralActionHelpers {
 	}
 
 	/** Place a coral fan directly on top of the coral block if water is present and density allows. */
-	static void tryPlaceTopFan(ServerLevel serverLevel, BlockPos coralBlockPos, RandomSource rand) {
+	static void tryPlaceTopFan(ServerLevel serverLevel, BlockPos coralBlockPos, RandomSource pRand) {
 		
 	    if (!CoralActionHelpers.canPlaceFan(serverLevel, coralBlockPos)) return;
 	
 	    BlockPos topPos = coralBlockPos.above();
 	    if (serverLevel.getBlockState(topPos).getBlock() != Blocks.WATER) return;
 	
-	    BlockState topFan = MobActions.coralfans[rand.nextInt(MobActions.coralfans.length)]
+	    BlockState topFan = MobActions.coralfans[pRand.nextInt(MobActions.coralfans.length)]
 	            .defaultBlockState()
 	            .setValue(CoralWallFanBlock.FACING, Direction.UP);
 	
@@ -192,7 +195,7 @@ public class CoralActionHelpers {
 	
 
 		if (pRand.nextDouble() < 0.03)
-			tryPlaceSeaPickleOnCoral(le, serverLevel, theCoralBlockPos);
+			tryPlaceSeaPickleOnCoral(le, serverLevel, theCoralBlockPos,pRand);
 	
 		// Attempt to place a coral fan adjacent to the existing coral block
 		if (pRand.nextDouble() < 0.5)

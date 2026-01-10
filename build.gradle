@@ -26,7 +26,7 @@ base {
     archivesName = archive_name
 }
 
-// Mojang ships Java 21 to end users in 1.21.9, so mods should target Java 21.
+// Mojang ships Java 21 to end users in 1.21.11, so mods should target Java 21.
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
 neoForge {

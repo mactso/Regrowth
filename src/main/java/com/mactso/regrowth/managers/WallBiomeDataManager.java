@@ -10,7 +10,7 @@ import com.mactso.regrowth.utilities.MyUtilities;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -159,7 +159,7 @@ public class WallBiomeDataManager {
 
 
 	private static Block parseWallBlock(String blockName, String biomeName, Registry<Block> blockRegistry) {
-		Block block = blockRegistry.getOptional(ResourceLocation.parse(blockName)).orElse(null);
+		Block block = blockRegistry.getOptional(Identifier.parse(blockName)).orElse(null);
 		if (block == null) {
 			MyUtilities.debugMsg(0, "Invalid WallBlock for biome " + biomeName + ": " + blockName);
 			return null;
@@ -172,7 +172,7 @@ public class WallBiomeDataManager {
 	}
 
 	private static Block parseFenceBlock(String blockName, String biomeName, Registry<Block> blockRegistry) {
-		Block block = blockRegistry.getOptional(ResourceLocation.parse(blockName)).orElse(null);
+		Block block = blockRegistry.getOptional(Identifier.parse(blockName)).orElse(null);
 		if (block == null) {
 			MyUtilities.debugMsg(0, "Invalid FenceBlock for biome " + biomeName + ": " + blockName);
 			return null;

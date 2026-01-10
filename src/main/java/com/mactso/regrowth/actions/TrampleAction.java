@@ -5,8 +5,9 @@ import com.mactso.regrowth.utilities.MyUtilities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.npc.Villager;
-import net.minecraft.world.entity.npc.VillagerProfession;
+import net.minecraft.world.entity.npc.villager.Villager;
+import net.minecraft.world.entity.npc.villager.VillagerProfession;
+
 
 /**
  * Handles farmland trampling in a platform-agnostic way.
@@ -29,7 +30,7 @@ public class TrampleAction {
 		MyUtilities.debugMsg(1, pos, "Enter handleTrampleEvent");
 		
 		if (entity instanceof Villager ve) {
-			if ( VillagerActions.getVillagerLevel(ve) < 3) {
+			if ( VillagerActions.getVillagerLevel(ve)+ 1  < 3) {
 				return true;
 			}
 

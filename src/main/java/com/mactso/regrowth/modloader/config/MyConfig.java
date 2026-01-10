@@ -6,14 +6,13 @@ import com.mactso.regrowth.modloader.main.RegrowthMain;
 
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.fml.common.EventBusSubscriber.Bus;
 import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.neoforge.common.ModConfigSpec;
 import net.neoforged.neoforge.common.ModConfigSpec.ConfigValue;
 import net.neoforged.neoforge.common.ModConfigSpec.DoubleValue;
 import net.neoforged.neoforge.common.ModConfigSpec.IntValue;
 
-@EventBusSubscriber(modid = RegrowthMain.MODID, bus = Bus.MOD)
+@EventBusSubscriber(modid = RegrowthMain.MODID)
 public class MyConfig {
 
 	public static final Common COMMON;

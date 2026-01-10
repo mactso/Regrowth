@@ -33,7 +33,7 @@ public class HandleNeoForgeEntityMoveEvent {
 		if (level == null)
 			return;
 		
-		if (level.isClientSide) {
+		if (level.isClientSide()) {
 			return;
 		}
 		

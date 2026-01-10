@@ -137,7 +137,7 @@ public class ActionHelpers {
 		if (footBlockState.getBlock() instanceof BedBlock)
 			return false;
 		
-		Block torchBlock = ActionUtilities.getTorchBlockFromConfig();
+		Block torchBlock = ActionUtilities.getTorchBlockFromConfig(rgCtx);
 		if (torchBlock == null)
 			return false;
 

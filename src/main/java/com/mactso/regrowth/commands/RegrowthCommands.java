@@ -22,7 +22,7 @@ import net.minecraft.world.phys.Vec3;
 
 public class RegrowthCommands {
 
-	private static final String MOD_VERSION = "Forge Regrowth 1.21.1 CC 36.4";
+	private static final String MOD_VERSION = "NeoForge Regrowth 1.21.5 CC 36.6";
 	
 	private static final String DEBUG_LEVEL_ARG = "level 0-2";
 	

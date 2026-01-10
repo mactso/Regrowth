@@ -1,5 +1,6 @@
 package com.mactso.regrowth.modloader.events;
 
+import com.mactso.regrowth.actions.VillagerActions;
 import com.mactso.regrowth.utilities.MyUtilities;
 
 import net.minecraft.server.level.ServerPlayer;
@@ -26,10 +27,10 @@ public class TrampleEventHandler {
 			MyUtilities.debugMsg(1, le, "FarmlandTrampleEvent");
 
 			if (le instanceof Villager ve) {
-				if (ve.getVillagerData().getProfession() != VillagerProfession.FARMER) {
+				if (VillagerActions.isVillagerProfession(ve, VillagerProfession.FARMER)) {
 					return;
 				}
-				if (ve.getVillagerData().getLevel() >= 3) {
+				if (VillagerActions.getVillagerLevel(ve) >= 3) {
 					event.setCanceled(true);
 					return;
 				}

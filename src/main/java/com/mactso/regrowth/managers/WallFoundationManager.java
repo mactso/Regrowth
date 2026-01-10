@@ -8,9 +8,7 @@ import com.mactso.regrowth.modloader.config.MyConfig;
 import com.mactso.regrowth.utilities.MyUtilities;
 
 import net.minecraft.core.Registry;
-import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.block.Block;
@@ -29,7 +27,7 @@ public class WallFoundationManager {
     public static void wallFoundationsInit(MinecraftServer server) {
         validFoundations.clear();
 
-        Registry<Block> blockRegistry = getRegistrySafe(server.registryAccess(), Registries.BLOCK);
+        Registry<Block> blockRegistry = MyUtilities.getRegistrySafe(server.registryAccess(), Registries.BLOCK);
 
         String wallFoundationsList = MyConfig.getWallFoundations();
         if (wallFoundationsList == null || wallFoundationsList.isEmpty()) {
@@ -71,14 +69,6 @@ public class WallFoundationManager {
             }
         }
 
-	public static <T> Registry<T> getRegistrySafe(RegistryAccess access, ResourceKey<Registry<T>> key) {
-	    try {
-	        return access.registryOrThrow(key);
-	    } catch (IllegalStateException e) {
-	        MyUtilities.debugMsg(0, "Registry not found: " + key.location());
-	        return null;
-	    }
-	}
 
     /** Check if a block is a valid foundation */
     public static boolean isValid(Block block) {

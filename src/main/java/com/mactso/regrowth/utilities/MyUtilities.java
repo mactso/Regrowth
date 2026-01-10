@@ -1,5 +1,6 @@
 package com.mactso.regrowth.utilities;
 
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
@@ -21,10 +22,10 @@ import net.minecraft.tags.BiomeTags;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.biome.Biome;
@@ -223,7 +224,7 @@ public class MyUtilities {
 			return false;
 		for (int i = 0; i <= numZP; i++) {
 
-			e = (Mob) et.spawn(level, savePos, MobSpawnType.NATURAL);
+			e = (Mob) et.spawn(level, savePos, EntitySpawnReason.NATURAL);
 			if (persistant) 
 				e.setPersistenceRequired();
 			e.setBaby(isBaby);
@@ -236,7 +237,7 @@ public class MyUtilities {
 
 		for (int i = 0; i < X; i++) {
 			// MobSpawnType changes to EntitySpawnReason in a later version.
-			e = (Mob) et.spawn(level, savePos, MobSpawnType.NATURAL);
+			e = (Mob) et.spawn(level, savePos,EntitySpawnReason.NATURAL);
 			e.setBaby(isBaby);
 		}
 		return true;
@@ -320,10 +321,11 @@ public class MyUtilities {
 	// Helper to allow methods to be the same in 1.21.1 and 1.21.5 .
 	// -------------------------------
 		public static <T> Registry<T> getRegistrySafe(RegistryAccess access, ResourceKey<Registry<T>> key) {
-	    return access.registry(key).orElse(null);  // 1.21.1 pattern
+			Optional<Registry<T>> optRegistry = access.lookup(key);
+			if (optRegistry.isEmpty())
+				return null;
+	    return optRegistry.get();  // 1.21.4 to 1.21.5 pattern
 	}
-
-
 
 
 	

@@ -130,7 +130,7 @@ public class MobActions {
 
 		if (count >= 11) {
 			float hurt = (count - 11) + (serverLevel.getRandom().nextFloat() / 6);
-			le.hurt(serverLevel.damageSources().inWall(), hurt);
+			le.hurtServer(serverLevel,serverLevel.damageSources().inWall(), hurt);
 			if (!le.isAlive())
 				return true;
 		}
@@ -267,11 +267,10 @@ public class MobActions {
 		ServerLevel serverLevel = rgCtx.serverLevel();
 		BlockPos aPos = rgCtx.adjustedPos();
 
-
+		// TODO reenable after testing.
 		if (!CoralActionHelpers.isGoodCoralBiome(serverLevel, aPos)) {
 		    return;
 		}
-
 		
 		// Create predictable random source for placement decisions
 		RandomSource pRand = ActionUtilities.createPredictableRandom(le);

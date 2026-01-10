@@ -8,6 +8,7 @@ import net.minecraft.core.BlockPos.MutableBlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
@@ -25,7 +26,7 @@ import net.minecraft.world.level.block.TallGrassBlock;
 import net.minecraft.world.level.block.WallBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
-import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.levelgen.Heightmap.Types;
 
 public class WallActionHelpers {
@@ -35,7 +36,7 @@ public class WallActionHelpers {
 	static final int WALL_TYPE_WALL = -1;
 	static final int WALL_TYPE_FENCE = -2;
 
-	public static final DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
+	public static final EnumProperty<Direction> FACING = HorizontalDirectionalBlock.FACING;
 	public static final BooleanProperty OPEN = FenceGateBlock.OPEN;
 
 	/**
@@ -103,7 +104,6 @@ public class WallActionHelpers {
 		}
 
 		if (tryPlaceOneWallPiece(rgCtx)) {
-			tryPlaceTorch(rgCtx);
 			ActionHelpers.jumpUp(ve);
 			if (rgCtx.doDebug())
 				MyUtilities.debugMsg(2, ve, "Villager built one block of wall.");
@@ -111,37 +111,6 @@ public class WallActionHelpers {
 		}
 
 		return false;
-	}
-
-	/**
-	 * Places a torch above the villager if they have the ACTION_IMPROVE_LIGHTING
-	 * action and the location is valid for torch placement.
-	 */
-	public static void tryPlaceTorch(ActionContext rgCtx) {
-		if (!rgCtx.hasVillagerAction(VillagerActions.ACTION_IMPROVE_LIGHTING))
-			return;
-
-		ServerLevel serverLevel = rgCtx.serverLevel();
-		BlockPos vePos = rgCtx.adjustedPos();
-		BlockPos vmpPos = rgCtx.villageMeetingPointPos().pos();
-		WallBiomeDataItem wbdi = rgCtx.wallBiomeDataItem();
-		int wallRadius = wbdi.getWallRadius();
-		int wallTorchSpacing = wbdi.getTorchSpacing();
-
-		int dx = vePos.getX() - vmpPos.getX();
-		int dz = vePos.getZ() - vmpPos.getZ();
-
-		if (ActionTests.isValidTorchLocation(wallRadius, wallTorchSpacing, Math.abs(dx), Math.abs(dz),
-				serverLevel.getBlockState(vePos).getBlock())) {
-
-			serverLevel.setBlockAndUpdate(vePos.above(), Blocks.TORCH.defaultBlockState());
-			serverLevel.playSound(null, // player: null for all nearby
-					vePos.above(), // position
-					SoundEvents.WOOD_PLACE, // sound event
-					SoundSource.BLOCKS, // category
-					1.0f, 1.0f // volume, pitch
-			);
-		}
 	}
 
 	/**
@@ -198,12 +167,23 @@ public class WallActionHelpers {
 		BlockPos vmpPos = rgCtx.villageMeetingPointPos().pos();
 		ServerLevel serverLevel = rgCtx.serverLevel();
 		BlockPos vePos = ActionUtilities.getAdjustedPos(ve);
+		Block footBlock = rgCtx.footBlock();
 		WallBiomeDataItem tmpWbdi = rgCtx.wallBiomeDataItem();
 		BlockState wallBlockState = tmpWbdi.getWallBlockState();
 		BlockState gateBlockState = Blocks.OAK_FENCE_GATE.defaultBlockState().setValue(OPEN, true).setValue(FACING, d);
 
-		// if standing inside a plant, snow layer, which have no hit box, clear it and update footblock
-		clearAndUpdateFootBlockIfNeeded(rgCtx);
+		if (footBlock instanceof SnowLayerBlock) {
+			serverLevel.destroyBlock(vePos, false);
+		}
+
+		if (ActionTests.isNatProgPebbleOrStick(rgCtx)) {
+			serverLevel.destroyBlock(vePos, true);
+		}
+
+		if ((footBlock instanceof SaplingBlock) || (footBlock instanceof TallGrassBlock)
+				|| (footBlock instanceof FlowerBlock) || (footBlock instanceof DoublePlantBlock)) {
+			serverLevel.destroyBlock(vePos, true);
+		}
 
 		if (isAtValidGateSpot(vePos, vmpPos, tmpWbdi.getWallRadius())) {
 			if (!hasValidGateBase(serverLevel, vePos)) 
@@ -216,13 +196,17 @@ public class WallActionHelpers {
 					1.0f, 1.0f); // volume, pitch
 			return true;
 		}
-
 		serverLevel.setBlock(vePos, wallBlockState, Block.UPDATE_ALL); 
 		serverLevel.playSound(null, // player: null for all nearby
 				vePos.above(), // position
 				SoundEvents.STONE_PLACE, // sound event
 				SoundSource.BLOCKS, // category
 				1.0f, 1.0f); // volume, pitch
+		if ((rgCtx.hasVillagerAction(VillagerActions.ACTION_IMPROVE_LIGHTING)
+				&& (isAtValidTorchSpot(vePos, vmpPos, tmpWbdi)))) {
+			serverLevel.setBlockAndUpdate(vePos.above(), Blocks.TORCH.defaultBlockState());
+		}
+
 		if (rgCtx.doDebug()) {
 			if (serverLevel.getBlockState(vePos).is(BlockTags.AIR)) {
 				return false;
@@ -233,41 +217,6 @@ public class WallActionHelpers {
 
 	}
 	
-	/**
-	 * Clears the block the villager is standing in if it is snow, a natural pebble/stick, or a small plant.
-	 * Drops items if appropriate and updates the ActionContext to reflect that the foot block is now air.
-	 */
-	static void clearAndUpdateFootBlockIfNeeded(ActionContext rgCtx) {
-	    ServerLevel serverLevel = rgCtx.serverLevel();
-	    BlockPos vePos = ActionUtilities.getAdjustedPos(rgCtx.ve());
-	    Block footBlock = rgCtx.footBlock();
-
-	    boolean shouldDestroy = false;
-	    boolean shouldDrop = false;
-
-	    // Check each condition
-	    if (footBlock instanceof SnowLayerBlock) {
-	        shouldDestroy = true;
-	        shouldDrop = false;
-	    } else if (ActionTests.isNatProgPebbleOrStick(rgCtx)) {
-	        shouldDestroy = true;
-	        shouldDrop = true;
-	    } else if (footBlock instanceof SaplingBlock
-	            || footBlock instanceof TallGrassBlock
-	            || footBlock instanceof FlowerBlock
-	            || footBlock instanceof DoublePlantBlock) {
-	        shouldDestroy = true;
-	        shouldDrop = true;
-	    }
-
-	    if (shouldDestroy) {
-	        serverLevel.destroyBlock(vePos, shouldDrop);
-	        // Always refresh rgCtx
-	        rgCtx.setFootBlockState(Blocks.AIR.defaultBlockState());
-	        rgCtx.setFootBlock(Blocks.AIR);
-	    }
-	}
-
 	// only happens when a mason build a wall section so performance hit low.
 	// TODO :enhance later to fill in a hole on the wall on that side.
 	public static boolean tryBuildMasonWalls(ActionContext rgCtx) {
@@ -278,6 +227,9 @@ public class WallActionHelpers {
 		ServerLevel serverLevel = rgCtx.serverLevel();
 		WallBiomeDataItem wi = rgCtx.wallBiomeDataItem();
 		int wallRadius = wi.getWallRadius();
+
+		if (!rgCtx.hasMeetingPoint())
+			return false;
 
 		GlobalPos gPos = rgCtx.villageMeetingPointPos();
 		if (gPos == null)
@@ -333,24 +285,44 @@ public class WallActionHelpers {
 		result.set(x, y, z); // modifies the same object
 	}
 
-	static boolean tryBuildWallCorner(ServerLevel serverLevel, BlockPos mPos, BlockState wallBs) {
+	static boolean tryBuildWallCorner(ServerLevel serverLevel, BlockPos mPos, BlockState wallBlockState) {
 
-		if (!(ActionTests.isWallorLantern(serverLevel, mPos, wallBs))) {
-			serverLevel.setBlock(mPos, wallBs, Block.UPDATE_ALL); 
+		boolean changed = false;
+		SoundEvent theSoundEvent = null;
+		BlockPos soundPos = mPos;
+
+		BlockState belowState = serverLevel.getBlockState(mPos.below());
+
+		// Case 1: lantern already here. We presume it has a wall beneath it.
+		if (belowState.is(Blocks.LANTERN)) {
+			return false;
+		}
+		// Case 2: wall already here but has no lantern. put lantern on it.
+		else if (belowState.is(wallBlockState.getBlock())) {
+			serverLevel.setBlockAndUpdate(mPos, Blocks.LANTERN.defaultBlockState());
+			theSoundEvent = SoundEvents.LANTERN_PLACE;
+			changed = true;
+		}
+		// Case 3: nothing here, place wall, lantern, and dirt if water below
+		else {
+			BlockPos mPosBelow = mPos.below();
+			if (!serverLevel.getBlockState(mPosBelow).getFluidState().isEmpty()) {
+				serverLevel.setBlockAndUpdate(mPosBelow, Blocks.DIRT.defaultBlockState());
+			}
+			serverLevel.setBlock(mPos, wallBlockState, Block.UPDATE_ALL);
 			serverLevel.setBlockAndUpdate(mPos.above(), Blocks.LANTERN.defaultBlockState());
-			serverLevel.playSound(null, // player: null for all nearby
-					mPos, // position
-					SoundEvents.LANTERN_PLACE, // sound event
-					SoundSource.BLOCKS, // category
-					1.0f, 1.0f // volume, pitch
-			);
-			return true;
+			theSoundEvent = SoundEvents.LANTERN_PLACE;
+			changed = true;
 		}
 
-		return false;
+		if (changed) {
+			serverLevel.playSound(null, soundPos, theSoundEvent, SoundSource.BLOCKS, 1.0f, 1.0f);
+			return true;
 	}
 
+		return false;
 	
+	}
 	
 	// Helper methods
 	public static boolean isOnValidEastWall(BlockPos pos, BlockPos meetingPos, int wallRadius) {
@@ -412,9 +384,21 @@ public class WallActionHelpers {
 	    if (belowState.getBlock() instanceof FenceGateBlock) {
 	        return false;
 	    }
-
+		
 	    // Must support a block on top (true "ground")
 	    return belowState.isFaceSturdy(level, below, Direction.UP);
+	    }
+	
+		// called during context creation so cannot take context as a parameter
+	public static boolean isAtValidTorchSpot(BlockPos pos, BlockPos vmpPos, WallBiomeDataItem wbdi) {
+
+		int dx = Math.abs(pos.getX() - vmpPos.getX());
+		int dz = Math.abs(pos.getZ() - vmpPos.getZ());
+
+		int torchSpacing = wbdi.getTorchSpacing();
+
+		return (Math.abs(dx) == wbdi.getWallRadius() && dz % torchSpacing == 1) // East-West gate
+				|| (Math.abs(dz) == wbdi.getWallRadius() && dx % torchSpacing == 1); // North-South gate
 	}
 
 }

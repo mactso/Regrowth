@@ -113,7 +113,11 @@ public class ActionCoordinator {
 			regrowthEventOdds *= 20; // 20x odds when eating animation
 		}
 		double randomD100Roll = serverLevel.random.nextDouble();
-		// randomD100Roll = regrowthEventOdds; // TODO randomD100Roll Testing Override
+		// randomD100Roll = regrowthEventOdds; // TODO turn off randomD100Roll Testing Override
+//		if (le instanceof Villager ve && VillagerActions.isVillagerProfession(ve, VillagerProfession.MASON)) {
+//		    randomD100Roll = regrowthEventOdds; // override for testing / guaranteed action
+//		} 
+		
 		if (randomD100Roll <= regrowthEventOdds) {
 			nudgeEntityTowardsCenter(rgCtx);
 			if (le instanceof Villager ve) {

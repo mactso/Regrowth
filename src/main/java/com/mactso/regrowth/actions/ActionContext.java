@@ -11,6 +11,8 @@ import com.mactso.regrowth.utilities.MyUtilities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
@@ -18,6 +20,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ambient.Bat;
 import net.minecraft.world.entity.npc.Villager;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.BedBlock;
 import net.minecraft.world.level.block.Block;
@@ -51,6 +54,10 @@ public class ActionContext {
 	private Biome localBiome;
 	private String biomeCategory;
 	private WallBiomeDataManager.WallBiomeDataItem wallBiomeDataItem = null;
+	private Registry<Block> blockRegistry;
+	private Registry<Item> itemRegistry;
+	private Registry<Biome> biomeRegistry;
+
 
 	public ActionContext(LivingEntity entity, Villager ve, ServerLevel serverLevel, MinecraftServer server,
 			Boolean doDebug, String key, String regrowthActions, BlockPos adjustedPos, BlockPos footBlockPos,
@@ -99,6 +106,7 @@ public class ActionContext {
 		return biomeHolder;
 	}
 
+
 	public RandomSource getRand() {
 		return rand;
 	}
@@ -131,16 +139,20 @@ public class ActionContext {
 		if (serverLevel.getBlockState(mpPos).getBlock() != Blocks.BELL)
 			return null;
 
+		hasMeetingPoint = true;
+
 		BlockPos controlWallPos = villagerMeetingPointPos.pos().above();
 		Block configuredWallControlBlock = ActionUtilities.getPlayerWallControlBlockFromConfig();
 		if (ActionTests.isNewChunk(serverLevel, villagerMeetingPointPos.pos())) {
 			serverLevel.setBlockAndUpdate(controlWallPos, configuredWallControlBlock.defaultBlockState());
 		}
 
+		Holder<Biome> vmpBiomeHolder = serverLevel.getBiome(mpPos);
+		this.biomeCategory = MyUtilities.getMyBiomeCategory(vmpBiomeHolder);
+		
 		if (serverLevel.getBlockState(controlWallPos).getBlock() != configuredWallControlBlock)
 			return villagerMeetingPointPos;
 
-		hasMeetingPoint = true;
 
 		if (!ActionTests.isWallBuildingOn())
 			return villagerMeetingPointPos;
@@ -155,6 +167,42 @@ public class ActionContext {
 		isAtAValidGateSpot = WallActionHelpers.isAtValidGateSpot(vePos, villagerMeetingPointPos.pos(), wallBiomeDataItem.getWallRadius());
 
 		return villagerMeetingPointPos;
+	}
+
+	public Registry<Block> blockRegistry() {
+	    if (blockRegistry == null) {
+	        if (serverLevel != null) {
+	            blockRegistry = MyUtilities.getRegistrySafe(serverLevel.registryAccess(), Registries.BLOCK);
+	        }
+	        if (blockRegistry == null) {
+	            MyUtilities.debugMsg(0, "Error: Block registry is not available.");
+	        }
+	    }
+	    return blockRegistry;
+	}
+
+	public Registry<Item> itemRegistry() {
+	    if (itemRegistry == null) {
+	        if (serverLevel != null) {
+	            itemRegistry = MyUtilities.getRegistrySafe(serverLevel.registryAccess(), Registries.ITEM);
+	        }
+	        if (itemRegistry == null) {
+	            MyUtilities.debugMsg(0, "Error: Item registry is not available.");
+	        }
+	    }
+	    return itemRegistry;
+	}
+
+	public Registry<Biome> biomeRegistry() {
+	    if (biomeRegistry == null) {
+	        if (serverLevel != null) {
+	            biomeRegistry = MyUtilities.getRegistrySafe(serverLevel.registryAccess(), Registries.BIOME);
+	        }
+	        if (biomeRegistry == null) {
+	            MyUtilities.debugMsg(0, "Error: Biome registry is not available.");
+	        }
+	    }
+	    return biomeRegistry;
 	}
 
 	public boolean hasMeetingPoint() {
@@ -197,6 +245,7 @@ public class ActionContext {
 		return biomeHolder;
 	}
 
+
 	public Biome localBiome() {
 		return localBiome;
 	}
@@ -213,7 +262,10 @@ public class ActionContext {
 	public WallBiomeDataManager.WallBiomeDataItem wallBiomeDataItem() {
 		if (wallBiomeDataItem == null) {
 			// Use Locale.ROOT to ensure consistent lower-casing
-			String wallKey = ("minecraft:" + this.biomeCategory()).toLowerCase(Locale.ROOT);
+			this.villageMeetingPointPos();
+			Holder<Biome> vmpBiomeHolder = serverLevel.getBiome(this.villageMeetingPointPos().pos());
+			String vmpBiomeCategory = MyUtilities.getMyBiomeCategory(vmpBiomeHolder);
+			String wallKey = ("minecraft:" + vmpBiomeCategory.toLowerCase(Locale.ROOT))  ;
 			wallBiomeDataItem = WallBiomeDataManager.getWallBiomeDataItem(this.server(), wallKey);
 		}
 		return wallBiomeDataItem;
@@ -279,8 +331,8 @@ public class ActionContext {
 
 		Holder<Biome> biomeHolder = serverLevel.getBiome(le.blockPosition());
 		Biome localBiome = biomeHolder.value();
-		Block biomeRoadBlock = ActionUtilities.getBiomeRoadBlockType(MyUtilities.GetBiomeName(localBiome)).getBlock();
 		String biomeCategory = MyUtilities.getMyBiomeCategory(biomeHolder);
+		Block biomeRoadBlock = ActionUtilities.getBiomeRoadBlockType(MyUtilities.GetBiomeName(localBiome)).getBlock();
 
 		return new ActionContext(le, ve, serverLevel, server, doDebug, key, regrowthActions, adjustedPos, footPos,
 				groundBlockState, groundBlock, footBlockState, footBlock, biomeHolder, localBiome, biomeRoadBlock,

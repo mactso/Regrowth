@@ -1,9 +1,13 @@
 package com.mactso.regrowth.actions;
 
+import java.util.Optional;
+
 import com.mactso.regrowth.utilities.MyUtilities;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.BlockPos.MutableBlockPos;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -43,7 +47,15 @@ public class VillagerActions {
 	static void vBeeKeeperPlantFlowers(ActionContext rgCtx) {
 
 		Villager ve = rgCtx.ve();
-		if (!ve.getVillagerData().getProfession().name().toLowerCase().contains("beekeeper"))
+		
+		Optional<ResourceKey<VillagerProfession>> optKey = ve.getVillagerData().profession().unwrapKey();
+
+		if (optKey.isEmpty())
+			return;
+
+		ResourceLocation id = optKey.get().location();
+
+		if (!id.getPath().contains("beekeeper"))
 			return;
 
 		// Only process certain X/Z positions
@@ -75,7 +87,7 @@ public class VillagerActions {
 		if (!ActionTests.isVillagerMeetingTime(serverLevel))
 			return;
 
-		int clericalLevel = ve.getVillagerData().getLevel();
+		int clericalLevel = getVillagerLevel(ve);
 		int duration = clericalLevel * 51;
 		int healingRange = 3 + clericalLevel;
 
@@ -329,14 +341,14 @@ public class VillagerActions {
 		    return false;
 		}
 
-		int villagerLevel = ve.getVillagerData().getLevel() + 1;
+		int villagerLevel = getVillagerLevel(ve);
 		BlockPos vePos = ve.blockPosition(); // at villager's feet
 
 		// Centered 13x13 horizontal, 7-block vertical region (±6 X/Z, ±3 Y)
 		AABB box = new AABB(vePos).inflate(6, 3, 6);
 
 		// Heal first Iron Golem that needs it then exit
-		for (IronGolem golem : level.getEntities(EntityType.IRON_GOLEM, box, golem -> true)) {
+		for (IronGolem golem : level.getEntities(EntityType.IRON_GOLEM, box, golem -> golem.isAlive())) {
 			if (golem.getHealth() < golem.getMaxHealth() && !golem.hasEffect(MobEffects.REGENERATION)) {
 
 				golem.addEffect(new MobEffectInstance(MobEffects.REGENERATION, villagerLevel * 41, 0), ve);
@@ -351,9 +363,20 @@ public class VillagerActions {
 		return false;
 	}
 	
-	// Helper method
-	public static boolean isVillagerProfession(Villager villager, VillagerProfession profession) {
-	    return villager.getVillagerData().getProfession() == profession;
+	// Multi Minecraft Version Helper methods
+	public static boolean isVillagerProfession(Villager villager, ResourceKey<VillagerProfession> professionKey) {
+
+		if (villager.getVillagerData().profession().is(professionKey))
+			return true;
+		return false;
+		
 	}
+	
+	public static int getVillagerLevel(Villager villager) {
+		
+		return villager.getVillagerData().level()+1;
+		
+	}
+	
 
 }

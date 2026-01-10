@@ -12,7 +12,6 @@ import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.FenceBlock;
@@ -48,23 +47,24 @@ public class WallBiomeDataManager {
 		WallBiomeDataItem wbdi = wallBiomeDataMap.getOrDefault(iKey, DEFAULT_BIOME_WALL_ITEM);
 
 		if (MyConfig.getDebugLevel() > 1) {
-			System.out.println(
-					"222 WallBiomeDataItem: " + iKey + " wall=" + wbdi.getWallBlockState().getBlock().toString()
-							+ "fence=" + wbdi.getFenceBlockState().getBlock().toString() + ".");
+    String msg = "222 WallBiomeDataItem: " + iKey 
+            + " wall=" + wbdi.getWallBlockState().getBlock().toString()
+            + " fence=" + wbdi.getFenceBlockState().getBlock().toString() + ".";
+    MyUtilities.debugMsg(0, msg);
 		}
 		return wbdi;
 	}
 
 	public static String getWallBiomeDataHashAsString() {
 		String returnString = "";
-		int wallDiameter;
+		int wallLength;
 		BlockState wallTypeBlockState;
 		for (String key : wallBiomeDataMap.keySet()) {
-			wallDiameter = wallBiomeDataMap.get(key).wallLength;
-			if (wallDiameter < 12)
-				wallDiameter = 12;
+			wallLength = wallBiomeDataMap.get(key).wallLength;
+			if (wallLength < 12)
+				wallLength = 12;
 			wallTypeBlockState = wallBiomeDataMap.get(key).getWallBlockState();
-			String tempString = key + "," + wallDiameter + "," + wallTypeBlockState.toString() + ";";
+			String tempString = key + "," + wallLength + "," + wallTypeBlockState.toString() + ";";
 			returnString += tempString;
 		}
 		return returnString;
@@ -72,13 +72,10 @@ public class WallBiomeDataManager {
 	}
 
 	public static void wallBiomeDataInit(MinecraftServer server) {
-		
-		MyUtilities.debugMsg(0, "Start Initializing Wall Biome Data" );
 		wallBiomeDataMap.clear();
 
 		RegistryAccess registryAccess = server.registryAccess();
 		Registry<Block> blockRegistry = MyUtilities.getRegistrySafe(registryAccess, Registries.BLOCK);
-		Registry<Biome> biomeRegistry = MyUtilities.getRegistrySafe(registryAccess, Registries.BIOME);
 
 		String biomeWallblockList = MyConfig.getWallBiomeBlocks();
 		if (biomeWallblockList == null || biomeWallblockList.isEmpty()) {
@@ -98,8 +95,8 @@ public class WallBiomeDataManager {
 			}
 
 			String biomeName = parts[0].trim();
-			int diameter = parseDiameter(parts[1].trim(), entry);
-			if (diameter < 0)
+			int wallLength = parseWallLength(parts[1].trim(), entry);
+			if (wallLength < 0)
 				continue;
 
 			
@@ -114,11 +111,10 @@ public class WallBiomeDataManager {
 			if (fenceBlock == null)
 				continue;
 
-			WallBiomeDataItem item = new WallBiomeDataItem(diameter, wallBlock.defaultBlockState(),
+			WallBiomeDataItem item = new WallBiomeDataItem(wallLength, wallBlock.defaultBlockState(),
 					fenceBlock.defaultBlockState());
 			wallBiomeDataMap.put(biomeName.toLowerCase(Locale.ROOT), item);
 		}
-		MyUtilities.debugMsg(0, "Finish Initializing Wall Biome Data" );
 	}
 
 	// ------------------------ Helper Methods ------------------------
@@ -151,7 +147,7 @@ public class WallBiomeDataManager {
 	    return s;
 	}
 
-	private static int parseDiameter(String diameterStr, String entry) {
+	private static int parseWallLength(String diameterStr, String entry) {
 		try {
 			int diameter = Integer.parseInt(diameterStr);
 			return Math.max(24, Math.min(diameter, 80));
@@ -193,8 +189,8 @@ public class WallBiomeDataManager {
 		BlockState wallBlockState;
 		BlockState fenceBlockState;
 
-		public WallBiomeDataItem(int wallRadius, BlockState wallBlockState, BlockState fenceBlockState) {
-			this.wallLength = wallRadius;
+		public WallBiomeDataItem(int wallLength, BlockState wallBlockState, BlockState fenceBlockState) {
+			this.wallLength = wallLength;
 			this.wallBlockState = wallBlockState;
 			this.fenceBlockState = fenceBlockState;
 		}

@@ -7,9 +7,9 @@ import com.mactso.regrowth.modloader.config.MyConfig;
 import com.mactso.regrowth.utilities.MyUtilities;
 
 /**
- * Manages Regrowth mod entities and their associated actions. Provides
- * initialization from config, lookup of mob info, and serialization of mob data
- * as a string.
+ * Manages Regrowth mod entities and their associated actions.
+ * Provides initialization from config, lookup of mob info, and
+ * serialization of mob data as a string.
  */
 
 public class RegrowthEntitiesManager {
@@ -29,13 +29,13 @@ public class RegrowthEntitiesManager {
 	}
 
 	public static String getRegrowthHashAsString() {
-		String returnString = "";
+		String returnString="";
 		String regrowthType;
 		double percentage;
-		for (String key : regrowthMobHashtable.keySet()) {
+		for (String key:regrowthMobHashtable.keySet()) {
 			regrowthType = regrowthMobHashtable.get(key).regrowthAction;
 			percentage = regrowthMobHashtable.get(key).regrowthEventSeconds;
-			String tempString = key + "," + regrowthType + "," + percentage + ";";
+			String tempString = key+","+regrowthType+","+percentage+";";
 			returnString += tempString;
 		}
 		return returnString;
@@ -43,6 +43,7 @@ public class RegrowthEntitiesManager {
 	}
 
 	public static void regrowthMobInit() {
+
 
 		regrowthMobHashtable.clear();
 

@@ -1,5 +1,7 @@
 package com.mactso.regrowth.actions;
 
+import java.util.Optional;
+
 import org.jetbrains.annotations.Nullable;
 
 import com.mactso.regrowth.modloader.config.MyConfig;
@@ -7,12 +9,11 @@ import com.mactso.regrowth.utilities.MyUtilities;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.BlockPos.MutableBlockPos;
+import net.minecraft.core.Holder.Reference;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.util.RandomSource;
@@ -288,7 +289,7 @@ public class ActionUtilities {
 
 	static int getVillagerTorchPlaceOdds(Villager ve) {
 		
-		int placeTorchOdds = ve.getVillagerData().getLevel() * 10;
+		int placeTorchOdds = VillagerActions.getVillagerLevel(ve) * 10;
 
 		if (VillagerActions.isVillagerProfession(ve, VillagerProfession.FISHERMAN) ||
 			    VillagerActions.isVillagerProfession(ve, VillagerProfession.BUTCHER)) {
@@ -326,8 +327,8 @@ public class ActionUtilities {
 
 	static String debugSaplingInfo(ServerLevel serverLevel, Biome biome, BlockState sapling) {
 	    // Get registries using your safe helpers
-	    Registry<Biome> biomeRegistry = getBiomeRegistrySafe(serverLevel.getServer(), Registries.BIOME);
-	    Registry<Block> blockRegistry = getBlockRegistrySafe(serverLevel.getServer(), Registries.BLOCK);
+        Registry<Biome> biomeRegistry = MyUtilities.getRegistrySafe(serverLevel.getServer().registryAccess(), Registries.BIOME);
+        Registry<Block> blockRegistry = MyUtilities.getRegistrySafe(serverLevel.getServer().registryAccess(), Registries.BLOCK);
 
 	    ResourceLocation biomeKey = null;
 	    ResourceLocation saplingKey = null;
@@ -345,28 +346,6 @@ public class ActionUtilities {
 				saplingKey != null ? saplingKey : "unknown_sapling");
 	}
 	
-	public static Registry<Block> getBlockRegistrySafe(MinecraftServer server, ResourceKey<Registry<Block>> key) {
-	    try {
-	        // registryOrThrow returns Registry<T> directly in 1.21.1+
-	        return server.registryAccess().registryOrThrow(key);
-	    } catch (IllegalStateException e) {
-	        // Registry not found
-	        MyUtilities.debugMsg(0, "Block registry not found: " + key.location());
-	        return null;
-	    }
-	}
-	
-	public static Registry<Biome> getBiomeRegistrySafe(MinecraftServer server, ResourceKey<Registry<Biome>> key) {
-	    try {
-	        // registryOrThrow returns Registry<T> directly in 1.21.1+
-	        return server.registryAccess().registryOrThrow(key);
-	    } catch (IllegalStateException e) {
-	        // Registry not found
-	        MyUtilities.debugMsg(0, "Biome registry not found: " + key.location());
-	        return null;
-	    }
-	}
-	
 
 
     /**
@@ -378,11 +357,12 @@ public class ActionUtilities {
 
 	private static boolean torchBlockFailureLogged = false;
     
-    public static Block getTorchBlockFromConfig() {
+	public static Block getTorchBlockFromConfig(ActionContext rgCtx) {
         String torchBlockString = MyConfig.getTorchBlock();
         
-		if (!MyUtilities.isStringValid(torchBlockString))
+	    if (!MyUtilities.isStringValid(torchBlockString)) {
 			return null;
+	    }
 
         ResourceLocation id = ResourceLocation.tryParse(torchBlockString);
         if (id == null) {
@@ -390,7 +370,19 @@ public class ActionUtilities {
             return null;
         }
 
-        Block block = BuiltInRegistries.BLOCK.get(id);
+	    Registry<Block> blockRegistry = rgCtx.blockRegistry();
+	    if (blockRegistry == null) {
+	        logTorchFailureOnce("Block registry unavailable.");
+	        return null;
+	    }
+
+	    // Lookup in registry
+	    Optional<Block> optBlock = blockRegistry.getOptional(id);
+	    if (optBlock.isEmpty()) {
+	        return null;
+	    }
+
+	    Block block = optBlock.get();
         if (block == null || block.defaultBlockState().is(BlockTags.AIR)) {
             logTorchFailureOnce("Torch block '" + torchBlockString + "' is not a Block or resolves to AIR.");
             return null;
@@ -427,7 +419,11 @@ public class ActionUtilities {
             return null;
         }
 
-        Block block = BuiltInRegistries.BLOCK.get(id);
+        Optional<Reference<Block>> optBlock = BuiltInRegistries.BLOCK.get(id); 
+        if(optBlock.isEmpty())
+        	return null;
+        Block block = optBlock.get().value();
+        
         if (block == null || block.defaultBlockState().is(BlockTags.AIR)) {
             logPlayerWallFailureOnce("Player wall block '" + wallBlockString + "' is not a Block or resolves to AIR.");
             return null;
